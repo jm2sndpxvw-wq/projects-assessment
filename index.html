@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Projects Assessment – Real Estate Team</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --bg-alt: #151921;
+      --bg-alt-soft: #1b2029;
+      --primary: #4f8cff;
+      --primary-soft: #223455;
+      --text: #f5f7fb;
+      --text-muted: #9aa4c0;
+      --danger: #ff4b5c;
+      --warning: #ffbf47;
+      --success: #28c76f;
+      --border: #252c3a;
+      --card-radius: 10px;
+      --shadow-soft: 0 8px 20px rgba(0,0,0,0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #1a2134 0, #05060a 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1280px;
+      background: linear-gradient(135deg, #090b10 0, #111623 45%, #090b10 100%);
+      border-radius: 18px;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    /* Sidebar */
+
+    .sidebar {
+      background: radial-gradient(circle at top left, #20263a 0, #070910 55%);
+      border-right: 1px solid var(--border);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .app-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-title span.logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 30% 0, #7c8cff, #3a4bff, #141633);
+      box-shadow: 0 0 18px rgba(79,140,255,0.55);
+      font-size: 14px;
+    }
+
+    .app-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .team-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+
+    .team-header span {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .team-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .team-item {
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(16,21,34,0.9);
+      border: 1px solid transparent;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.18s ease;
+      position: relative;
+    }
+
+    .team-item.active {
+      border-color: var(--primary);
+      background: radial-gradient(circle at 0 0, #27345c 0, #131723 48%);
+      box-shadow: 0 0 0 1px rgba(79,140,255,0.4);
+    }
+
+    .team-item:hover {
+      background: #171c29;
+    }
+
+    .team-main {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .team-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .team-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .team-score-pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .pill-red { color: var(--danger); border-color: rgba(255,75,92,0.65); }
+    .pill-yellow { color: var(--warning); border-color: rgba(255,191,71,0.7); }
+    .pill-green { color: var(--success); border-color: rgba(40,199,111,0.7); }
+
+    .add-team {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .add-team input {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(8,10,16,0.9);
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+    }
+
+    .add-team button {
+      border-radius: 999px;
+      padding: 0 10px;
+      font-size: 11px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .add-team button:hover {
+      background: #3a70ff;
+    }
+
+    .hint-mini {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255,255,255,0.07);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-footer strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Main content */
+
+    .main {
+      padding: 18px 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .main-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .main-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .main-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .main-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(8,10,16,0.9);
+      color: var(--text);
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: 0.18s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: rgba(79,140,255,0.9);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #3a70ff; }
+    .btn:hover { background: #171c29; }
+
+    .filters-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .filters-row select {
+      background: var(--bg-alt);
+      color: var(--text);
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      font-size: 11px;
+      outline: none;
+    }
+
+    .chip {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 10px;
+    }
+
+    .chip-soft {
+      background: rgba(255,255,255,0.02);
+      border-style: dashed;
+    }
+
+    /* Form + cards layout */
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+      gap: 12px;
+      margin-top: 6px;
+      height: calc(100% - 60px);
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--bg-alt);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .panel-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin-top: 2px;
+      max-height: 100%;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .field label {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .field input,
+    .field textarea {
+      background: #0d1017;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 5px 7px;
+      font-size: 11px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .field textarea {
+      min-height: 40px;
+      resize: vertical;
+    }
+
+    .score-input {
+      width: 100%;
+    }
+
+    .score-input::-webkit-outer-spin-button,
+    .score-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px 8px;
+    }
+
+    .field small {
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .submit-row .btn {
+      flex: 1;
+      justify-content: center;
+    }
+
+    .projects-panel {
+      position: relative;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cards-list {
+      margin-top: 4px;
+      overflow-y: auto;
+      padding-right: 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card {
+      background: var(--bg-alt-soft);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255,255,255,0.12);
+      background: #191f2b;
+    }
+
+    .card.reassessed {
+      box-shadow: 0 0 0 1px rgba(40,199,111,0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .card-tag {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .tag-red { color: var(--danger); border-color: rgba(255,75,92,0.7); }
+    .tag-yellow { color: var(--warning); border-color: rgba(255,191,71,0.7); }
+    .tag-green { color: var(--success); border-color: rgba(40,199,111,0.7); }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .card-footer span.bold {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .details {
+      margin-top: 4px;
+      border-top: 1px dashed rgba(255,255,255,0.08);
+      padding-top: 4px;
+      display: none;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .details-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 3px 10px;
+      margin-top: 2px;
+    }
+
+    .details-row span {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .details-row span strong {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .card.open .details {
+      display: block;
+    }
+
+    .training-panel {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .training-list {
+      font-size: 10px;
+      line-height: 1.4;
+      max-height: 90px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .training-list div {
+      margin-bottom: 2px;
+    }
+
+    .empty-state {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 12px 4px;
+      text-align: center;
+    }
+
+    .region-summary {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .region-summary span {
+      margin-right: 6px;
+    }
+
+    /* Scrollbar */
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #303545;
+      border-radius: 999px;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+      }
+      .content-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div>
+        <div class="app-title">
+          <span class="logo">BR</span>
+          <div>
+            Bold Routes – Projects Assessment
+            <div class="app-sub">Dark mode • Compact • Team based</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="team-header">
+        <span>Team members</span>
+      </div>
+      <div class="team-list" id="teamList"></div>
+
+      <div class="add-team">
+        <input id="newMemberInput" placeholder="Add new member..." />
+        <button id="addMemberBtn" type="button">Add</button>
+      </div>
+      <div class="hint-mini">Long press on member name to delete 🗑️</div>
+
+      <div class="sidebar-footer">
+        <div>
+          <strong>Color codes (Project):</strong><br />
+          🟥 &lt; 60% – Needs training<br />
+          🟨 60–79% – Average<br />
+          🟩 ≥ 80% – Confident
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="main-header">
+        <div class="main-header-left">
+          <div class="main-title" id="currentMemberTitle">Select team member</div>
+          <div class="main-sub" id="currentMemberSub">
+            Choose a team member from the left to start assessment.
+          </div>
+        </div>
+        <div class="main-actions">
+          <button class="btn" id="exportBtn" type="button">Export PDF (Current member)</button>
+        </div>
+      </div>
+
+      <div class="filters-row">
+        <span>Region:</span>
+        <select id="regionFilter">
+          <option value="all">All regions</option>
+        </select>
+        <span class="chip chip-soft" id="regionStats">No projects yet</span>
+      </div>
+
+      <div class="content-grid">
+        <!-- LEFT: FORM -->
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title" id="formTitle">New Project Assessment</div>
+              <div class="panel-sub">Rate each point from 0 to 10 (English labels)</div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Project name</label>
+              <input id="projectName" placeholder="e.g. New Zayed Lakes" />
+            </div>
+
+            <div class="field">
+              <label>Region / Area</label>
+              <input id="projectRegion" placeholder="e.g. New Zayed, NAC..." />
+            </div>
+
+            <div class="scores-grid">
+              <div class="field">
+                <label>Development</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreDevelopment" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Location</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreLocation" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Masterplan</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreMasterplan" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Facilities</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreFacilities" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Type mix</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreType" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Price positioning</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scorePrice" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Payment plan</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scorePayment" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Delivery date</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreDelivery" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Finishing quality</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreFinishing" placeholder="0–10" />
+              </div>
+              <div class="field">
+                <label>Maintenance (deposit)</label>
+                <input type="number" min="0" max="10" step="0.5"
+                       class="score-input" id="scoreMaintenance" placeholder="0–10" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Notes (optional)</label>
+              <textarea id="projectNotes"
+                        placeholder="Any remarks, red flags, comparison with competitors..."></textarea>
+            </div>
+
+            <div class="submit-row">
+              <button class="btn btn-primary" id="addProjectBtn" type="button">
+                Save project
+              </button>
+              <button class="btn" id="cancelEditBtn" type="button">
+                Cancel edit
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: CARDS + TRAINING -->
+        <section class="panel projects-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Projects & Scores</div>
+              <div class="panel-sub">
+                Click on a card to expand details – filtered by region.
+              </div>
+            </div>
+          </div>
+
+          <div class="cards-list" id="projectsList">
+            <div class="empty-state">No projects yet. Add a new assessment on the left.</div>
+          </div>
+
+          <div class="training-panel">
+            <div><strong>خطة التدريب (أوتوماتيك):</strong></div>
+            <div class="training-list" id="trainingList">
+              لسه مافيش داتا كفاية دلوقتي.
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "br_assessment_v3";
+
+    let state = {
+      members: [],
+      selectedMemberId: null
+    };
+
+    let editingProjectId = null;
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          state = JSON.parse(raw);
+        } catch (e) {
+          console.error("Failed to parse state", e);
+        }
+      }
+      if (!state.members) state.members = [];
+      if (!state.selectedMemberId && state.members.length > 0) {
+        state.selectedMemberId = state.members[0].id;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(16).slice(2);
+    }
+
+    // Elements
+    const teamListEl = document.getElementById("teamList");
+    const newMemberInput = document.getElementById("newMemberInput");
+    const addMemberBtn = document.getElementById("addMemberBtn");
+    const currentMemberTitle = document.getElementById("currentMemberTitle");
+    const currentMemberSub = document.getElementById("currentMemberSub");
+    const regionFilter = document.getElementById("regionFilter");
+    const regionStats = document.getElementById("regionStats");
+    const projectsListEl = document.getElementById("projectsList");
+    const trainingListEl = document.getElementById("trainingList");
+    const exportBtn = document.getElementById("exportBtn");
+
+    const projectNameEl = document.getElementById("projectName");
+    const projectRegionEl = document.getElementById("projectRegion");
+    const projectNotesEl = document.getElementById("projectNotes");
+    const addProjectBtn = document.getElementById("addProjectBtn");
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
+    const formTitleEl = document.getElementById("formTitle");
+    const defaultFormTitle = formTitleEl.textContent;
+
+    const scoreIds = [
+      "scoreDevelopment",
+      "scoreLocation",
+      "scoreMasterplan",
+      "scoreFacilities",
+      "scoreType",
+      "scorePrice",
+      "scorePayment",
+      "scoreDelivery",
+      "scoreFinishing",
+      "scoreMaintenance"
+    ];
+
+    function getCurrentMember() {
+      return state.members.find(m => m.id === state.selectedMemberId) || null;
+    }
+
+    // Compute average
+    function computeMemberAverage(member) {
+      const projects = member.projects || [];
+      if (projects.length === 0) return 0;
+      let sum = 0;
+      projects.forEach(p => {
+        sum += p.overallPercent || 0;
+      });
+      return sum / projects.length;
+    }
+
+    // Render team
+    function renderTeamList() {
+      teamListEl.innerHTML = "";
+      if (state.members.length === 0) {
+        const div = document.createElement("div");
+        div.className = "empty-state";
+        div.textContent = "Add your team members to start.";
+        teamListEl.appendChild(div);
+        currentMemberTitle.textContent = "Select team member";
+        currentMemberSub.textContent =
+          "Choose a team member from the left to start assessment.";
+        return;
+      }
+
+      state.members.forEach(member => {
+        const item = document.createElement("div");
+        item.className =
+          "team-item" +
+          (member.id === state.selectedMemberId ? " active" : "");
+        item.dataset.id = member.id;
+
+        const main = document.createElement("div");
+        main.className = "team-main";
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "team-name";
+        nameEl.textContent = member.name;
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "team-meta";
+        const projectsCount = member.projects?.length || 0;
+        metaEl.textContent =
+          projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+
+        main.appendChild(nameEl);
+        main.appendChild(metaEl);
+
+        const pill = document.createElement("div");
+        pill.className = "team-score-pill";
+        const avg = computeMemberAverage(member);
+        if (projectsCount === 0) {
+          pill.textContent = "No score";
+          pill.classList.add("pill-yellow");
+        } else {
+          pill.textContent = `${avg.toFixed(0)}%`;
+          if (avg < 60) pill.classList.add("pill-red");
+          else if (avg < 80) pill.classList.add("pill-yellow");
+          else pill.classList.add("pill-green");
+        }
+
+        item.appendChild(main);
+        item.appendChild(pill);
+
+        // Long press delete (mouse + touch)
+        let pressTimer = null;
+        let longPressed = false;
+
+        item.addEventListener("pointerdown", () => {
+          longPressed = false;
+          pressTimer = setTimeout(() => {
+            const ok = confirm(
+              `تمسح ${member.name} وكل التقييمات بتاعته؟`
+            );
+            if (ok) {
+              longPressed = true;
+              state.members = state.members.filter(m => m.id !== member.id);
+              if (state.selectedMemberId === member.id) {
+                state.selectedMemberId = state.members[0]?.id || null;
+              }
+              saveState();
+              renderAll();
+            } else {
+              longPressed = false;
+            }
+          }, 650);
+        });
+
+        ["pointerup", "pointerleave", "pointercancel"].forEach(ev => {
+          item.addEventListener(ev, () => {
+            if (pressTimer) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+            }
+          });
+        });
+
+        // Normal click = select member
+        item.addEventListener("click", () => {
+          if (longPressed) return;
+          state.selectedMemberId = member.id;
+          saveState();
+          renderAll();
+        });
+
+        teamListEl.appendChild(item);
+      });
+    }
+
+    // Region filter + stats
+    function renderRegionFilterAndStats(member) {
+      const projects = member?.projects || [];
+      const regions = Array.from(
+        new Set(
+          projects
+            .map(p => (p.region || "").trim())
+            .filter(Boolean)
+        )
+      );
+
+      const currentValue = regionFilter.value || "all";
+      regionFilter.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "all";
+      allOpt.textContent = "All regions";
+      regionFilter.appendChild(allOpt);
+
+      regions.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r;
+        regionFilter.appendChild(opt);
+      });
+
+      if (!regions.includes(currentValue) && currentValue !== "all") {
+        regionFilter.value = "all";
+      } else {
+        regionFilter.value = currentValue;
+      }
+
+      if (projects.length === 0) {
+        regionStats.textContent = "No projects yet";
+        return;
+      }
+
+      const selectedRegion = regionFilter.value;
+      if (selectedRegion === "all") {
+        const avg = computeMemberAverage(member);
+        regionStats.textContent = `Overall: ${avg.toFixed(
+          1
+        )}% for ${projects.length} project(s)`;
+      } else {
+        const filtered = projects.filter(
+          p => (p.region || "").trim() === selectedRegion
+        );
+        if (filtered.length === 0) {
+          regionStats.textContent = `No projects yet in ${selectedRegion}`;
+        } else {
+          const sum = filtered.reduce(
+            (acc, p) => acc + (p.overallPercent || 0),
+            0
+          );
+          const avg = sum / filtered.length;
+          regionStats.textContent = `${selectedRegion}: ${avg.toFixed(
+            1
+          )}% over ${filtered.length} project(s)`;
+        }
+      }
+    }
+
+    function tagFromPercent(percent) {
+      if (percent < 60)
+        return { text: "Needs Training", className: "tag-red" };
+      if (percent < 80)
+        return { text: "Average", className: "tag-yellow" };
+      return { text: "Confident", className: "tag-green" };
+    }
+
+    // Load project into form for editing
+    function startEditProject(project) {
+      editingProjectId = project.id;
+      formTitleEl.textContent = `Editing: ${project.name || "project"}`;
+      projectNameEl.value = project.name || "";
+      projectRegionEl.value = project.region || "";
+      projectNotesEl.value = project.notes || "";
+
+      const s = project.scores || {};
+      document.getElementById("scoreDevelopment").value =
+        typeof s.development === "number" ? s.development : "";
+      document.getElementById("scoreLocation").value =
+        typeof s.location === "number" ? s.location : "";
+      document.getElementById("scoreMasterplan").value =
+        typeof s.masterplan === "number" ? s.masterplan : "";
+      document.getElementById("scoreFacilities").value =
+        typeof s.facilities === "number" ? s.facilities : "";
+      document.getElementById("scoreType").value =
+        typeof s.type === "number" ? s.type : "";
+      document.getElementById("scorePrice").value =
+        typeof s.price === "number" ? s.price : "";
+      document.getElementById("scorePayment").value =
+        typeof s.payment === "number" ? s.payment : "";
+      document.getElementById("scoreDelivery").value =
+        typeof s.delivery === "number" ? s.delivery : "";
+      document.getElementById("scoreFinishing").value =
+        typeof s.finishing === "number" ? s.finishing : "";
+      document.getElementById("scoreMaintenance").value =
+        typeof s.maintenance === "number" ? s.maintenance : "";
+    }
+
+    // Render projects + training
+    function renderProjectsList(member) {
+      projectsListEl.innerHTML = "";
+      if (!member || !member.projects || member.projects.length === 0) {
+        const div = document.createElement("div");
+        div.className = "empty-state";
+        div.textContent =
+          "No projects yet. Add a new assessment on the left.";
+        projectsListEl.appendChild(div);
+        trainingListEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
+        return;
+      }
+
+      const selectedRegion = regionFilter.value || "all";
+      const projects = member.projects.filter(p =>
+        selectedRegion === "all"
+          ? true
+          : (p.region || "").trim() === selectedRegion
+      );
+
+      if (projects.length === 0) {
+        const div = document.createElement("div");
+        div.className = "empty-state";
+        div.textContent = "No projects in this region yet.";
+        projectsListEl.appendChild(div);
+      } else {
+        projects
+          .slice()
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .forEach(project => {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.dataset.id = project.id;
+
+            if (typeof project.lastDelta === "number") {
+              card.classList.add("reassessed");
+            }
+
+            const header = document.createElement("div");
+            header.className = "card-header";
+
+            const titleBlock = document.createElement("div");
+            titleBlock.className = "card-title-block";
+
+            const title = document.createElement("div");
+            title.className = "card-title";
+            title.textContent = project.name || "Untitled project";
+
+            const subtitle = document.createElement("div");
+            subtitle.className = "card-subtitle";
+            subtitle.textContent = project.region
+              ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
+              : `${project.overallPercent.toFixed(1)}% overall`;
+
+            titleBlock.appendChild(title);
+            titleBlock.appendChild(subtitle);
+
+            const tagEl = document.createElement("div");
+            const tagInfo = tagFromPercent(project.overallPercent);
+            tagEl.className = "card-tag " + tagInfo.className;
+            tagEl.textContent = tagInfo.text;
+
+            header.appendChild(titleBlock);
+            header.appendChild(tagEl);
+
+            const footer = document.createElement("div");
+            footer.className = "card-footer";
+
+            const created = document.createElement("span");
+            const date = new Date(project.createdAt || Date.now());
+            created.textContent = `Added: ${date.toLocaleDateString()}`;
+
+            const scoreSpan = document.createElement("span");
+            scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(
+              1
+            )}%</span> avg (0–10 scale)`;
+
+            footer.appendChild(created);
+            footer.appendChild(scoreSpan);
+
+            // Reassessment trend (if exists)
+            if (typeof project.lastDelta === "number") {
+              const trend = document.createElement("span");
+              const diff = project.lastDelta;
+              if (diff > 0) {
+                trend.textContent = `Reassessment: Improved +${diff.toFixed(
+                  1
+                )} pts`;
+                trend.style.color = "#28c76f";
+              } else if (diff < 0) {
+                trend.textContent = `Reassessment: Dropped ${diff.toFixed(
+                  1
+                )} pts`;
+                trend.style.color = "#ff4b5c";
+              } else {
+                trend.textContent = "Reassessment: No change";
+                trend.style.color = "#9aa4c0";
+              }
+              footer.appendChild(trend);
+            }
+
+            const details = document.createElement("div");
+            details.className = "details";
+
+            const rows = document.createElement("div");
+            rows.className = "details-row";
+
+            const mapping = [
+              ["Development", project.scores.development],
+              ["Location", project.scores.location],
+              ["Masterplan", project.scores.masterplan],
+              ["Facilities", project.scores.facilities],
+              ["Type mix", project.scores.type],
+              ["Price position", project.scores.price],
+              ["Payment plan", project.scores.payment],
+              ["Delivery", project.scores.delivery],
+              ["Finishing", project.scores.finishing],
+              ["Maintenance", project.scores.maintenance]
+            ];
+
+            mapping.forEach(([label, value]) => {
+              const span = document.createElement("span");
+              const v =
+                typeof value === "number" ? value.toFixed(1) : "-";
+              span.innerHTML = `<strong>${label}</strong><span>${v}/10</span>`;
+              rows.appendChild(span);
+            });
+
+            details.appendChild(rows);
+
+            if (project.notes && project.notes.trim()) {
+              const note = document.createElement("div");
+              note.style.marginTop = "4px";
+              note.textContent = `Notes: ${project.notes}`;
+              details.appendChild(note);
+            }
+
+            card.appendChild(header);
+            card.appendChild(details);
+            card.appendChild(footer);
+
+            // Long press delete for project card
+            let pressTimer = null;
+            let longPressed = false;
+
+            card.addEventListener("pointerdown", () => {
+              longPressed = false;
+              pressTimer = setTimeout(() => {
+                const ok = confirm(
+                  `تمسح المشروع "${project.name}" نهائيًا؟`
+                );
+                if (ok) {
+                  longPressed = true;
+                  member.projects = member.projects.filter(
+                    p => p.id !== project.id
+                  );
+                  saveState();
+                  renderAll();
+                } else {
+                  longPressed = false;
+                }
+              }, 650);
+            });
+
+            ["pointerup", "pointerleave", "pointercancel"].forEach(ev => {
+              card.addEventListener(ev, () => {
+                if (pressTimer) {
+                  clearTimeout(pressTimer);
+                  pressTimer = null;
+                }
+              });
+            });
+
+            // Click: toggle + load into form for editing
+            card.addEventListener("click", () => {
+              if (longPressed) return;
+              card.classList.toggle("open");
+              startEditProject(project);
+            });
+
+            projectsListEl.appendChild(card);
+          });
+      }
+
+      // Training plan (Arabic)
+      const lines = [];
+      member.projects.forEach(project => {
+        const weakPoints = [];
+        const s = project.scores;
+        Object.entries(s).forEach(([key, value]) => {
+          if (value < 7) {
+            let label;
+            switch (key) {
+              case "development":
+                label = "Development";
+                break;
+              case "location":
+                label = "Location";
+                break;
+              case "masterplan":
+                label = "Masterplan";
+                break;
+              case "facilities":
+                label = "Facilities";
+                break;
+              case "type":
+                label = "Type mix";
+                break;
+              case "price":
+                label = "Price positioning";
+                break;
+              case "payment":
+                label = "Payment plan";
+                break;
+              case "delivery":
+                label = "Delivery date";
+                break;
+              case "finishing":
+                label = "Finishing";
+                break;
+              case "maintenance":
+                label = "Maintenance";
+                break;
+              default:
+                label = key;
+            }
+            weakPoints.push(label);
+          }
+        });
+        if (weakPoints.length > 0) {
+          lines.push(
+            `${member.name} – ${project.name}: محتاج يزود مذاكرته في [${weakPoints.join(
+              "، "
+            )}]`
+          );
+        }
+      });
+
+      if (lines.length === 0) {
+        trainingListEl.textContent =
+          "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
+      } else {
+        trainingListEl.innerHTML = "";
+        lines.forEach(l => {
+          const div = document.createElement("div");
+          div.textContent = l;
+          trainingListEl.appendChild(div);
+        });
+      }
+    }
+
+    function renderHeaderForMember(member) {
+      if (!member) {
+        currentMemberTitle.textContent = "Select team member";
+        currentMemberSub.textContent =
+          "Choose a team member from the left to start assessment.";
+        return;
+      }
+      currentMemberTitle.textContent = member.name;
+      const avg = computeMemberAverage(member);
+      currentMemberSub.textContent = `Overall average: ${avg.toFixed(
+        1
+      )}% – ${member.projects.length} project(s) evaluated.`;
+    }
+
+    function clearForm() {
+      projectNameEl.value = "";
+      projectRegionEl.value = "";
+      projectNotesEl.value = "";
+      scoreIds.forEach(id => {
+        const el = document.getElementById(id);
+        el.value = "";
+      });
+      editingProjectId = null;
+      formTitleEl.textContent = defaultFormTitle;
+    }
+
+    // Add member
+    addMemberBtn.addEventListener("click", () => {
+      const name = newMemberInput.value.trim();
+      if (!name) return;
+      const member = {
+        id: uid(),
+        name,
+        projects: []
+      };
+      state.members.push(member);
+      state.selectedMemberId = member.id;
+      newMemberInput.value = "";
+      saveState();
+      renderAll();
+    });
+
+    newMemberInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") addMemberBtn.click();
+    });
+
+    // Add / update project
+    addProjectBtn.addEventListener("click", () => {
+      const member = getCurrentMember();
+      if (!member) {
+        alert("Select a team member first.");
+        return;
+      }
+      const name = projectNameEl.value.trim();
+      const region = projectRegionEl.value.trim();
+      if (!name) {
+        alert("Please enter project name.");
+        return;
+      }
+
+      const scores = {};
+      let sum = 0;
+      let count = 0;
+
+      function parseScore(id, keyName) {
+        const el = document.getElementById(id);
+        const v = parseFloat(el.value);
+        const value = isNaN(v) ? 0 : Math.min(Math.max(v, 0), 10);
+        scores[keyName] = value;
+        sum += value;
+        count += 1;
+      }
+
+      parseScore("scoreDevelopment", "development");
+      parseScore("scoreLocation", "location");
+      parseScore("scoreMasterplan", "masterplan");
+      parseScore("scoreFacilities", "facilities");
+      parseScore("scoreType", "type");
+      parseScore("scorePrice", "price");
+      parseScore("scorePayment", "payment");
+      parseScore("scoreDelivery", "delivery");
+      parseScore("scoreFinishing", "finishing");
+      parseScore("scoreMaintenance", "maintenance");
+
+      const avgScoreOutOf10 = count > 0 ? sum / count : 0;
+      const overallPercent = (avgScoreOutOf10 / 10) * 100;
+
+      let isEdit = false;
+
+      if (editingProjectId) {
+        const existing = member.projects.find(
+          p => p.id === editingProjectId
+        );
+        if (existing) {
+          isEdit = true;
+          const oldOverall = existing.overallPercent || 0;
+          existing.name = name;
+          existing.region = region;
+          existing.scores = scores;
+          existing.notes = projectNotesEl.value.trim();
+          existing.lastReassessedAt = Date.now();
+          existing.lastDelta = overallPercent - oldOverall;
+          existing.overallPercent = overallPercent;
+        }
+      }
+
+      if (!isEdit) {
+        const project = {
+          id: uid(),
+          name,
+          region,
+          scores,
+          notes: projectNotesEl.value.trim(),
+          overallPercent,
+          createdAt: Date.now()
+        };
+        member.projects.push(project);
+      }
+
+      saveState();
+      clearForm();
+      renderAll();
+    });
+
+    // Cancel edit
+    cancelEditBtn.addEventListener("click", () => {
+      clearForm();
+    });
+
+    // Region filter change
+    regionFilter.addEventListener("change", () => {
+      const member = getCurrentMember();
+      renderRegionFilterAndStats(member);
+      renderProjectsList(member);
+    });
+
+    // Export as PDF (print)
+    exportBtn.addEventListener("click", () => {
+      const member = getCurrentMember();
+      if (!member) {
+        alert("Select a team member first.");
+        return;
+      }
+      window.print();
+    });
+
+    function renderAll() {
+      renderTeamList();
+      const member = getCurrentMember();
+      renderHeaderForMember(member);
+      renderRegionFilterAndStats(member);
+      renderProjectsList(member);
+    }
+
+    loadState();
+    renderAll();
+  </script>
+</body>
+</html>
