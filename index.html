@@ -654,6 +654,53 @@
         grid-template-columns: 220px 1fr;
       }
     }
+    @media print {
+  body {
+    background: #05060a;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* نخبي الحاجات اللي مش محتاجينها في الـ PDF */
+  .sidebar,
+  .content-grid > .panel:first-child,
+  .filters-row {
+    display: none !important;
+  }
+
+  .app {
+    max-width: 100%;
+    box-shadow: none;
+    border: none;
+  }
+
+  .main {
+    padding: 0;
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .projects-panel {
+    border: none;
+    background: transparent;
+  }
+
+  .cards-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .card {
+    page-break-inside: avoid;
+  }
+
+  .training-panel {
+    margin-top: 12px;
+  }
+}
   </style>
 </head>
 <body>
