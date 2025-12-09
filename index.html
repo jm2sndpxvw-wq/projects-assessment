@@ -802,6 +802,23 @@
     max-height: none !important;
   }
 }
+@media print {
+  /* خلّي المتصفح يطبع الألوان زي ما هي */
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* بشكل افتراضي خبّي كل الكروت وقت الطباعة */
+  .card {
+    display: none !important;
+  }
+
+  /* واظهر بس الكروت اللي عليها كلاس أقل من 60% */
+  .card.card-under-60 {
+    display: block !important;
+  }
+}
   </style>
 </head>
 <body>
@@ -1290,6 +1307,10 @@
             const card = document.createElement("div");
             card.className = "card";
             card.dataset.id = project.id;
+                // علامه إن المشروع ده أقل من 60% عشان pdf
+    if (project.overallPercent < 60) {
+      card.classList.add("card-under-60");
+    }
 
             if (typeof project.lastDelta === "number") {
               card.classList.add("reassessed");
