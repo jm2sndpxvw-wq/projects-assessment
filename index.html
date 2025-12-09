@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -604,6 +604,55 @@
         height: auto;
       }
     }
+
+    /* ===== PRINT LAYOUT (PDF لكل سيلز لوحده) ===== */
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0;
+      }
+      .app {
+        max-width: 100%;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        grid-template-columns: 1fr; /* نخليها عمود واحد بس */
+      }
+      .sidebar,
+      .filters-row,
+      .submit-row,
+      .add-team,
+      .hint-mini,
+      #exportBtn {
+        display: none !important; /* نخفي التيم كله والزراير من الـ PDF */
+      }
+      .main {
+        padding: 16px;
+      }
+      .projects-panel {
+        overflow: visible;
+      }
+      .cards-list {
+        max-height: none;
+        overflow: visible;
+      }
+      .training-list {
+        max-height: none;
+        overflow: visible;
+      }
+      .btn {
+        display: none !important;
+      }
+      /* نخلي الخلفيات أفتح شوية لو حابب تطبع أبيض وأسود بشكل أنضف */
+      .panel,
+      .card {
+        background: #ffffff !important;
+        border-color: #cccccc !important;
+      }
+      .card-footer span.bold {
+        color: #000000 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -651,7 +700,7 @@
           </div>
         </div>
         <div class="main-actions">
-          <button class="btn" id="exportBtn" type="button">Export PDF (Current member)</button>
+          <button class="btn" id="exportBtn" type="button">Export PDF (current member only)</button>
         </div>
       </div>
 
@@ -1446,7 +1495,7 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print)
+    // Export as PDF (print current member ONLY – مع layout الطباعة الجديد)
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
