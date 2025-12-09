@@ -331,11 +331,6 @@
       overflow: hidden;
     }
 
-    /* دي بانل الفورم اللي هنخفيها في الـ PDF */
-    .form-panel {
-      /* nothing here – بس الكلاس موجود عشان الـ @media print */
-    }
-
     .panel-header {
       display: flex;
       justify-content: space-between;
@@ -610,215 +605,30 @@
       }
     }
 
-    /* ===== PRINT (PDF) STYLES ===== */
+    /* ===== PRINT STYLES ===== */
     @media print {
-      @page {
-        margin: 10mm;
-      }
-
       body {
-        background: #05060a !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        padding: 0;
+        background: radial-gradient(circle at top, #1a2134 0, #05060a 55%) !important;
       }
-
       .app {
-        max-width: 100%;
-        border-radius: 0;
         box-shadow: none;
         border: none;
       }
-
-      .main {
-        padding: 12px 12px 12px 10px;
-      }
-
-      /* إخفاء حاجات مش محتاجينها في الـ PDF */
-      .form-panel,
-      .filters-row,
-      .add-team,
-      .hint-mini,
-      .main-actions,
-      .sidebar-footer {
+      /* أخفي الـ sidebar في الـ PDF */
+      .sidebar {
         display: none !important;
       }
-
-      /* في الـ PDF يظهر عضو الفريق النشط بس */
-      .team-item:not(.active) {
-        display: none !important;
+      /* خلى الجريد عمود واحد في الطباعة */
+      .content-grid {
+        grid-template-columns: 1fr !important;
       }
-
-      /* نخلي الـ sidebar أضيق شوية في الطباعة لو حبيت */
-      .app {
-        grid-template-columns: 220px 1fr;
+      /* أخفي فورم New Project Assessment في الـ PDF */
+      #formPanel {
+        display: none !important;
       }
     }
-    @media print {
-  body {
-    background: #05060a;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* نخبي الحاجات اللي مش محتاجينها في الـ PDF */
-  .sidebar,
-  .content-grid > .panel:first-child,
-  .filters-row {
-    display: none !important;
-  }
-
-  .app {
-    max-width: 100%;
-    box-shadow: none;
-    border: none;
-  }
-
-  .main {
-    padding: 0;
-  }
-
-  .content-grid {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-
-  .projects-panel {
-    border: none;
-    background: transparent;
-  }
-
-  .cards-list {
-    max-height: none;
-    overflow: visible;
-  }
-
-  .card {
-    page-break-inside: avoid;
-  }
-
-  .training-panel {
-    margin-top: 12px;
-  }
-}
-/* ===== PRINT VERSION (PDF) ===== */
-@media print {
-  body {
-    background: #ffffff !important;
-    color: #000 !important;
-  }
-
-  .app {
-    max-width: 100% !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-  }
-
-  /* نخفي الحاجات اللي ملهاش لازمة في الـ PDF */
-  .sidebar { 
-    display: none !important; 
-  }
-
-  .filters-row {
-    margin-bottom: 4px;
-  }
-
-  .main-actions {
-    display: none !important; /* زرار Export وغيره */
-  }
-
-  /* نخفي فورم New Project Assessment في الطباعة */
-  .content-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .content-grid > .panel:first-child {
-    display: none !important; /* panel الفورم */
-  }
-
-  /* نخلي Panel المشاريع تاخد العرض كله */
-  .projects-panel {
-    border: none !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-  }
-
-  /* الكروت نفسها – نخليها أوضح وأصغر شوية */
-  .card {
-    background: #ffffff !important;
-    border: 1px solid #cccccc !important;
-    padding: 6px 7px !important;
-    margin-bottom: 4px;
-    font-size: 10px;
-    page-break-inside: avoid;
-  }
-
-  .card-header .card-title {
-    font-size: 11px !important;
-  }
-
-  .card-subtitle {
-    font-size: 9px !important;
-  }
-
-  .card-footer {
-    font-size: 9px !important;
-  }
-
-  /* نخلي تفاصيل الـ scores دايمًا ظاهرة في الـ PDF */
-  .card .details {
-    display: block !important;
-  }
-
-  .details-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 2px 8px !important;
-  }
-
-  .details-row span {
-    font-size: 9px !important;
-  }
-
-  .details-row span strong {
-    font-size: 9px !important;
-  }
-
-  /* نصغّر الشيب/التاج بتاع اللون */
-  .card-tag {
-    font-size: 9px !important;
-    padding: 2px 6px !important;
-  }
-
-  /* ندي مسافة كويسة للـ Training plan ومانخليهوش يبوظ الصفحة */
-  .training-panel {
-    margin-top: 6px !important;
-    border-top: 1px dashed #ddd;
-    padding-top: 4px;
-  }
-
-  .training-list {
-    max-height: none !important;
-  }
-}
-@media print {
-  /* خلّي المتصفح يطبع الألوان زي ما هي */
-  body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* بشكل افتراضي خبّي كل الكروت وقت الطباعة */
-  .card {
-    display: none !important;
-  }
-
-  /* واظهر بس الكروت اللي عليها كلاس أقل من 60% */
-  .card.card-under-60 {
-    display: block !important;
-  }
-}
   </style>
 </head>
 <body>
@@ -880,7 +690,7 @@
 
       <div class="content-grid">
         <!-- LEFT: FORM -->
-        <section class="panel form-panel">
+        <section class="panel" id="formPanel">
           <div class="panel-header">
             <div>
               <div class="panel-title" id="formTitle">New Project Assessment</div>
@@ -1004,6 +814,7 @@
     };
 
     let editingProjectId = null;
+    let isPrinting = false; // عشان نتحكم في إظهار أول ٥ مشاريع ≤ 60% في الـ PDF بس
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -1288,16 +1099,31 @@
       }
 
       const selectedRegion = regionFilter.value || "all";
-      const projects = member.projects.filter(p =>
+      const allProjects = member.projects || [];
+
+      // فلترة حسب الريجن
+      let projects = allProjects.filter(p =>
         selectedRegion === "all"
           ? true
           : (p.region || "").trim() === selectedRegion
       );
 
+      // لو بنطبع: نعرض أول ٥ مشاريع بس اللي ≤ 60%
+      if (isPrinting) {
+        projects = projects
+          .filter(p => (p.overallPercent || 0) <= 60)
+          .sort((a, b) => (a.overallPercent || 0) - (b.overallPercent || 0))
+          .slice(0, 5);
+      }
+
       if (projects.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects in this region yet.";
+        if (isPrinting) {
+          div.textContent = "No projects with score ≤ 60% for this selection.";
+        } else {
+          div.textContent = "No projects in this region yet.";
+        }
         projectsListEl.appendChild(div);
       } else {
         projects
@@ -1307,10 +1133,6 @@
             const card = document.createElement("div");
             card.className = "card";
             card.dataset.id = project.id;
-                // علامه إن المشروع ده أقل من 60% عشان pdf
-    if (project.overallPercent < 60) {
-      card.classList.add("card-under-60");
-    }
 
             if (typeof project.lastDelta === "number") {
               card.classList.add("reassessed");
@@ -1462,7 +1284,7 @@
           });
       }
 
-      // Training plan (Arabic)
+      // Training plan (Arabic) – على كل المشاريع مش بس اللي ≤60
       const lines = [];
       member.projects.forEach(project => {
         const weakPoints = [];
@@ -1616,14 +1438,14 @@
       const avgScoreOutOf10 = count > 0 ? sum / count : 0;
       const overallPercent = (avgScoreOutOf10 / 10) * 100;
 
-      let isEdit = false;
+      let isEditProject = false;
 
       if (editingProjectId) {
         const existing = member.projects.find(
           p => p.id === editingProjectId
         );
         if (existing) {
-          isEdit = true;
+          isEditProject = true;
           const oldOverall = existing.overallPercent || 0;
           existing.name = name;
           existing.region = region;
@@ -1635,7 +1457,7 @@
         }
       }
 
-      if (!isEdit) {
+      if (!isEditProject) {
         const project = {
           id: uid(),
           name,
@@ -1665,24 +1487,20 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print)
+    // Export as PDF (print) – مع فلترة أول ٥ مشاريع ≤ 60%
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
         alert("Select a team member first.");
         return;
       }
-
-      // افتح كل الكروت عشان كل التفاصيل تبان في الـ PDF
-      document.querySelectorAll(".card").forEach(card => {
-        card.classList.add("open");
-      });
-
-      // ندي لحظة بسيطة للـ layout يتظبط وبعدين نطبع
-      setTimeout(() => {
-        window.print();
-      }, 50);
+      isPrinting = true;
+      renderProjectsList(member);   // يعرض بس المشاريع الضعيفة
+      window.print();
+      isPrinting = false;
+      renderProjectsList(member);   // يرجّع العرض الطبيعي على الشاشة
     });
+
     function renderAll() {
       renderTeamList();
       const member = getCurrentMember();
