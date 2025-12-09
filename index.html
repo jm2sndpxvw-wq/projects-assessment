@@ -609,55 +609,59 @@
       }
     }
 
-    /* ====== PRINT STYLES ====== */
+    /* ====== PRINT MODE VIA CLASS (MORE RELIABLE) ====== */
+
+    body.printing {
+      background: #05060a !important;
+    }
+
+    body.printing .app,
+    body.printing .sidebar,
+    body.printing .main,
+    body.printing .panel,
+    body.printing .card,
+    body.printing .team-item.active,
+    body.printing .filters-row,
+    body.printing .training-panel {
+      background-color: #111623 !important;
+      color: #f5f7fb !important;
+    }
+
+    /* اخفي فورم ال assessment وقت الطباعة */
+    body.printing .content-grid {
+      grid-template-columns: 1fr !important;
+    }
+    body.printing .content-grid > section:first-child {
+      display: none !important;
+    }
+
+    /* إظهار member الحالي فقط في الـ PDF */
+    body.printing .team-item {
+      display: none !important;
+    }
+    body.printing .team-item.active {
+      display: flex !important;
+    }
+    body.printing .add-team,
+    body.printing .hint-mini {
+      display: none !important;
+    }
+
+    /* استخدام ليست خاصة بالطباعة */
+    body.printing #projectsList {
+      display: none !important;
+    }
+    body.printing #printProjectsList {
+      display: flex !important;
+    }
+    body.printing #printProjectsList .card {
+      cursor: default;
+    }
+
     @media print {
       body {
-        background: #05060a !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-      }
-
-      .app,
-      .sidebar,
-      .main,
-      .panel,
-      .card,
-      .team-item.active,
-      .filters-row,
-      .training-panel {
-        background-color: #111623 !important;
-        color: #f5f7fb !important;
-      }
-
-      /* اخفي فورم ال assessment في الـ PDF */
-      .content-grid {
-        grid-template-columns: 1fr !important;
-      }
-      .content-grid > section:first-child {
-        display: none !important;
-      }
-
-      /* إظهار member الحالي فقط */
-      .team-item {
-        display: none !important;
-      }
-      .team-item.active {
-        display: flex !important;
-      }
-      .add-team,
-      .hint-mini {
-        display: none !important;
-      }
-
-      /* استخدم قائمة خاصة للـ PDF */
-      #projectsList {
-        display: none !important;
-      }
-      #printProjectsList {
-        display: flex !important;
-      }
-      #printProjectsList .card {
-        cursor: default;
       }
     }
   </style>
@@ -1120,7 +1124,7 @@
         typeof s.maintenance === "number" ? s.maintenance : "";
     }
 
-    // Render projects + training
+    // Render projects + training (screen)
     function renderProjectsList(member) {
       projectsListEl.innerHTML = "";
       if (!member || !member.projects || member.projects.length === 0) {
@@ -1527,7 +1531,7 @@
       // فلتر اللي 60% أو أقل بس
       const lowProjects = projects
         .filter(p => (p.overallPercent || 0) <= 60)
-        .sort((a, b) => a.overallPercent - b.overallPercent); // من الأقل للأعلى
+        .sort((a, b) => a.overallPercent - b.overallPercent);
 
       const limited = lowProjects.slice(0, 5);
 
@@ -1587,7 +1591,17 @@
         });
       }
 
-      window.print();
+      // نفعل وضع الطباعة (CSS بالـ class)
+      document.body.classList.add("printing");
+
+      // ندي فرصة بسيطة للـ DOM يتحدث قبل الطباعة
+      setTimeout(() => {
+        window.print();
+        // نشيل وضع الطباعة بعد شوية صغيرين
+        setTimeout(() => {
+          document.body.classList.remove("printing");
+        }, 300);
+      }, 100);
     });
 
     function renderAll() {
