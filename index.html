@@ -1000,7 +1000,7 @@
       allName.className = "team-name";
       allName.textContent = "All team";
 
-      const allMeta = document.createElement("div");
+      allMeta.textContent = state.members.length + " team member(s)";
       allMeta.className = "team-meta";
       allMeta.textContent =
         state.members.length + " member(s) • " + totalProjects + " project(s)";
