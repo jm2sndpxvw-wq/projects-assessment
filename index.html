@@ -701,6 +701,107 @@
     margin-top: 12px;
   }
 }
+/* ===== PRINT VERSION (PDF) ===== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000 !important;
+  }
+
+  .app {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* نخفي الحاجات اللي ملهاش لازمة في الـ PDF */
+  .sidebar { 
+    display: none !important; 
+  }
+
+  .filters-row {
+    margin-bottom: 4px;
+  }
+
+  .main-actions {
+    display: none !important; /* زرار Export وغيره */
+  }
+
+  /* نخفي فورم New Project Assessment في الطباعة */
+  .content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-grid > .panel:first-child {
+    display: none !important; /* panel الفورم */
+  }
+
+  /* نخلي Panel المشاريع تاخد العرض كله */
+  .projects-panel {
+    border: none !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  /* الكروت نفسها – نخليها أوضح وأصغر شوية */
+  .card {
+    background: #ffffff !important;
+    border: 1px solid #cccccc !important;
+    padding: 6px 7px !important;
+    margin-bottom: 4px;
+    font-size: 10px;
+    page-break-inside: avoid;
+  }
+
+  .card-header .card-title {
+    font-size: 11px !important;
+  }
+
+  .card-subtitle {
+    font-size: 9px !important;
+  }
+
+  .card-footer {
+    font-size: 9px !important;
+  }
+
+  /* نخلي تفاصيل الـ scores دايمًا ظاهرة في الـ PDF */
+  .card .details {
+    display: block !important;
+  }
+
+  .details-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 2px 8px !important;
+  }
+
+  .details-row span {
+    font-size: 9px !important;
+  }
+
+  .details-row span strong {
+    font-size: 9px !important;
+  }
+
+  /* نصغّر الشيب/التاج بتاع اللون */
+  .card-tag {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* ندي مسافة كويسة للـ Training plan ومانخليهوش يبوظ الصفحة */
+  .training-panel {
+    margin-top: 6px !important;
+    border-top: 1px dashed #ddd;
+    padding-top: 4px;
+  }
+
+  .training-list {
+    max-height: none !important;
+  }
+}
   </style>
 </head>
 <body>
