@@ -545,7 +545,6 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin-top: 4px;
     }
 
     .training-list {
@@ -908,26 +907,10 @@
     ];
 
     function getCurrentMember() {
-      // حالة "All team"
-      if (state.selectedMemberId === "all-team") {
-        const allProjects = [];
-        state.members.forEach(m => {
-          (m.projects || []).forEach(p => {
-            allProjects.push(p);
-          });
-        });
-        return {
-          id: "all-team",
-          name: "All team",
-          isAllTeam: true,
-          projects: allProjects
-        };
-      }
-
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Compute average for a member
+    // Compute average per member
     function computeMemberAverage(member) {
       const projects = member.projects || [];
       if (projects.length === 0) return 0;
@@ -938,22 +921,45 @@
       return sum / projects.length;
     }
 
-    // Compute average for all team
-    function computeTeamAverage(members) {
-      let sum = 0;
-      let count = 0;
-      members.forEach(m => {
-        const projectsCount = m.projects?.length || 0;
+    // NEW: compute "All team" stats
+    function computeAllTeamAverage() {
+      if (!state.members || state.members.length === 0) {
+        return { avg: 0, memberCount: 0, projectCount: 0 };
+      }
+
+      let totalProjects = 0;
+      let sumOfMemberAvgs = 0;
+      let membersWithProjects = 0;
+
+      state.members.forEach(member => {
+        const projectsCount = member.projects?.length || 0;
+        totalProjects += projectsCount;
         if (projectsCount > 0) {
-          const avg = computeMemberAverage(m);
-          sum += avg;
-          count += 1;
+          const memberAvg = computeMemberAverage(member);
+          sumOfMemberAvgs += memberAvg;
+          membersWithProjects += 1;
         }
       });
-      return count === 0 ? 0 : sum / count;
+
+      const avg =
+        membersWithProjects === 0 ? 0 : sumOfMemberAvgs / membersWithProjects;
+
+      return {
+        avg,
+        memberCount: state.members.length,
+        projectCount: totalProjects
+      };
     }
 
-    // Render team (with All team)
+    function tagFromPercent(percent) {
+      if (percent < 60)
+        return { text: "Needs Training", className: "tag-red" };
+      if (percent < 80)
+        return { text: "Average", className: "tag-yellow" };
+      return { text: "Confident", className: "tag-green" };
+    }
+
+    // Render team
     function renderTeamList() {
       teamListEl.innerHTML = "";
       if (state.members.length === 0) {
@@ -967,12 +973,11 @@
         return;
       }
 
-      // All team item أول واحد
+      // ===== All team summary row (non-clickable) =====
+      const allStats = computeAllTeamAverage();
       const allItem = document.createElement("div");
-      allItem.className =
-        "team-item" +
-        (state.selectedMemberId === "all-team" ? " active" : "");
-      allItem.dataset.id = "all-team";
+      allItem.className = "team-item";
+      allItem.style.cursor = "default"; // مش clickable
 
       const allMain = document.createElement("div");
       allMain.className = "team-main";
@@ -983,32 +988,32 @@
 
       const allMetaEl = document.createElement("div");
       allMetaEl.className = "team-meta";
-      allMetaEl.textContent =
-        state.members.length + " member" + (state.members.length !== 1 ? "s" : "");
+      if (allStats.projectCount === 0) {
+        allMetaEl.textContent = `${allStats.memberCount} member(s), no projects yet`;
+      } else {
+        allMetaEl.textContent = `${allStats.memberCount} member(s) • ${allStats.projectCount} project(s)`;
+      }
 
       allMain.appendChild(allNameEl);
       allMain.appendChild(allMetaEl);
 
       const allPill = document.createElement("div");
       allPill.className = "team-score-pill";
-      const teamAvg = computeTeamAverage(state.members);
-      allPill.textContent = `${teamAvg.toFixed(0)}%`;
-      if (teamAvg < 60) allPill.classList.add("pill-red");
-      else if (teamAvg < 80) allPill.classList.add("pill-yellow");
-      else allPill.classList.add("pill-green");
+      if (allStats.projectCount === 0) {
+        allPill.textContent = "No score";
+        allPill.classList.add("pill-yellow");
+      } else {
+        allPill.textContent = `${allStats.avg.toFixed(0)}%`;
+        if (allStats.avg < 60) allPill.classList.add("pill-red");
+        else if (allStats.avg < 80) allPill.classList.add("pill-yellow");
+        else allPill.classList.add("pill-green");
+      }
 
       allItem.appendChild(allMain);
       allItem.appendChild(allPill);
-
-      allItem.addEventListener("click", () => {
-        state.selectedMemberId = "all-team";
-        saveState();
-        renderAll();
-      });
-
       teamListEl.appendChild(allItem);
+      // ===== end All team row =====
 
-      // باقي الأعضاء
       state.members.forEach(member => {
         const item = document.createElement("div");
         item.className =
@@ -1062,7 +1067,7 @@
               longPressed = true;
               state.members = state.members.filter(m => m.id !== member.id);
               if (state.selectedMemberId === member.id) {
-                state.selectedMemberId = state.members[0]?.id || "all-team";
+                state.selectedMemberId = state.members[0]?.id || null;
               }
               saveState();
               renderAll();
@@ -1152,14 +1157,6 @@
           )}% over ${filtered.length} project(s)`;
         }
       }
-    }
-
-    function tagFromPercent(percent) {
-      if (percent < 60)
-        return { text: "Needs Training", className: "tag-red" };
-      if (percent < 80)
-        return { text: "Average", className: "tag-yellow" };
-      return { text: "Confident", className: "tag-green" };
     }
 
     // Load project into form for editing
@@ -1334,47 +1331,44 @@
             card.appendChild(details);
             card.appendChild(footer);
 
-            // لو All team: منغيرش في الداتا، ماينفعش نعدّل من هنا
-            if (!member.isAllTeam) {
-              // Long press delete for project card
-              let pressTimer = null;
-              let longPressed = false;
+            // Long press delete for project card
+            let pressTimer = null;
+            let longPressed = false;
 
-              card.addEventListener("pointerdown", () => {
-                longPressed = false;
-                pressTimer = setTimeout(() => {
-                  const ok = confirm(
-                    `تمسح المشروع "${project.name}" نهائيًا؟`
+            card.addEventListener("pointerdown", () => {
+              longPressed = false;
+              pressTimer = setTimeout(() => {
+                const ok = confirm(
+                  `تمسح المشروع "${project.name}" نهائيًا؟`
+                );
+                if (ok) {
+                  longPressed = true;
+                  member.projects = member.projects.filter(
+                    p => p.id !== project.id
                   );
-                  if (ok) {
-                    longPressed = true;
-                    member.projects = member.projects.filter(
-                      p => p.id !== project.id
-                    );
-                    saveState();
-                    renderAll();
-                  } else {
-                    longPressed = false;
-                  }
-                }, 650);
-              });
+                  saveState();
+                  renderAll();
+                } else {
+                  longPressed = false;
+                }
+              }, 650);
+            });
 
-              ["pointerup", "pointerleave", "pointercancel"].forEach(ev => {
-                card.addEventListener(ev, () => {
-                  if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                  }
-                });
+            ["pointerup", "pointerleave", "pointercancel"].forEach(ev => {
+              card.addEventListener(ev, () => {
+                if (pressTimer) {
+                  clearTimeout(pressTimer);
+                  pressTimer = null;
+                }
               });
+            });
 
-              // Click: toggle + load into form for editing
-              card.addEventListener("click", () => {
-                if (longPressed) return;
-                card.classList.toggle("open");
-                startEditProject(project);
-              });
-            }
+            // Click: toggle + load into form for editing
+            card.addEventListener("click", () => {
+              if (longPressed) return;
+              card.classList.toggle("open");
+              startEditProject(project);
+            });
 
             projectsListEl.appendChild(card);
           });
@@ -1454,21 +1448,6 @@
           "Choose a team member from the left to start assessment.";
         return;
       }
-
-      // حالة All team
-      if (member.isAllTeam) {
-        const teamAvg = computeTeamAverage(state.members);
-        let totalProjects = 0;
-        state.members.forEach(m => {
-          totalProjects += m.projects?.length || 0;
-        });
-        currentMemberTitle.textContent = "All team";
-        currentMemberSub.textContent = `Team average: ${teamAvg.toFixed(
-          1
-        )}% – ${state.members.length} member(s), ${totalProjects} project(s).`;
-        return;
-      }
-
       currentMemberTitle.textContent = member.name;
       const avg = computeMemberAverage(member);
       currentMemberSub.textContent = `Overall average: ${avg.toFixed(
@@ -1511,9 +1490,8 @@
     // Add / update project
     addProjectBtn.addEventListener("click", () => {
       const member = getCurrentMember();
-      // ممنوع نضيف من وضع All team
-      if (!member || member.isAllTeam) {
-        alert("Select a specific team member first.");
+      if (!member) {
+        alert("Select a team member first.");
         return;
       }
       const name = projectNameEl.value.trim();
