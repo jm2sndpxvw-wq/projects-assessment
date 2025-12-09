@@ -1550,9 +1550,17 @@
         alert("Select a team member first.");
         return;
       }
-      window.print();
-    });
 
+      // افتح كل الكروت عشان كل التفاصيل تبان في الـ PDF
+      document.querySelectorAll(".card").forEach(card => {
+        card.classList.add("open");
+      });
+
+      // ندي لحظة بسيطة للـ layout يتظبط وبعدين نطبع
+      setTimeout(() => {
+        window.print();
+      }, 50);
+    });
     function renderAll() {
       renderTeamList();
       const member = getCurrentMember();
