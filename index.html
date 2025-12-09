@@ -545,6 +545,19 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      margin-top: 4px;
+    }
+
+    .training-block {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px dashed rgba(255,255,255,0.12);
+    }
+
+    .training-block-title {
+      font-size: 10px;
+      margin-bottom: 2px;
+      color: var(--text);
     }
 
     .training-list {
@@ -830,8 +843,19 @@
 
           <div class="training-panel">
             <div><strong>خطة التدريب (أوتوماتيك):</strong></div>
-            <div class="training-list" id="trainingList">
-              لسه مافيش داتا كفاية دلوقتي.
+
+            <div class="training-block">
+              <div class="training-block-title">1) نقاط محتاجة تقوية حسب كل مشروع</div>
+              <div class="training-list" id="trainingListByProject">
+                لسه مافيش داتا كفاية دلوقتي.
+              </div>
+            </div>
+
+            <div class="training-block">
+              <div class="training-block-title">2) نقاط حرجة (≤ 5/10 على مستوى كل المشاريع)</div>
+              <div class="training-list" id="trainingListGlobal">
+                لسه مافيش داتا كفاية دلوقتي.
+              </div>
             </div>
           </div>
         </section>
@@ -882,7 +906,8 @@
     const regionStats = document.getElementById("regionStats");
     const projectsListEl = document.getElementById("projectsList");
     const printProjectsListEl = document.getElementById("printProjectsList");
-    const trainingListEl = document.getElementById("trainingList");
+    const trainingListByProjectEl = document.getElementById("trainingListByProject");
+    const trainingListGlobalEl = document.getElementById("trainingListGlobal");
     const exportBtn = document.getElementById("exportBtn");
 
     const projectNameEl = document.getElementById("projectName");
@@ -910,7 +935,7 @@
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Compute average per member
+    // Compute average
     function computeMemberAverage(member) {
       const projects = member.projects || [];
       if (projects.length === 0) return 0;
@@ -919,44 +944,6 @@
         sum += p.overallPercent || 0;
       });
       return sum / projects.length;
-    }
-
-    // NEW: compute "All team" stats
-    function computeAllTeamAverage() {
-      if (!state.members || state.members.length === 0) {
-        return { avg: 0, memberCount: 0, projectCount: 0 };
-      }
-
-      let totalProjects = 0;
-      let sumOfMemberAvgs = 0;
-      let membersWithProjects = 0;
-
-      state.members.forEach(member => {
-        const projectsCount = member.projects?.length || 0;
-        totalProjects += projectsCount;
-        if (projectsCount > 0) {
-          const memberAvg = computeMemberAverage(member);
-          sumOfMemberAvgs += memberAvg;
-          membersWithProjects += 1;
-        }
-      });
-
-      const avg =
-        membersWithProjects === 0 ? 0 : sumOfMemberAvgs / membersWithProjects;
-
-      return {
-        avg,
-        memberCount: state.members.length,
-        projectCount: totalProjects
-      };
-    }
-
-    function tagFromPercent(percent) {
-      if (percent < 60)
-        return { text: "Needs Training", className: "tag-red" };
-      if (percent < 80)
-        return { text: "Average", className: "tag-yellow" };
-      return { text: "Confident", className: "tag-green" };
     }
 
     // Render team
@@ -972,47 +959,6 @@
           "Choose a team member from the left to start assessment.";
         return;
       }
-
-      // ===== All team summary row (non-clickable) =====
-      const allStats = computeAllTeamAverage();
-      const allItem = document.createElement("div");
-      allItem.className = "team-item";
-      allItem.style.cursor = "default"; // مش clickable
-
-      const allMain = document.createElement("div");
-      allMain.className = "team-main";
-
-      const allNameEl = document.createElement("div");
-      allNameEl.className = "team-name";
-      allNameEl.textContent = "All team";
-
-      const allMetaEl = document.createElement("div");
-      allMetaEl.className = "team-meta";
-      if (allStats.projectCount === 0) {
-        allMetaEl.textContent = `${allStats.memberCount} member(s), no projects yet`;
-      } else {
-        allMetaEl.textContent = `${allStats.memberCount} member(s) • ${allStats.projectCount} project(s)`;
-      }
-
-      allMain.appendChild(allNameEl);
-      allMain.appendChild(allMetaEl);
-
-      const allPill = document.createElement("div");
-      allPill.className = "team-score-pill";
-      if (allStats.projectCount === 0) {
-        allPill.textContent = "No score";
-        allPill.classList.add("pill-yellow");
-      } else {
-        allPill.textContent = `${allStats.avg.toFixed(0)}%`;
-        if (allStats.avg < 60) allPill.classList.add("pill-red");
-        else if (allStats.avg < 80) allPill.classList.add("pill-yellow");
-        else allPill.classList.add("pill-green");
-      }
-
-      allItem.appendChild(allMain);
-      allItem.appendChild(allPill);
-      teamListEl.appendChild(allItem);
-      // ===== end All team row =====
 
       state.members.forEach(member => {
         const item = document.createElement("div");
@@ -1159,6 +1105,30 @@
       }
     }
 
+    function tagFromPercent(percent) {
+      if (percent < 60)
+        return { text: "Needs Training", className: "tag-red" };
+      if (percent < 80)
+        return { text: "Average", className: "tag-yellow" };
+      return { text: "Confident", className: "tag-green" };
+    }
+
+    function labelForKey(key) {
+      switch (key) {
+        case "development": return "Development";
+        case "location": return "Location";
+        case "masterplan": return "Masterplan";
+        case "facilities": return "Facilities";
+        case "type": return "Type mix";
+        case "price": return "Price positioning";
+        case "payment": return "Payment plan";
+        case "delivery": return "Delivery date";
+        case "finishing": return "Finishing";
+        case "maintenance": return "Maintenance";
+        default: return key;
+      }
+    }
+
     // Load project into form for editing
     function startEditProject(project) {
       editingProjectId = project.id;
@@ -1199,7 +1169,8 @@
         div.textContent =
           "No projects yet. Add a new assessment on the left.";
         projectsListEl.appendChild(div);
-        trainingListEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
+        trainingListByProjectEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
+        trainingListGlobalEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
         return;
       }
 
@@ -1374,49 +1345,14 @@
           });
       }
 
-      // Training plan (Arabic)
+      // ===== Training plan – Part 1: per project (< 7) =====
       const lines = [];
       member.projects.forEach(project => {
         const weakPoints = [];
-        const s = project.scores;
+        const s = project.scores || {};
         Object.entries(s).forEach(([key, value]) => {
-          if (value < 7) {
-            let label;
-            switch (key) {
-              case "development":
-                label = "Development";
-                break;
-              case "location":
-                label = "Location";
-                break;
-              case "masterplan":
-                label = "Masterplan";
-                break;
-              case "facilities":
-                label = "Facilities";
-                break;
-              case "type":
-                label = "Type mix";
-                break;
-              case "price":
-                label = "Price positioning";
-                break;
-              case "payment":
-                label = "Payment plan";
-                break;
-              case "delivery":
-                label = "Delivery date";
-                break;
-              case "finishing":
-                label = "Finishing";
-                break;
-              case "maintenance":
-                label = "Maintenance";
-                break;
-              default:
-                label = key;
-            }
-            weakPoints.push(label);
+          if (typeof value === "number" && value < 7) {
+            weakPoints.push(labelForKey(key));
           }
         });
         if (weakPoints.length > 0) {
@@ -1429,14 +1365,42 @@
       });
 
       if (lines.length === 0) {
-        trainingListEl.textContent =
+        trainingListByProjectEl.textContent =
           "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
       } else {
-        trainingListEl.innerHTML = "";
+        trainingListByProjectEl.innerHTML = "";
         lines.forEach(l => {
           const div = document.createElement("div");
           div.textContent = l;
-          trainingListEl.appendChild(div);
+          trainingListByProjectEl.appendChild(div);
+        });
+      }
+
+      // ===== Training plan – Part 2: global critical (<= 5) =====
+      const criticalMap = {};
+      member.projects.forEach(project => {
+        const s = project.scores || {};
+        Object.entries(s).forEach(([key, value]) => {
+          if (typeof value === "number" && value <= 5) {
+            criticalMap[key] = (criticalMap[key] || 0) + 1;
+          }
+        });
+      });
+
+      const criticalEntries = Object.entries(criticalMap)
+        .filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+      if (criticalEntries.length === 0) {
+        trainingListGlobalEl.textContent =
+          "مفيش نقاط خطيرة أقل من 5/10 متكررة في المشاريع.";
+      } else {
+        trainingListGlobalEl.innerHTML = "";
+        criticalEntries.forEach(([key, count]) => {
+          const div = document.createElement("div");
+          const label = labelForKey(key);
+          div.textContent = `${label}: ظهر أقل من 5/10 في ${count} مشروع`;
+          trainingListGlobalEl.appendChild(div);
         });
       }
     }
