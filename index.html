@@ -577,6 +577,10 @@
       margin-right: 6px;
     }
 
+    .print-only {
+      display: none;
+    }
+
     /* Scrollbar */
 
     ::-webkit-scrollbar {
@@ -605,28 +609,55 @@
       }
     }
 
-    /* ===== PRINT STYLES ===== */
+    /* ====== PRINT STYLES ====== */
     @media print {
       body {
+        background: #05060a !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        background: radial-gradient(circle at top, #1a2134 0, #05060a 55%) !important;
       }
-      .app {
-        box-shadow: none;
-        border: none;
+
+      .app,
+      .sidebar,
+      .main,
+      .panel,
+      .card,
+      .team-item.active,
+      .filters-row,
+      .training-panel {
+        background-color: #111623 !important;
+        color: #f5f7fb !important;
       }
-      /* أخفي الـ sidebar في الـ PDF */
-      .sidebar {
-        display: none !important;
-      }
-      /* خلى الجريد عمود واحد في الطباعة */
+
+      /* اخفي فورم ال assessment في الـ PDF */
       .content-grid {
         grid-template-columns: 1fr !important;
       }
-      /* أخفي فورم New Project Assessment في الـ PDF */
-      #formPanel {
+      .content-grid > section:first-child {
         display: none !important;
+      }
+
+      /* إظهار member الحالي فقط */
+      .team-item {
+        display: none !important;
+      }
+      .team-item.active {
+        display: flex !important;
+      }
+      .add-team,
+      .hint-mini {
+        display: none !important;
+      }
+
+      /* استخدم قائمة خاصة للـ PDF */
+      #projectsList {
+        display: none !important;
+      }
+      #printProjectsList {
+        display: flex !important;
+      }
+      #printProjectsList .card {
+        cursor: default;
       }
     }
   </style>
@@ -690,7 +721,7 @@
 
       <div class="content-grid">
         <!-- LEFT: FORM -->
-        <section class="panel" id="formPanel">
+        <section class="panel">
           <div class="panel-header">
             <div>
               <div class="panel-title" id="formTitle">New Project Assessment</div>
@@ -790,9 +821,13 @@
             </div>
           </div>
 
+          <!-- Normal list (screen) -->
           <div class="cards-list" id="projectsList">
             <div class="empty-state">No projects yet. Add a new assessment on the left.</div>
           </div>
+
+          <!-- Print-only list (≤60% & max 5) -->
+          <div class="cards-list print-only" id="printProjectsList"></div>
 
           <div class="training-panel">
             <div><strong>خطة التدريب (أوتوماتيك):</strong></div>
@@ -814,7 +849,6 @@
     };
 
     let editingProjectId = null;
-    let isPrinting = false; // عشان نتحكم في إظهار أول ٥ مشاريع ≤ 60% في الـ PDF بس
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -848,6 +882,7 @@
     const regionFilter = document.getElementById("regionFilter");
     const regionStats = document.getElementById("regionStats");
     const projectsListEl = document.getElementById("projectsList");
+    const printProjectsListEl = document.getElementById("printProjectsList");
     const trainingListEl = document.getElementById("trainingList");
     const exportBtn = document.getElementById("exportBtn");
 
@@ -1099,31 +1134,16 @@
       }
 
       const selectedRegion = regionFilter.value || "all";
-      const allProjects = member.projects || [];
-
-      // فلترة حسب الريجن
-      let projects = allProjects.filter(p =>
+      const projects = member.projects.filter(p =>
         selectedRegion === "all"
           ? true
           : (p.region || "").trim() === selectedRegion
       );
 
-      // لو بنطبع: نعرض أول ٥ مشاريع بس اللي ≤ 60%
-      if (isPrinting) {
-        projects = projects
-          .filter(p => (p.overallPercent || 0) <= 60)
-          .sort((a, b) => (a.overallPercent || 0) - (b.overallPercent || 0))
-          .slice(0, 5);
-      }
-
       if (projects.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        if (isPrinting) {
-          div.textContent = "No projects with score ≤ 60% for this selection.";
-        } else {
-          div.textContent = "No projects in this region yet.";
-        }
+        div.textContent = "No projects in this region yet.";
         projectsListEl.appendChild(div);
       } else {
         projects
@@ -1284,7 +1304,7 @@
           });
       }
 
-      // Training plan (Arabic) – على كل المشاريع مش بس اللي ≤60
+      // Training plan (Arabic)
       const lines = [];
       member.projects.forEach(project => {
         const weakPoints = [];
@@ -1438,14 +1458,14 @@
       const avgScoreOutOf10 = count > 0 ? sum / count : 0;
       const overallPercent = (avgScoreOutOf10 / 10) * 100;
 
-      let isEditProject = false;
+      let isEdit = false;
 
       if (editingProjectId) {
         const existing = member.projects.find(
           p => p.id === editingProjectId
         );
         if (existing) {
-          isEditProject = true;
+          isEdit = true;
           const oldOverall = existing.overallPercent || 0;
           existing.name = name;
           existing.region = region;
@@ -1457,7 +1477,7 @@
         }
       }
 
-      if (!isEditProject) {
+      if (!isEdit) {
         const project = {
           id: uid(),
           name,
@@ -1487,18 +1507,87 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print) – مع فلترة أول ٥ مشاريع ≤ 60%
+    // Export as PDF (print) – only first 5 projects <= 60%
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
         alert("Select a team member first.");
         return;
       }
-      isPrinting = true;
-      renderProjectsList(member);   // يعرض بس المشاريع الضعيفة
+
+      const selectedRegion = regionFilter.value || "all";
+      let projects = member.projects || [];
+
+      if (selectedRegion !== "all") {
+        projects = projects.filter(
+          p => (p.region || "").trim() === selectedRegion
+        );
+      }
+
+      // فلتر اللي 60% أو أقل بس
+      const lowProjects = projects
+        .filter(p => (p.overallPercent || 0) <= 60)
+        .sort((a, b) => a.overallPercent - b.overallPercent); // من الأقل للأعلى
+
+      const limited = lowProjects.slice(0, 5);
+
+      printProjectsListEl.innerHTML = "";
+
+      if (limited.length === 0) {
+        const div = document.createElement("div");
+        div.className = "empty-state";
+        div.textContent = "No projects ≤ 60% in this region.";
+        printProjectsListEl.appendChild(div);
+      } else {
+        limited.forEach(project => {
+          const card = document.createElement("div");
+          card.className = "card";
+
+          const header = document.createElement("div");
+          header.className = "card-header";
+
+          const titleBlock = document.createElement("div");
+          titleBlock.className = "card-title-block";
+
+          const title = document.createElement("div");
+          title.className = "card-title";
+          title.textContent = project.name || "Untitled project";
+
+          const subtitle = document.createElement("div");
+          subtitle.className = "card-subtitle";
+          subtitle.textContent = project.region
+            ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
+            : `${project.overallPercent.toFixed(1)}% overall`;
+
+          titleBlock.appendChild(title);
+          titleBlock.appendChild(subtitle);
+
+          const tagEl = document.createElement("div");
+          const tagInfo = tagFromPercent(project.overallPercent);
+          tagEl.className = "card-tag " + tagInfo.className;
+          tagEl.textContent = tagInfo.text;
+
+          header.appendChild(titleBlock);
+          header.appendChild(tagEl);
+
+          const footer = document.createElement("div");
+          footer.className = "card-footer";
+
+          const scoreSpan = document.createElement("span");
+          scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(
+            1
+          )}%</span> avg (0–10 scale)`;
+
+          footer.appendChild(scoreSpan);
+
+          card.appendChild(header);
+          card.appendChild(footer);
+
+          printProjectsListEl.appendChild(card);
+        });
+      }
+
       window.print();
-      isPrinting = false;
-      renderProjectsList(member);   // يرجّع العرض الطبيعي على الشاشة
     });
 
     function renderAll() {
