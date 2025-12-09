@@ -331,6 +331,11 @@
       overflow: hidden;
     }
 
+    /* دي بانل الفورم اللي هنخفيها في الـ PDF */
+    .form-panel {
+      /* nothing here – بس الكلاس موجود عشان الـ @media print */
+    }
+
     .panel-header {
       display: flex;
       justify-content: space-between;
@@ -605,52 +610,48 @@
       }
     }
 
-    /* ===== PRINT LAYOUT (PDF لكل سيلز لوحده) ===== */
+    /* ===== PRINT (PDF) STYLES ===== */
     @media print {
+      @page {
+        margin: 10mm;
+      }
+
       body {
-        background: #ffffff !important;
+        background: #05060a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
         padding: 0;
       }
+
       .app {
         max-width: 100%;
         border-radius: 0;
         box-shadow: none;
         border: none;
-        grid-template-columns: 1fr; /* نخليها عمود واحد بس */
       }
-      .sidebar,
+
+      .main {
+        padding: 12px 12px 12px 10px;
+      }
+
+      /* إخفاء حاجات مش محتاجينها في الـ PDF */
+      .form-panel,
       .filters-row,
-      .submit-row,
       .add-team,
       .hint-mini,
-      #exportBtn {
-        display: none !important; /* نخفي التيم كله والزراير من الـ PDF */
-      }
-      .main {
-        padding: 16px;
-      }
-      .projects-panel {
-        overflow: visible;
-      }
-      .cards-list {
-        max-height: none;
-        overflow: visible;
-      }
-      .training-list {
-        max-height: none;
-        overflow: visible;
-      }
-      .btn {
+      .main-actions,
+      .sidebar-footer {
         display: none !important;
       }
-      /* نخلي الخلفيات أفتح شوية لو حابب تطبع أبيض وأسود بشكل أنضف */
-      .panel,
-      .card {
-        background: #ffffff !important;
-        border-color: #cccccc !important;
+
+      /* في الـ PDF يظهر عضو الفريق النشط بس */
+      .team-item:not(.active) {
+        display: none !important;
       }
-      .card-footer span.bold {
-        color: #000000 !important;
+
+      /* نخلي الـ sidebar أضيق شوية في الطباعة لو حبيت */
+      .app {
+        grid-template-columns: 220px 1fr;
       }
     }
   </style>
@@ -700,7 +701,7 @@
           </div>
         </div>
         <div class="main-actions">
-          <button class="btn" id="exportBtn" type="button">Export PDF (current member only)</button>
+          <button class="btn" id="exportBtn" type="button">Export PDF (Current member)</button>
         </div>
       </div>
 
@@ -714,7 +715,7 @@
 
       <div class="content-grid">
         <!-- LEFT: FORM -->
-        <section class="panel">
+        <section class="panel form-panel">
           <div class="panel-header">
             <div>
               <div class="panel-title" id="formTitle">New Project Assessment</div>
@@ -1495,7 +1496,7 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print current member ONLY – مع layout الطباعة الجديد)
+    // Export as PDF (print)
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
