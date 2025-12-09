@@ -285,6 +285,7 @@
       align-items: center;
       font-size: 11px;
       color: var(--text-muted);
+      flex-wrap: wrap;
     }
 
     .filters-row select {
@@ -717,6 +718,11 @@
           <option value="all">All regions</option>
         </select>
         <span class="chip chip-soft" id="regionStats">No projects yet</span>
+
+        <span>Developer:</span>
+        <select id="developerFilter">
+          <option value="all">All developers</option>
+        </select>
       </div>
 
       <div class="content-grid">
@@ -733,6 +739,11 @@
             <div class="field">
               <label>Project name</label>
               <input id="projectName" placeholder="e.g. New Zayed Lakes" />
+            </div>
+
+            <div class="field">
+              <label>Developer</label>
+              <input id="projectDeveloper" placeholder="e.g. Mountain View, Sodic..." />
             </div>
 
             <div class="field">
@@ -816,7 +827,7 @@
             <div>
               <div class="panel-title">Projects & Scores</div>
               <div class="panel-sub">
-                Click on a card to expand details – filtered by region.
+                Click on a card to expand details – filtered by region & developer.
               </div>
             </div>
           </div>
@@ -885,6 +896,7 @@
     const currentMemberTitle = document.getElementById("currentMemberTitle");
     const currentMemberSub = document.getElementById("currentMemberSub");
     const regionFilter = document.getElementById("regionFilter");
+    const developerFilter = document.getElementById("developerFilter");
     const regionStats = document.getElementById("regionStats");
     const projectsListEl = document.getElementById("projectsList");
     const printProjectsListEl = document.getElementById("printProjectsList");
@@ -893,6 +905,7 @@
     const exportBtn = document.getElementById("exportBtn");
 
     const projectNameEl = document.getElementById("projectName");
+    const projectDeveloperEl = document.getElementById("projectDeveloper");
     const projectRegionEl = document.getElementById("projectRegion");
     const projectNotesEl = document.getElementById("projectNotes");
     const addProjectBtn = document.getElementById("addProjectBtn");
@@ -1178,6 +1191,38 @@
       }
     }
 
+    // Developer filter (separate)
+    function renderDeveloperFilter(member) {
+      const projects = member?.projects || [];
+      const devs = Array.from(
+        new Set(
+          projects
+            .map(p => (p.developer || "").trim())
+            .filter(Boolean)
+        )
+      );
+
+      const currentValue = developerFilter.value || "all";
+      developerFilter.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "all";
+      allOpt.textContent = "All developers";
+      developerFilter.appendChild(allOpt);
+
+      devs.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        developerFilter.appendChild(opt);
+      });
+
+      if (!devs.includes(currentValue) && currentValue !== "all") {
+        developerFilter.value = "all";
+      } else {
+        developerFilter.value = currentValue;
+      }
+    }
+
     function tagFromPercent(percent) {
       if (percent < 60)
         return { text: "Needs Training", className: "tag-red" };
@@ -1191,6 +1236,7 @@
       editingProjectId = project.id;
       formTitleEl.textContent = `Editing: ${project.name || "project"}`;
       projectNameEl.value = project.name || "";
+      projectDeveloperEl.value = project.developer || "";
       projectRegionEl.value = project.region || "";
       projectNotesEl.value = project.notes || "";
 
@@ -1234,16 +1280,24 @@
       }
 
       const selectedRegion = regionFilter.value || "all";
-      const projects = member.projects.filter(p =>
-        selectedRegion === "all"
-          ? true
-          : (p.region || "").trim() === selectedRegion
-      );
+      const selectedDeveloper = developerFilter.value || "all";
+
+      const projects = member.projects.filter(p => {
+        const regionOk =
+          selectedRegion === "all"
+            ? true
+            : (p.region || "").trim() === selectedRegion;
+        const devOk =
+          selectedDeveloper === "all"
+            ? true
+            : (p.developer || "").trim() === selectedDeveloper;
+        return regionOk && devOk;
+      });
 
       if (projects.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects in this region yet.";
+        div.textContent = "No projects for this filter yet.";
         projectsListEl.appendChild(div);
       } else {
         projects
@@ -1271,9 +1325,11 @@
             const subtitle = document.createElement("div");
             subtitle.className = "card-subtitle";
 
-            const baseText = project.region
-              ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
-              : `${project.overallPercent.toFixed(1)}% overall`;
+            let baseTextParts = [];
+            if (project.developer) baseTextParts.push(project.developer);
+            if (project.region) baseTextParts.push(project.region);
+            baseTextParts.push(`${project.overallPercent.toFixed(1)}%`);
+            let baseText = baseTextParts.join(" • ");
 
             if (member.isAllTeam && project.ownerName) {
               subtitle.textContent = `${project.ownerName} – ${baseText}`;
@@ -1420,9 +1476,9 @@
           });
       }
 
-      // Training plan (Arabic) – جزئين
+      // Training plan – جزئين
       const lines = []; // حسب كل مشروع
-      const summaryCounts = {}; // أقل من أو يساوي 5 على مستوى كل المشاريع
+      const summaryCounts = {}; // ≤5 على مستوى كل المشاريع
 
       member.projects.forEach(project => {
         const weakPoints = [];
@@ -1506,6 +1562,7 @@
 
     function clearForm() {
       projectNameEl.value = "";
+      projectDeveloperEl.value = "";
       projectRegionEl.value = "";
       projectNotesEl.value = "";
       scoreIds.forEach(id => {
@@ -1547,6 +1604,7 @@
       if (!realMember) return;
 
       const name = projectNameEl.value.trim();
+      const developer = projectDeveloperEl.value.trim();
       const region = projectRegionEl.value.trim();
       if (!name) {
         alert("Please enter project name.");
@@ -1590,6 +1648,7 @@
           isEdit = true;
           const oldOverall = existing.overallPercent || 0;
           existing.name = name;
+          existing.developer = developer;
           existing.region = region;
           existing.scores = scores;
           existing.notes = projectNotesEl.value.trim();
@@ -1603,6 +1662,7 @@
         const project = {
           id: uid(),
           name,
+          developer,
           region,
           scores,
           notes: projectNotesEl.value.trim(),
@@ -1626,10 +1686,17 @@
     regionFilter.addEventListener("change", () => {
       const member = getCurrentMember();
       renderRegionFilterAndStats(member);
+      renderDeveloperFilter(member);
       renderProjectsList(member);
     });
 
-    // Export as PDF (print) – only first 5 projects <= 60%
+    // Developer filter change
+    developerFilter.addEventListener("change", () => {
+      const member = getCurrentMember();
+      renderProjectsList(member);
+    });
+
+    // Export as PDF (print) – only first 5 projects <= 60%, مع فلتر Region + Developer
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
@@ -1638,11 +1705,19 @@
       }
 
       const selectedRegion = regionFilter.value || "all";
+      const selectedDeveloper = developerFilter.value || "all";
+
       let projects = member.projects || [];
 
       if (selectedRegion !== "all") {
         projects = projects.filter(
           p => (p.region || "").trim() === selectedRegion
+        );
+      }
+
+      if (selectedDeveloper !== "all") {
+        projects = projects.filter(
+          p => (p.developer || "").trim() === selectedDeveloper
         );
       }
 
@@ -1658,7 +1733,7 @@
       if (limited.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects ≤ 60% in this region.";
+        div.textContent = "No projects ≤ 60% for this filter.";
         printProjectsListEl.appendChild(div);
       } else {
         limited.forEach(project => {
@@ -1678,9 +1753,11 @@
           const subtitle = document.createElement("div");
           subtitle.className = "card-subtitle";
 
-          const baseText = project.region
-            ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
-            : `${project.overallPercent.toFixed(1)}% overall`;
+          let baseTextParts = [];
+          if (project.developer) baseTextParts.push(project.developer);
+          if (project.region) baseTextParts.push(project.region);
+          baseTextParts.push(`${project.overallPercent.toFixed(1)}%`);
+          let baseText = baseTextParts.join(" • ");
 
           if (member.isAllTeam && project.ownerName) {
             subtitle.textContent = `${project.ownerName} – ${baseText}`;
@@ -1724,6 +1801,7 @@
       const member = getCurrentMember();
       renderHeaderForMember(member);
       renderRegionFilterAndStats(member);
+      renderDeveloperFilter(member);
       renderProjectsList(member);
     }
 
