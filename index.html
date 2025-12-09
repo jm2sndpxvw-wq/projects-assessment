@@ -609,59 +609,55 @@
       }
     }
 
-    /* ====== PRINT MODE VIA CLASS (MORE RELIABLE) ====== */
-
-    body.printing {
-      background: #05060a !important;
-    }
-
-    body.printing .app,
-    body.printing .sidebar,
-    body.printing .main,
-    body.printing .panel,
-    body.printing .card,
-    body.printing .team-item.active,
-    body.printing .filters-row,
-    body.printing .training-panel {
-      background-color: #111623 !important;
-      color: #f5f7fb !important;
-    }
-
-    /* اخفي فورم ال assessment وقت الطباعة */
-    body.printing .content-grid {
-      grid-template-columns: 1fr !important;
-    }
-    body.printing .content-grid > section:first-child {
-      display: none !important;
-    }
-
-    /* إظهار member الحالي فقط في الـ PDF */
-    body.printing .team-item {
-      display: none !important;
-    }
-    body.printing .team-item.active {
-      display: flex !important;
-    }
-    body.printing .add-team,
-    body.printing .hint-mini {
-      display: none !important;
-    }
-
-    /* استخدام ليست خاصة بالطباعة */
-    body.printing #projectsList {
-      display: none !important;
-    }
-    body.printing #printProjectsList {
-      display: flex !important;
-    }
-    body.printing #printProjectsList .card {
-      cursor: default;
-    }
-
+    /* ====== PRINT STYLES ====== */
     @media print {
       body {
+        background: #05060a !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+
+      .app,
+      .sidebar,
+      .main,
+      .panel,
+      .card,
+      .team-item.active,
+      .filters-row,
+      .training-panel {
+        background-color: #111623 !important;
+        color: #f5f7fb !important;
+      }
+
+      /* اخفي فورم ال assessment في الـ PDF */
+      .content-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .content-grid > section:first-child {
+        display: none !important;
+      }
+
+      /* إظهار member الحالي فقط */
+      .team-item {
+        display: none !important;
+      }
+      .team-item.active {
+        display: flex !important;
+      }
+      .add-team,
+      .hint-mini {
+        display: none !important;
+      }
+
+      /* استخدم قائمة خاصة للـ PDF */
+      #projectsList {
+        display: none !important;
+      }
+      #printProjectsList {
+        display: flex !important;
+      }
+      #printProjectsList .card {
+        cursor: default;
       }
     }
   </style>
@@ -912,10 +908,26 @@
     ];
 
     function getCurrentMember() {
+      // حالة "All team"
+      if (state.selectedMemberId === "all-team") {
+        const allProjects = [];
+        state.members.forEach(m => {
+          (m.projects || []).forEach(p => {
+            allProjects.push(p);
+          });
+        });
+        return {
+          id: "all-team",
+          name: "All team",
+          isAllTeam: true,
+          projects: allProjects
+        };
+      }
+
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Compute average
+    // Compute average for a member
     function computeMemberAverage(member) {
       const projects = member.projects || [];
       if (projects.length === 0) return 0;
@@ -926,7 +938,22 @@
       return sum / projects.length;
     }
 
-    // Render team
+    // Compute average for all team
+    function computeTeamAverage(members) {
+      let sum = 0;
+      let count = 0;
+      members.forEach(m => {
+        const projectsCount = m.projects?.length || 0;
+        if (projectsCount > 0) {
+          const avg = computeMemberAverage(m);
+          sum += avg;
+          count += 1;
+        }
+      });
+      return count === 0 ? 0 : sum / count;
+    }
+
+    // Render team (with All team)
     function renderTeamList() {
       teamListEl.innerHTML = "";
       if (state.members.length === 0) {
@@ -940,6 +967,48 @@
         return;
       }
 
+      // All team item أول واحد
+      const allItem = document.createElement("div");
+      allItem.className =
+        "team-item" +
+        (state.selectedMemberId === "all-team" ? " active" : "");
+      allItem.dataset.id = "all-team";
+
+      const allMain = document.createElement("div");
+      allMain.className = "team-main";
+
+      const allNameEl = document.createElement("div");
+      allNameEl.className = "team-name";
+      allNameEl.textContent = "All team";
+
+      const allMetaEl = document.createElement("div");
+      allMetaEl.className = "team-meta";
+      allMetaEl.textContent =
+        state.members.length + " member" + (state.members.length !== 1 ? "s" : "");
+
+      allMain.appendChild(allNameEl);
+      allMain.appendChild(allMetaEl);
+
+      const allPill = document.createElement("div");
+      allPill.className = "team-score-pill";
+      const teamAvg = computeTeamAverage(state.members);
+      allPill.textContent = `${teamAvg.toFixed(0)}%`;
+      if (teamAvg < 60) allPill.classList.add("pill-red");
+      else if (teamAvg < 80) allPill.classList.add("pill-yellow");
+      else allPill.classList.add("pill-green");
+
+      allItem.appendChild(allMain);
+      allItem.appendChild(allPill);
+
+      allItem.addEventListener("click", () => {
+        state.selectedMemberId = "all-team";
+        saveState();
+        renderAll();
+      });
+
+      teamListEl.appendChild(allItem);
+
+      // باقي الأعضاء
       state.members.forEach(member => {
         const item = document.createElement("div");
         item.className =
@@ -993,7 +1062,7 @@
               longPressed = true;
               state.members = state.members.filter(m => m.id !== member.id);
               if (state.selectedMemberId === member.id) {
-                state.selectedMemberId = state.members[0]?.id || null;
+                state.selectedMemberId = state.members[0]?.id || "all-team";
               }
               saveState();
               renderAll();
@@ -1124,7 +1193,7 @@
         typeof s.maintenance === "number" ? s.maintenance : "";
     }
 
-    // Render projects + training (screen)
+    // Render projects + training
     function renderProjectsList(member) {
       projectsListEl.innerHTML = "";
       if (!member || !member.projects || member.projects.length === 0) {
@@ -1265,44 +1334,47 @@
             card.appendChild(details);
             card.appendChild(footer);
 
-            // Long press delete for project card
-            let pressTimer = null;
-            let longPressed = false;
+            // لو All team: منغيرش في الداتا، ماينفعش نعدّل من هنا
+            if (!member.isAllTeam) {
+              // Long press delete for project card
+              let pressTimer = null;
+              let longPressed = false;
 
-            card.addEventListener("pointerdown", () => {
-              longPressed = false;
-              pressTimer = setTimeout(() => {
-                const ok = confirm(
-                  `تمسح المشروع "${project.name}" نهائيًا؟`
-                );
-                if (ok) {
-                  longPressed = true;
-                  member.projects = member.projects.filter(
-                    p => p.id !== project.id
+              card.addEventListener("pointerdown", () => {
+                longPressed = false;
+                pressTimer = setTimeout(() => {
+                  const ok = confirm(
+                    `تمسح المشروع "${project.name}" نهائيًا؟`
                   );
-                  saveState();
-                  renderAll();
-                } else {
-                  longPressed = false;
-                }
-              }, 650);
-            });
-
-            ["pointerup", "pointerleave", "pointercancel"].forEach(ev => {
-              card.addEventListener(ev, () => {
-                if (pressTimer) {
-                  clearTimeout(pressTimer);
-                  pressTimer = null;
-                }
+                  if (ok) {
+                    longPressed = true;
+                    member.projects = member.projects.filter(
+                      p => p.id !== project.id
+                    );
+                    saveState();
+                    renderAll();
+                  } else {
+                    longPressed = false;
+                  }
+                }, 650);
               });
-            });
 
-            // Click: toggle + load into form for editing
-            card.addEventListener("click", () => {
-              if (longPressed) return;
-              card.classList.toggle("open");
-              startEditProject(project);
-            });
+              ["pointerup", "pointerleave", "pointercancel"].forEach(ev => {
+                card.addEventListener(ev, () => {
+                  if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                  }
+                });
+              });
+
+              // Click: toggle + load into form for editing
+              card.addEventListener("click", () => {
+                if (longPressed) return;
+                card.classList.toggle("open");
+                startEditProject(project);
+              });
+            }
 
             projectsListEl.appendChild(card);
           });
@@ -1382,6 +1454,21 @@
           "Choose a team member from the left to start assessment.";
         return;
       }
+
+      // حالة All team
+      if (member.isAllTeam) {
+        const teamAvg = computeTeamAverage(state.members);
+        let totalProjects = 0;
+        state.members.forEach(m => {
+          totalProjects += m.projects?.length || 0;
+        });
+        currentMemberTitle.textContent = "All team";
+        currentMemberSub.textContent = `Team average: ${teamAvg.toFixed(
+          1
+        )}% – ${state.members.length} member(s), ${totalProjects} project(s).`;
+        return;
+      }
+
       currentMemberTitle.textContent = member.name;
       const avg = computeMemberAverage(member);
       currentMemberSub.textContent = `Overall average: ${avg.toFixed(
@@ -1424,8 +1511,9 @@
     // Add / update project
     addProjectBtn.addEventListener("click", () => {
       const member = getCurrentMember();
-      if (!member) {
-        alert("Select a team member first.");
+      // ممنوع نضيف من وضع All team
+      if (!member || member.isAllTeam) {
+        alert("Select a specific team member first.");
         return;
       }
       const name = projectNameEl.value.trim();
@@ -1531,7 +1619,7 @@
       // فلتر اللي 60% أو أقل بس
       const lowProjects = projects
         .filter(p => (p.overallPercent || 0) <= 60)
-        .sort((a, b) => a.overallPercent - b.overallPercent);
+        .sort((a, b) => a.overallPercent - b.overallPercent); // من الأقل للأعلى
 
       const limited = lowProjects.slice(0, 5);
 
@@ -1591,17 +1679,7 @@
         });
       }
 
-      // نفعل وضع الطباعة (CSS بالـ class)
-      document.body.classList.add("printing");
-
-      // ندي فرصة بسيطة للـ DOM يتحدث قبل الطباعة
-      setTimeout(() => {
-        window.print();
-        // نشيل وضع الطباعة بعد شوية صغيرين
-        setTimeout(() => {
-          document.body.classList.remove("printing");
-        }, 300);
-      }, 100);
+      window.print();
     });
 
     function renderAll() {
