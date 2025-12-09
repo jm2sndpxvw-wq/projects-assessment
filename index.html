@@ -548,28 +548,22 @@
       margin-top: 4px;
     }
 
-    .training-block {
-      margin-top: 4px;
-      padding-top: 4px;
-      border-top: 1px dashed rgba(255,255,255,0.12);
-    }
-
-    .training-block-title {
-      font-size: 10px;
-      margin-bottom: 2px;
-      color: var(--text);
-    }
-
     .training-list {
       font-size: 10px;
       line-height: 1.4;
-      max-height: 90px;
+      max-height: 70px;
       overflow-y: auto;
       padding-right: 2px;
+      margin-top: 2px;
     }
 
     .training-list div {
       margin-bottom: 2px;
+    }
+
+    .training-section-title {
+      font-size: 10px;
+      margin-top: 4px;
     }
 
     .empty-state {
@@ -641,15 +635,15 @@
         color: #f5f7fb !important;
       }
 
-      /* اخفي فورم ال assessment في الـ PDF */
       .content-grid {
         grid-template-columns: 1fr !important;
       }
+
       .content-grid > section:first-child {
         display: none !important;
       }
 
-      /* إظهار member الحالي فقط */
+      /* team member واحد بس (المختار) */
       .team-item {
         display: none !important;
       }
@@ -661,7 +655,7 @@
         display: none !important;
       }
 
-      /* استخدم قائمة خاصة للـ PDF */
+      /* نستخدم قائمة خاصة للطباعة */
       #projectsList {
         display: none !important;
       }
@@ -842,20 +836,18 @@
           <div class="cards-list print-only" id="printProjectsList"></div>
 
           <div class="training-panel">
-            <div><strong>خطة التدريب (أوتوماتيك):</strong></div>
-
-            <div class="training-block">
-              <div class="training-block-title">1) نقاط محتاجة تقوية حسب كل مشروع</div>
-              <div class="training-list" id="trainingListByProject">
-                لسه مافيش داتا كفاية دلوقتي.
-              </div>
+            <div class="training-section-title">
+              <strong>خطة التدريب – لكل مشروع (درجات أقل من 7):</strong>
+            </div>
+            <div class="training-list" id="trainingListPerProject">
+              لسه مافيش داتا كفاية دلوقتي.
             </div>
 
-            <div class="training-block">
-              <div class="training-block-title">2) نقاط حرجة (≤ 5/10 على مستوى كل المشاريع)</div>
-              <div class="training-list" id="trainingListGlobal">
-                لسه مافيش داتا كفاية دلوقتي.
-              </div>
+            <div class="training-section-title">
+              <strong>نقاط ضعيفة متكررة (≤ 5/10) على إجمالي المشاريع:</strong>
+            </div>
+            <div class="training-list" id="trainingListGlobal">
+              لسه مافيش داتا كفاية دلوقتي.
             </div>
           </div>
         </section>
@@ -884,7 +876,8 @@
       }
       if (!state.members) state.members = [];
       if (!state.selectedMemberId && state.members.length > 0) {
-        state.selectedMemberId = state.members[0].id;
+        // أول مرة: خليه يبدأ بـ All team
+        state.selectedMemberId = "all-team";
       }
     }
 
@@ -894,6 +887,10 @@
 
     function uid() {
       return Date.now().toString(36) + Math.random().toString(16).slice(2);
+    }
+
+    function isAllTeamSelected() {
+      return state.selectedMemberId === "all-team";
     }
 
     // Elements
@@ -906,7 +903,7 @@
     const regionStats = document.getElementById("regionStats");
     const projectsListEl = document.getElementById("projectsList");
     const printProjectsListEl = document.getElementById("printProjectsList");
-    const trainingListByProjectEl = document.getElementById("trainingListByProject");
+    const trainingListPerProjectEl = document.getElementById("trainingListPerProject");
     const trainingListGlobalEl = document.getElementById("trainingListGlobal");
     const exportBtn = document.getElementById("exportBtn");
 
@@ -931,19 +928,67 @@
       "scoreMaintenance"
     ];
 
-    function getCurrentMember() {
+    function labelForKey(key) {
+      switch (key) {
+        case "development": return "Development";
+        case "location": return "Location";
+        case "masterplan": return "Masterplan";
+        case "facilities": return "Facilities";
+        case "type": return "Type mix";
+        case "price": return "Price positioning";
+        case "payment": return "Payment plan";
+        case "delivery": return "Delivery date";
+        case "finishing": return "Finishing";
+        case "maintenance": return "Maintenance";
+        default: return key;
+      }
+    }
+
+    function getCurrentMemberOrAll() {
+      if (isAllTeamSelected()) {
+        const allProjects = [];
+        state.members.forEach(m => {
+          (m.projects || []).forEach(p => {
+            allProjects.push({
+              ...p,
+              memberId: m.id,
+              memberName: m.name
+            });
+          });
+        });
+        return {
+          id: "all-team",
+          name: "All team",
+          projects: allProjects
+        };
+      }
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
     // Compute average
-    function computeMemberAverage(member) {
-      const projects = member.projects || [];
-      if (projects.length === 0) return 0;
+    function computeAverageForProjects(projects) {
+      if (!projects || projects.length === 0) return 0;
       let sum = 0;
       projects.forEach(p => {
         sum += p.overallPercent || 0;
       });
       return sum / projects.length;
+    }
+
+    function computeMemberAverage(member) {
+      const projects = member?.projects || [];
+      return computeAverageForProjects(projects);
+    }
+
+    function computeAllTeamStats() {
+      const allProjects = [];
+      state.members.forEach(m => {
+        (m.projects || []).forEach(p => allProjects.push(p));
+      });
+      return {
+        count: allProjects.length,
+        avg: computeAverageForProjects(allProjects)
+      };
     }
 
     // Render team
@@ -960,6 +1005,52 @@
         return;
       }
 
+      // All team row
+      const allStats = computeAllTeamStats();
+      const allItem = document.createElement("div");
+      allItem.className =
+        "team-item" + (isAllTeamSelected() ? " active" : "");
+      allItem.dataset.id = "all-team";
+
+      const allMain = document.createElement("div");
+      allMain.className = "team-main";
+
+      const allNameEl = document.createElement("div");
+      allNameEl.className = "team-name";
+      allNameEl.textContent = "All team";
+
+      const allMetaEl = document.createElement("div");
+      allMetaEl.className = "team-meta";
+      allMetaEl.textContent =
+        allStats.count + " project" + (allStats.count !== 1 ? "s" : "");
+
+      allMain.appendChild(allNameEl);
+      allMain.appendChild(allMetaEl);
+
+      const allPill = document.createElement("div");
+      allPill.className = "team-score-pill";
+      if (allStats.count === 0) {
+        allPill.textContent = "No score";
+        allPill.classList.add("pill-yellow");
+      } else {
+        allPill.textContent = `${allStats.avg.toFixed(0)}%`;
+        if (allStats.avg < 60) allPill.classList.add("pill-red");
+        else if (allStats.avg < 80) allPill.classList.add("pill-yellow");
+        else allPill.classList.add("pill-green");
+      }
+
+      allItem.appendChild(allMain);
+      allItem.appendChild(allPill);
+
+      allItem.addEventListener("click", () => {
+        state.selectedMemberId = "all-team";
+        saveState();
+        renderAll();
+      });
+
+      teamListEl.appendChild(allItem);
+
+      // Normal members
       state.members.forEach(member => {
         const item = document.createElement("div");
         item.className =
@@ -1013,7 +1104,7 @@
               longPressed = true;
               state.members = state.members.filter(m => m.id !== member.id);
               if (state.selectedMemberId === member.id) {
-                state.selectedMemberId = state.members[0]?.id || null;
+                state.selectedMemberId = "all-team";
               }
               saveState();
               renderAll();
@@ -1082,7 +1173,7 @@
 
       const selectedRegion = regionFilter.value;
       if (selectedRegion === "all") {
-        const avg = computeMemberAverage(member);
+        const avg = computeAverageForProjects(projects);
         regionStats.textContent = `Overall: ${avg.toFixed(
           1
         )}% for ${projects.length} project(s)`;
@@ -1093,11 +1184,7 @@
         if (filtered.length === 0) {
           regionStats.textContent = `No projects yet in ${selectedRegion}`;
         } else {
-          const sum = filtered.reduce(
-            (acc, p) => acc + (p.overallPercent || 0),
-            0
-          );
-          const avg = sum / filtered.length;
+          const avg = computeAverageForProjects(filtered);
           regionStats.textContent = `${selectedRegion}: ${avg.toFixed(
             1
           )}% over ${filtered.length} project(s)`;
@@ -1111,22 +1198,6 @@
       if (percent < 80)
         return { text: "Average", className: "tag-yellow" };
       return { text: "Confident", className: "tag-green" };
-    }
-
-    function labelForKey(key) {
-      switch (key) {
-        case "development": return "Development";
-        case "location": return "Location";
-        case "masterplan": return "Masterplan";
-        case "facilities": return "Facilities";
-        case "type": return "Type mix";
-        case "price": return "Price positioning";
-        case "payment": return "Payment plan";
-        case "delivery": return "Delivery date";
-        case "finishing": return "Finishing";
-        case "maintenance": return "Maintenance";
-        default: return key;
-      }
     }
 
     // Load project into form for editing
@@ -1169,7 +1240,7 @@
         div.textContent =
           "No projects yet. Add a new assessment on the left.";
         projectsListEl.appendChild(div);
-        trainingListByProjectEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
+        trainingListPerProjectEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
         trainingListGlobalEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
         return;
       }
@@ -1211,9 +1282,17 @@
 
             const subtitle = document.createElement("div");
             subtitle.className = "card-subtitle";
-            subtitle.textContent = project.region
-              ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
-              : `${project.overallPercent.toFixed(1)}% overall`;
+
+            const percentText = `${project.overallPercent.toFixed(1)}%`;
+            if (project.memberName && project.region) {
+              subtitle.textContent = `${project.memberName} • ${project.region} • ${percentText}`;
+            } else if (project.memberName) {
+              subtitle.textContent = `${project.memberName} • ${percentText}`;
+            } else if (project.region) {
+              subtitle.textContent = `${project.region} • ${percentText}`;
+            } else {
+              subtitle.textContent = percentText;
+            }
 
             titleBlock.appendChild(title);
             titleBlock.appendChild(subtitle);
@@ -1268,17 +1347,18 @@
             const rows = document.createElement("div");
             rows.className = "details-row";
 
+            const s = project.scores || {};
             const mapping = [
-              ["Development", project.scores.development],
-              ["Location", project.scores.location],
-              ["Masterplan", project.scores.masterplan],
-              ["Facilities", project.scores.facilities],
-              ["Type mix", project.scores.type],
-              ["Price position", project.scores.price],
-              ["Payment plan", project.scores.payment],
-              ["Delivery", project.scores.delivery],
-              ["Finishing", project.scores.finishing],
-              ["Maintenance", project.scores.maintenance]
+              ["Development", s.development],
+              ["Location", s.location],
+              ["Masterplan", s.masterplan],
+              ["Facilities", s.facilities],
+              ["Type mix", s.type],
+              ["Price position", s.price],
+              ["Payment plan", s.payment],
+              ["Delivery", s.delivery],
+              ["Finishing", s.finishing],
+              ["Maintenance", s.maintenance]
             ];
 
             mapping.forEach(([label, value]) => {
@@ -1293,7 +1373,7 @@
 
             if (project.notes && project.notes.trim()) {
               const note = document.createElement("div");
-              note.style.marginTop = "4px";
+                note.style.marginTop = "4px";
               note.textContent = `Notes: ${project.notes}`;
               details.appendChild(note);
             }
@@ -1314,9 +1394,17 @@
                 );
                 if (ok) {
                   longPressed = true;
-                  member.projects = member.projects.filter(
-                    p => p.id !== project.id
-                  );
+                  // لو All team، نمسح من العضو الأصلي
+                  if (project.memberId) {
+                    const owner = state.members.find(m => m.id === project.memberId);
+                    if (owner && owner.projects) {
+                      owner.projects = owner.projects.filter(p => p.id !== project.id);
+                    }
+                  } else {
+                    member.projects = member.projects.filter(
+                      p => p.id !== project.id
+                    );
+                  }
                   saveState();
                   renderAll();
                 } else {
@@ -1334,74 +1422,100 @@
               });
             });
 
-            // Click: toggle + load into form for editing
+            // Click: toggle + load into form for editing (لو مش All team)
             card.addEventListener("click", () => {
               if (longPressed) return;
               card.classList.toggle("open");
-              startEditProject(project);
+              // في All team مفيش edit من هنا عشان مش عايزين تلخبيط
+              if (!isAllTeamSelected()) {
+                startEditProject(project);
+              }
             });
 
             projectsListEl.appendChild(card);
           });
       }
 
-      // ===== Training plan – Part 1: per project (< 7) =====
-      const lines = [];
-      member.projects.forEach(project => {
-        const weakPoints = [];
+      buildTraining(member);
+    }
+
+    function buildTraining(member) {
+      const projects = member?.projects || [];
+
+      if (projects.length === 0) {
+        trainingListPerProjectEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
+        trainingListGlobalEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
+        return;
+      }
+
+      // جزء 1: كل مشروع والنقط أقل من 7
+      const perProjectLines = [];
+
+      // جزء 2: نقاط ≤ 5 على إجمالي المشاريع
+      const globalWeakMap = {}; // key -> { label, count }
+
+      projects.forEach(project => {
         const s = project.scores || {};
+        const weakPoints = [];
+
         Object.entries(s).forEach(([key, value]) => {
-          if (typeof value === "number" && value < 7) {
-            weakPoints.push(labelForKey(key));
+          if (typeof value !== "number") return;
+          const label = labelForKey(key);
+
+          // ضعيف في المشروع ده لو أقل من 7
+          if (value < 7) {
+            weakPoints.push(label);
+          }
+
+          // ضعيف جدًا على مستوى إجمالي المشاريع لو ≤ 5
+          if (value <= 5) {
+            if (!globalWeakMap[key]) {
+              globalWeakMap[key] = { label, count: 0 };
+            }
+            globalWeakMap[key].count += 1;
           }
         });
+
         if (weakPoints.length > 0) {
-          lines.push(
-            `${member.name} – ${project.name}: محتاج يزود مذاكرته في [${weakPoints.join(
-              "، "
-            )}]`
+          const prefix =
+            member.id === "all-team" && project.memberName
+              ? `${project.memberName} – `
+              : "";
+          perProjectLines.push(
+            `${prefix}${project.name}: محتاج يزود مذاكرته في [${weakPoints.join("، ")}]`
           );
         }
       });
 
-      if (lines.length === 0) {
-        trainingListByProjectEl.textContent =
-          "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
+      // عرض جزء 1
+      if (perProjectLines.length === 0) {
+        trainingListPerProjectEl.textContent =
+          "مفيش نقاط ضعف واضحة دلوقتي في المشاريع، شغل كويس 👌";
       } else {
-        trainingListByProjectEl.innerHTML = "";
-        lines.forEach(l => {
+        trainingListPerProjectEl.innerHTML = "";
+        perProjectLines.forEach(text => {
           const div = document.createElement("div");
-          div.textContent = l;
-          trainingListByProjectEl.appendChild(div);
+          div.textContent = text;
+          trainingListPerProjectEl.appendChild(div);
         });
       }
 
-      // ===== Training plan – Part 2: global critical (<= 5) =====
-      const criticalMap = {};
-      member.projects.forEach(project => {
-        const s = project.scores || {};
-        Object.entries(s).forEach(([key, value]) => {
-          if (typeof value === "number" && value <= 5) {
-            criticalMap[key] = (criticalMap[key] || 0) + 1;
-          }
-        });
-      });
+      // عرض جزء 2
+      const globalEntries = Object.values(globalWeakMap);
 
-      const criticalEntries = Object.entries(criticalMap)
-        .filter(([, count]) => count > 0)
-        .sort((a, b) => b[1] - a[1]);
-
-      if (criticalEntries.length === 0) {
+      if (globalEntries.length === 0) {
         trainingListGlobalEl.textContent =
-          "مفيش نقاط خطيرة أقل من 5/10 متكررة في المشاريع.";
+          "مفيش نقاط متكررة أقل من 5/10 على مستوى المشاريع 👌";
       } else {
         trainingListGlobalEl.innerHTML = "";
-        criticalEntries.forEach(([key, count]) => {
-          const div = document.createElement("div");
-          const label = labelForKey(key);
-          div.textContent = `${label}: ظهر أقل من 5/10 في ${count} مشروع`;
-          trainingListGlobalEl.appendChild(div);
-        });
+        // رتب حسب الأكثر تكرارًا
+        globalEntries
+          .sort((a, b) => b.count - a.count)
+          .forEach(item => {
+            const div = document.createElement("div");
+            div.textContent = `${item.label}: أقل من 5/10 في ${item.count} مشروع`;
+            trainingListGlobalEl.appendChild(div);
+          });
       }
     }
 
@@ -1412,11 +1526,20 @@
           "Choose a team member from the left to start assessment.";
         return;
       }
-      currentMemberTitle.textContent = member.name;
-      const avg = computeMemberAverage(member);
-      currentMemberSub.textContent = `Overall average: ${avg.toFixed(
-        1
-      )}% – ${member.projects.length} project(s) evaluated.`;
+
+      if (member.id === "all-team") {
+        const avg = computeAverageForProjects(member.projects);
+        currentMemberTitle.textContent = "All team";
+        currentMemberSub.textContent = `Team overall average: ${avg.toFixed(
+          1
+        )}% – ${member.projects.length} project(s) evaluated.`;
+      } else {
+        currentMemberTitle.textContent = member.name;
+        const avg = computeMemberAverage(member);
+        currentMemberSub.textContent = `Overall average: ${avg.toFixed(
+          1
+        )}% – ${member.projects.length} project(s) evaluated.`;
+      }
     }
 
     function clearForm() {
@@ -1441,7 +1564,9 @@
         projects: []
       };
       state.members.push(member);
-      state.selectedMemberId = member.id;
+      if (!state.selectedMemberId) {
+        state.selectedMemberId = member.id;
+      }
       newMemberInput.value = "";
       saveState();
       renderAll();
@@ -1453,9 +1578,11 @@
 
     // Add / update project
     addProjectBtn.addEventListener("click", () => {
-      const member = getCurrentMember();
+      const baseMember = state.members.find(m => m.id === state.selectedMemberId);
+      const member = baseMember || state.members[0];
+
       if (!member) {
-        alert("Select a team member first.");
+        alert("Add a team member first.");
         return;
       }
       const name = projectNameEl.value.trim();
@@ -1494,7 +1621,7 @@
 
       let isEdit = false;
 
-      if (editingProjectId) {
+      if (editingProjectId && !isAllTeamSelected()) {
         const existing = member.projects.find(
           p => p.id === editingProjectId
         );
@@ -1536,14 +1663,14 @@
 
     // Region filter change
     regionFilter.addEventListener("change", () => {
-      const member = getCurrentMember();
+      const member = getCurrentMemberOrAll();
       renderRegionFilterAndStats(member);
       renderProjectsList(member);
     });
 
     // Export as PDF (print) – only first 5 projects <= 60%
     exportBtn.addEventListener("click", () => {
-      const member = getCurrentMember();
+      const member = getCurrentMemberOrAll();
       if (!member) {
         alert("Select a team member first.");
         return;
@@ -1589,9 +1716,17 @@
 
           const subtitle = document.createElement("div");
           subtitle.className = "card-subtitle";
-          subtitle.textContent = project.region
-            ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
-            : `${project.overallPercent.toFixed(1)}% overall`;
+
+          const percentText = `${project.overallPercent.toFixed(1)}%`;
+          if (project.memberName && project.region) {
+            subtitle.textContent = `${project.memberName} • ${project.region} • ${percentText}`;
+          } else if (project.memberName) {
+            subtitle.textContent = `${project.memberName} • ${percentText}`;
+          } else if (project.region) {
+            subtitle.textContent = `${project.region} • ${percentText}`;
+          } else {
+            subtitle.textContent = percentText;
+          }
 
           titleBlock.appendChild(title);
           titleBlock.appendChild(subtitle);
@@ -1626,7 +1761,7 @@
 
     function renderAll() {
       renderTeamList();
-      const member = getCurrentMember();
+      const member = getCurrentMemberOrAll();
       renderHeaderForMember(member);
       renderRegionFilterAndStats(member);
       renderProjectsList(member);
