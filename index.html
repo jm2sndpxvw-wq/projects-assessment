@@ -673,8 +673,9 @@
       margin-bottom: 2px;
     }
 
+    /* الصف بتاع إجمالي السيلز */
     .sales-total-row td {
-      background: #101424;
+      background: #111827;
       font-weight: 600;
     }
 
@@ -987,7 +988,7 @@
           <section class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Daily & monthly conversion</div>
+                <div class="panel-title">Daily conversion</div>
                 <div class="panel-sub">Sales write numbers, tool calculates %</div>
               </div>
             </div>
@@ -1026,8 +1027,8 @@
           <section class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Team performance</div>
-                <div class="panel-sub">Per day row + monthly total row per sales</div>
+                <div class="panel-title">Team performance (per day & per month)</div>
+                <div class="panel-sub">Row 1: day • Row 2: monthly total vs target</div>
               </div>
             </div>
 
@@ -1066,7 +1067,6 @@
     const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
 
-    // Conversion metrics
     const CONV_METRICS = [
       "deals",
       "scheduled",
@@ -1074,15 +1074,6 @@
       "requests",
       "callBack",
       "activeCalls",
-      "calls"
-    ];
-
-    // Metrics اللي ليها Targets فقط (بدون callBack و activeCalls)
-    const CONV_TARGET_METRICS = [
-      "deals",
-      "scheduled",
-      "meetings",
-      "requests",
       "calls"
     ];
 
@@ -1118,7 +1109,7 @@
         };
       }
       if (!state.conversion.targets) state.conversion.targets = {};
-      CONV_TARGET_METRICS.forEach(m => {
+      CONV_METRICS.forEach(m => {
         if (!state.conversion.targets[m]) {
           state.conversion.targets[m] = { mode: "day", value: 0 };
         }
@@ -1170,6 +1161,10 @@
     function daysInMonth(dateStr) {
       const [y, m] = dateStr.split("-").map(n => parseInt(n, 10));
       return new Date(y, m, 0).getDate();
+    }
+
+    function sameMonth(a, b) {
+      return a.slice(0, 7) === b.slice(0, 7);
     }
 
     // Elements
@@ -1257,7 +1252,7 @@
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Compute average (Assessment only)
+    // Compute average
     function computeMemberAverage(member) {
       const projects = member?.projects || [];
       if (projects.length === 0) return 0;
@@ -1450,9 +1445,9 @@
       regionFilter.appendChild(allOptR);
       Array.from(regions).forEach(r => {
         const opt = document.createElement("option");
-        opt.value = r;
-        opt.textContent = r;
-        regionFilter.appendChild(opt);
+          opt.value = r;
+          opt.textContent = r;
+          regionFilter.appendChild(opt);
       });
 
       developerFilter.innerHTML = "";
@@ -1877,7 +1872,7 @@
       if (e.key === "Enter") addMemberBtn.click();
     });
 
-    // Add / update project (Assessment)
+    // Add / update project
     addProjectBtn.addEventListener("click", () => {
       let member = getCurrentMember();
       if (!member || member.isAllTeam) {
@@ -2169,7 +2164,9 @@
       const days = daysInMonth(dateStr);
 
       convTargetsBody.innerHTML = "";
-      CONV_TARGET_METRICS.forEach(metric => {
+      CONV_METRICS.forEach(metric => {
+        // مفيش تارجت لـ callBack و activeCalls
+        const noTarget = metric === "callBack" || metric === "activeCalls";
         const row = document.createElement("tr");
         const cfg = state.conversion.targets[metric] || {
           mode: "day",
@@ -2189,6 +2186,7 @@
         input.type = "number";
         input.step = "1";
         input.value = cfg.value ?? 0;
+        input.disabled = noTarget;
         input.addEventListener("change", () => {
           const v = parseFloat(input.value);
           state.conversion.targets[metric].value = isNaN(v) ? 0 : v;
@@ -2207,6 +2205,7 @@
           sel.appendChild(opt);
         });
         sel.value = cfg.mode;
+        sel.disabled = noTarget;
         sel.addEventListener("change", () => {
           state.conversion.targets[metric].mode = sel.value;
           saveState();
@@ -2216,10 +2215,18 @@
         tdMode.appendChild(sel);
 
         const tdDaily = document.createElement("td");
-        tdDaily.textContent = daily ? daily.toFixed(1) : "-";
+        tdDaily.textContent = noTarget
+          ? "-"
+          : daily
+          ? daily.toFixed(1)
+          : "-";
 
         const tdMonthly = document.createElement("td");
-        tdMonthly.textContent = monthly ? monthly.toFixed(1) : "-";
+        tdMonthly.textContent = noTarget
+          ? "-"
+          : monthly
+          ? monthly.toFixed(1)
+          : "-";
 
         row.appendChild(tdLabel);
         row.appendChild(tdValue);
@@ -2232,6 +2239,7 @@
     }
 
     function getDailyTarget(metric, dateStr) {
+      if (metric === "callBack" || metric === "activeCalls") return 0;
       const cfg = state.conversion.targets[metric];
       if (!cfg) return 0;
       const days = daysInMonth(dateStr);
@@ -2240,6 +2248,7 @@
     }
 
     function getMonthlyTarget(metric, dateStr) {
+      if (metric === "callBack" || metric === "activeCalls") return 0;
       const cfg = state.conversion.targets[metric];
       if (!cfg) return 0;
       const days = daysInMonth(dateStr);
@@ -2251,24 +2260,6 @@
       if (percent >= 100) return "percent-good";
       if (percent >= 60) return "percent-mid";
       return "percent-bad";
-    }
-
-    function computeMonthlyTotalForMember(memberId, metric, dateStr) {
-      const [y, m] = dateStr.split("-");
-      const monthPrefix = `${y}-${m}`;
-      let total = 0;
-      Object.entries(state.conversion.entries || {}).forEach(
-        ([dateKey, membersData]) => {
-          if (!dateKey.startsWith(monthPrefix)) return;
-          const val =
-            (membersData &&
-              membersData[memberId] &&
-              membersData[memberId][metric]) ||
-            0;
-          total += Number(val) || 0;
-        }
-      );
-      return total;
     }
 
     function renderConversionTable() {
@@ -2296,7 +2287,7 @@
       });
 
       state.members.forEach(member => {
-        // ====== DAILY ROW ======
+        // الصف الأساسي (per day)
         const tr = document.createElement("tr");
 
         const nameTd = document.createElement("td");
@@ -2345,7 +2336,7 @@
             countPercents++;
           }
 
-          totals[metric] += Number(current) || 0;
+          totals[metric] += current;
           targetTotals[metric] += dailyTarget;
 
           tr.appendChild(td);
@@ -2365,47 +2356,59 @@
 
         convTableBody.appendChild(tr);
 
-        // ====== MONTHLY TOTAL ROW (per sales) ======
-        const totalRow = document.createElement("tr");
-        totalRow.className = "sales-total-row";
+        // الصف الشهري تحت كل سيلز
+        const trTotal = document.createElement("tr");
+        trTotal.className = "sales-total-row";
 
-        const nameTd2 = document.createElement("td");
-        nameTd2.className = "sales-name-cell";
-        nameTd2.textContent = `${member.name} total`;
-        totalRow.appendChild(nameTd2);
+        const nameTotalTd = document.createElement("td");
+        nameTotalTd.className = "sales-name-cell";
+        nameTotalTd.textContent = `${member.name} total`;
+        trTotal.appendChild(nameTotalTd);
 
-        let monthSumPerc = 0;
-        let monthCountPerc = 0;
+        let sumMonthlyPercents = 0;
+        let countMonthlyPercents = 0;
 
         CONV_METRICS.forEach(metric => {
           const td = document.createElement("td");
 
-          const monthlyTotal = computeMonthlyTotalForMember(
-            member.id,
-            metric,
-            dateStr
+          // إجمالي الشهر كله لنفس الشهر بتاع التاريخ المختار
+          let monthlyTotal = 0;
+          Object.entries(state.conversion.entries).forEach(
+            ([dKey, dayEntries]) => {
+              if (!sameMonth(dKey, dateStr)) return;
+              const mEntry = dayEntries[member.id];
+              if (!mEntry) return;
+              const v = parseFloat(mEntry[metric] || 0);
+              if (!isNaN(v)) monthlyTotal += v;
+            }
           );
-          td.textContent = monthlyTotal || 0;
 
           const monthlyTarget = getMonthlyTarget(metric, dateStr);
-          if (monthlyTarget > 0) {
+
+          if (monthlyTotal === 0 && monthlyTarget === 0) {
+            td.textContent = "-";
+          } else if (monthlyTarget > 0) {
             const pct = (monthlyTotal / monthlyTarget) * 100;
-            const span = document.createElement("div");
+            const span = document.createElement("span");
             span.className =
               "percent-chip " + percentClass(pct);
-            span.textContent = `${pct.toFixed(0)}%`;
+            // هنا حطينا "-" بين الرقم والنسبة زي ما طلبت
+            span.textContent = `- ${pct.toFixed(0)}%`;
+            td.innerHTML = `${monthlyTotal} `;
             td.appendChild(span);
 
-            monthSumPerc += pct;
-            monthCountPerc++;
+            sumMonthlyPercents += pct;
+            countMonthlyPercents++;
+          } else {
+            td.textContent = `${monthlyTotal}`;
           }
 
-          totalRow.appendChild(td);
+          trTotal.appendChild(td);
         });
 
         const tdTotalMonth = document.createElement("td");
-        if (monthCountPerc > 0) {
-          const avgMonth = monthSumPerc / monthCountPerc;
+        if (countMonthlyPercents > 0) {
+          const avgMonth = sumMonthlyPercents / countMonthlyPercents;
           const span = document.createElement("span");
           span.className = percentClass(avgMonth);
           span.textContent = `${avgMonth.toFixed(0)}%`;
@@ -2413,12 +2416,12 @@
         } else {
           tdTotalMonth.textContent = "-";
         }
-        totalRow.appendChild(tdTotalMonth);
+        trTotal.appendChild(tdTotalMonth);
 
-        convTableBody.appendChild(totalRow);
+        convTableBody.appendChild(trTotal);
       });
 
-      // Summary (per day)
+      // Summary (per day) – تيم كله
       const lines = [];
       CONV_METRICS.forEach(metric => {
         const total = totals[metric];
@@ -2459,6 +2462,7 @@
       renderFiltersAndStats(member);
       renderProjectsList(member);
 
+      // conversion
       if (!state.conversion.currentDate) {
         state.conversion.currentDate = todayISO();
       }
