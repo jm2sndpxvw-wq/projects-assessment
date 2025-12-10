@@ -2288,12 +2288,18 @@
     function getDailyTarget(metric, dateStr) {
       // Call back & Active calls برا التارجت
       if (metric === "callBack" || metric === "activeCalls") return 0;
-      const cfg = state.conversion.targets[metric];
-      if (!cfg) return 0;
-      const days = daysInMonth(dateStr);
-      if (cfg.mode === "day") return cfg.value || 0;
-      return (cfg.value || 0) / days;
-    }
+       const cfg = state.conversion.targets[metric];
+  if (!cfg) return 0;
+
+  // لو التارجت "per day" هنستخدمه زي ما هو
+  if (cfg.mode === "day") {
+    return cfg.value || 0;
+  }
+
+  // لو التارجت "per month" نحسب النسبة على التارجت الشهري نفسه
+  // عشان لما تحط 1 deal في الشهر وتعمل 1 deal يبقى 100% مش 3100%
+  return cfg.value || 0;
+}
 
     function percentClass(percent) {
       if (percent >= 100) return "percent-good";
