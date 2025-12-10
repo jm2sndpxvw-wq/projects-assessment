@@ -673,10 +673,10 @@
       margin-bottom: 2px;
     }
 
-    /* الصف بتاع إجمالي السيلز */
     .sales-total-row td {
-      background: #111827;
+      background: #181d29;
       font-weight: 600;
+      font-size: 10px;
     }
 
     /* Scrollbar */
@@ -733,7 +733,6 @@
         display: none !important;
       }
 
-      /* اخفي فورم ال assessment في الـ PDF (لما نكون في تاب assessment) */
       #assessmentTab .content-grid {
         grid-template-columns: 1fr !important;
       }
@@ -741,7 +740,6 @@
         display: none !important;
       }
 
-      /* إظهار member الحالي فقط */
       .team-item {
         display: none !important;
       }
@@ -753,7 +751,6 @@
         display: none !important;
       }
 
-      /* استخدم قائمة خاصة للـ PDF */
       #projectsList {
         display: none !important;
       }
@@ -764,7 +761,6 @@
         cursor: default;
       }
 
-      /* هنطبع التاب اللي ظاهر بس */
       #assessmentTab.hidden,
       #conversionTab.hidden {
         display: none !important;
@@ -959,12 +955,10 @@
               </div>
             </div>
 
-            <!-- Normal list (screen) -->
             <div class="cards-list" id="projectsList">
               <div class="empty-state">No projects yet. Add a new assessment on the left.</div>
             </div>
 
-            <!-- Print-only list (≤60% & max 5) -->
             <div class="cards-list print-only" id="printProjectsList"></div>
 
             <div class="training-panel">
@@ -1001,7 +995,7 @@
 
               <div class="field">
                 <label>Targets mode</label>
-                <small>Choose per day / per month for each metric</small>
+                <small>Choose per day / per month for each metric (except Call back & Active calls – no targets)</small>
               </div>
 
               <div class="field">
@@ -1016,7 +1010,6 @@
                     </tr>
                   </thead>
                   <tbody id="convTargetsBody">
-                    <!-- Filled by JS -->
                   </tbody>
                 </table>
               </div>
@@ -1027,8 +1020,8 @@
           <section class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Team performance (per day & per month)</div>
-                <div class="panel-sub">Row 1: day • Row 2: monthly total vs target</div>
+                <div class="panel-title">Team performance (per day)</div>
+                <div class="panel-sub">Numbers per sales – last column is overall % vs daily targets</div>
               </div>
             </div>
 
@@ -1048,7 +1041,6 @@
                   </tr>
                 </thead>
                 <tbody id="convTableBody">
-                  <!-- Filled by JS -->
                 </tbody>
               </table>
             </div>
@@ -1087,6 +1079,13 @@
       calls: "Calls"
     };
 
+    // دول بدون targets – أرقام بس
+    const NO_TARGET_METRICS = ["callBack", "activeCalls"];
+
+    function hasTarget(metric) {
+      return !NO_TARGET_METRICS.includes(metric);
+    }
+
     let state = {
       members: [],
       selectedMemberId: null,
@@ -1110,7 +1109,7 @@
       }
       if (!state.conversion.targets) state.conversion.targets = {};
       CONV_METRICS.forEach(m => {
-        if (!state.conversion.targets[m]) {
+        if (hasTarget(m) && !state.conversion.targets[m]) {
           state.conversion.targets[m] = { mode: "day", value: 0 };
         }
       });
@@ -1161,10 +1160,6 @@
     function daysInMonth(dateStr) {
       const [y, m] = dateStr.split("-").map(n => parseInt(n, 10));
       return new Date(y, m, 0).getDate();
-    }
-
-    function sameMonth(a, b) {
-      return a.slice(0, 7) === b.slice(0, 7);
     }
 
     // Elements
@@ -1252,8 +1247,9 @@
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Compute average
-    function computeMemberAverage(member) {
+    // ======= ASSESSMENT AVERAGES =======
+
+    function computeAssessmentAverage(member) {
       const projects = member?.projects || [];
       if (projects.length === 0) return 0;
       let sum = 0;
@@ -1263,7 +1259,7 @@
       return sum / projects.length;
     }
 
-    function computeAllTeamAverage() {
+    function computeAssessmentAllTeamAverage() {
       let sum = 0;
       let count = 0;
       state.members.forEach(m => {
@@ -1274,6 +1270,90 @@
       });
       if (!count) return 0;
       return sum / count;
+    }
+
+    // ======= CONVERSION HELPERS (targets) =======
+
+    function getDailyTarget(metric, dateStr) {
+      if (!hasTarget(metric)) return 0;
+      const cfg = state.conversion.targets[metric];
+      if (!cfg) return 0;
+      return cfg.mode === "day" ? (cfg.value || 0) : (cfg.value || 0) / daysInMonth(dateStr);
+    }
+
+    function getMonthlyTarget(metric, dateStr) {
+      if (!hasTarget(metric)) return 0;
+      const cfg = state.conversion.targets[metric];
+      if (!cfg) return 0;
+      const days = daysInMonth(dateStr);
+      if (cfg.mode === "day") return (cfg.value || 0) * days;
+      return cfg.value || 0;
+    }
+
+    // ======= CONVERSION MONTHLY % (per member / all team) =======
+
+    function computeConversionMonthlyPercentForMember(member, dateStr) {
+      if (!member || member.id === ALL_TEAM_ID) return null;
+      const ds = dateStr || state.conversion.currentDate || todayISO();
+      const monthKey = ds.slice(0, 7);
+      const entriesAll = state.conversion.entries || {};
+      let sumPerc = 0;
+      let count = 0;
+
+      CONV_METRICS.forEach(metric => {
+        if (!hasTarget(metric)) return;
+        let total = 0;
+        Object.entries(entriesAll).forEach(([d, byMember]) => {
+          if (d.slice(0, 7) === monthKey) {
+            const entry = byMember[member.id];
+            if (entry && typeof entry[metric] === "number") {
+              total += entry[metric];
+            }
+          }
+        });
+        const monthlyTarget = getMonthlyTarget(metric, ds);
+        if (monthlyTarget > 0) {
+          const pct = (total / monthlyTarget) * 100;
+          sumPerc += pct;
+          count++;
+        }
+      });
+
+      if (!count) return null;
+      return sumPerc / count;
+    }
+
+    function computeConversionMonthlyPercentAllTeam(dateStr) {
+      const ds = dateStr || state.conversion.currentDate || todayISO();
+      const monthKey = ds.slice(0, 7);
+      const entriesAll = state.conversion.entries || {};
+      let sumPerc = 0;
+      let count = 0;
+
+      CONV_METRICS.forEach(metric => {
+        if (!hasTarget(metric)) return;
+        let total = 0;
+        Object.entries(entriesAll).forEach(([d, byMember]) => {
+          if (d.slice(0, 7) === monthKey) {
+            Object.values(byMember || {}).forEach(entry => {
+              if (entry && typeof entry[metric] === "number") {
+                total += entry[metric];
+              }
+            });
+          }
+        });
+
+        const perMemberMonthly = getMonthlyTarget(metric, ds);
+        const monthlyTarget = perMemberMonthly * (state.members.length || 0);
+        if (monthlyTarget > 0) {
+          const pct = (total / monthlyTarget) * 100;
+          sumPerc += pct;
+          count++;
+        }
+      });
+
+      if (!count) return null;
+      return sumPerc / count;
     }
 
     // Render team
@@ -1289,6 +1369,8 @@
           "Choose a team member from the left to start assessment.";
         return;
       }
+
+      const currentConvDate = state.conversion.currentDate || todayISO();
 
       // All team item
       let totalProjects = 0;
@@ -1315,15 +1397,29 @@
 
       const allPill = document.createElement("div");
       allPill.className = "team-score-pill";
-      const allAvg = computeAllTeamAverage();
-      if (totalProjects === 0) {
-        allPill.textContent = "No score";
-        allPill.classList.add("pill-yellow");
+
+      if (state.activeTab === "conversion") {
+        const convAvg = computeConversionMonthlyPercentAllTeam(currentConvDate);
+        if (convAvg == null) {
+          allPill.textContent = "No data";
+          allPill.classList.add("pill-yellow");
+        } else {
+          allPill.textContent = `${convAvg.toFixed(0)}%`;
+          if (convAvg < 60) allPill.classList.add("pill-red");
+          else if (convAvg < 80) allPill.classList.add("pill-yellow");
+          else allPill.classList.add("pill-green");
+        }
       } else {
-        allPill.textContent = `${allAvg.toFixed(0)}%`;
-        if (allAvg < 60) allPill.classList.add("pill-red");
-        else if (allAvg < 80) allPill.classList.add("pill-yellow");
-        else allPill.classList.add("pill-green");
+        if (totalProjects === 0) {
+          allPill.textContent = "No score";
+          allPill.classList.add("pill-yellow");
+        } else {
+          const allAvg = computeAssessmentAllTeamAverage();
+          allPill.textContent = `${allAvg.toFixed(0)}%`;
+          if (allAvg < 60) allPill.classList.add("pill-red");
+          else if (allAvg < 80) allPill.classList.add("pill-yellow");
+          else allPill.classList.add("pill-green");
+        }
       }
 
       allItem.appendChild(allMain);
@@ -1363,15 +1459,29 @@
 
         const pill = document.createElement("div");
         pill.className = "team-score-pill";
-        const avg = computeMemberAverage(member);
-        if (projectsCount === 0) {
-          pill.textContent = "No score";
-          pill.classList.add("pill-yellow");
+
+        if (state.activeTab === "conversion") {
+          const convAvg = computeConversionMonthlyPercentForMember(member, currentConvDate);
+          if (convAvg == null) {
+            pill.textContent = "No data";
+            pill.classList.add("pill-yellow");
+          } else {
+            pill.textContent = `${convAvg.toFixed(0)}%`;
+            if (convAvg < 60) pill.classList.add("pill-red");
+            else if (convAvg < 80) pill.classList.add("pill-yellow");
+            else pill.classList.add("pill-green");
+          }
         } else {
-          pill.textContent = `${avg.toFixed(0)}%`;
-          if (avg < 60) pill.classList.add("pill-red");
-          else if (avg < 80) pill.classList.add("pill-yellow");
-          else pill.classList.add("pill-green");
+          if (projectsCount === 0) {
+            pill.textContent = "No score";
+            pill.classList.add("pill-yellow");
+          } else {
+            const avg = computeAssessmentAverage(member);
+            pill.textContent = `${avg.toFixed(0)}%`;
+            if (avg < 60) pill.classList.add("pill-red");
+            else if (avg < 80) pill.classList.add("pill-yellow");
+            else pill.classList.add("pill-green");
+          }
         }
 
         item.appendChild(main);
@@ -1410,7 +1520,6 @@
           });
         });
 
-        // Normal click = select member
         item.addEventListener("click", () => {
           if (longPressed) return;
           state.selectedMemberId = member.id;
@@ -1422,7 +1531,7 @@
       });
     }
 
-    // Region + Developer filters + stats
+    // Region + Developer filters + stats (Assessment only)
     function renderFiltersAndStats(member) {
       const projects = member?.projects || [];
       const regions = new Set();
@@ -1445,9 +1554,9 @@
       regionFilter.appendChild(allOptR);
       Array.from(regions).forEach(r => {
         const opt = document.createElement("option");
-          opt.value = r;
-          opt.textContent = r;
-          regionFilter.appendChild(opt);
+        opt.value = r;
+        opt.textContent = r;
+        regionFilter.appendChild(opt);
       });
 
       developerFilter.innerHTML = "";
@@ -1641,7 +1750,6 @@
             footer.appendChild(created);
             footer.appendChild(scoreSpan);
 
-            // Reassessment trend (if exists)
             if (typeof project.lastDelta === "number") {
               const trend = document.createElement("span");
               const diff = project.lastDelta;
@@ -1703,7 +1811,6 @@
             card.appendChild(details);
             card.appendChild(footer);
 
-            // Long press delete for project card
             let pressTimer = null;
             let longPressed = false;
 
@@ -1742,7 +1849,6 @@
               });
             });
 
-            // Click: toggle + load into form for editing (بس مش منطقي في All team)
             card.addEventListener("click", () => {
               if (longPressed) return;
               card.classList.toggle("open");
@@ -1755,9 +1861,9 @@
           });
       }
 
-      // Training plan (Arabic) – جزئين
-      const lines = []; // حسب كل مشروع
-      const summaryCounts = {}; // أقل من أو يساوي 5 على مستوى كل المشاريع
+      // Training plan
+      const lines = [];
+      const summaryCounts = {};
 
       (member.projects || []).forEach(project => {
         const weakPoints = [];
@@ -1787,7 +1893,6 @@
         }
       });
 
-      // جزء 1: حسب كل مشروع
       if (lines.length === 0) {
         trainingListEl.textContent =
           "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
@@ -1800,7 +1905,6 @@
         });
       }
 
-      // جزء 2: نقط متكررة ≤ 5/10 على مستوى كل المشاريع
       const summaryEntries = Object.entries(summaryCounts).sort(
         (a, b) => b[1] - a[1]
       );
@@ -1825,17 +1929,46 @@
           "Choose a team member from the left to start assessment.";
         return;
       }
-      const avg = computeMemberAverage(member);
-      if (member.isAllTeam) {
-        currentMemberTitle.textContent = "All team";
-        currentMemberSub.textContent = `Overall team average: ${avg.toFixed(
-          1
-        )}% – ${member.projects.length} project(s) across ${state.members.length} member(s).`;
+
+      if (state.activeTab === "conversion") {
+        const ds = state.conversion.currentDate || todayISO();
+        const [y, m] = ds.split("-");
+        const label = `${m}/${y}`;
+
+        if (member.id === ALL_TEAM_ID) {
+          const avg = computeConversionMonthlyPercentAllTeam(ds);
+          currentMemberTitle.textContent = "All team – Conversion";
+          if (avg == null) {
+            currentMemberSub.textContent = `No conversion data yet for ${label}.`;
+          } else {
+            currentMemberSub.textContent = `Conversion ${label}: ${avg.toFixed(
+              1
+            )}% vs targets.`;
+          }
+        } else {
+          const avg = computeConversionMonthlyPercentForMember(member, ds);
+          currentMemberTitle.textContent = member.name;
+          if (avg == null) {
+            currentMemberSub.textContent = `No conversion data yet for ${label}.`;
+          } else {
+            currentMemberSub.textContent = `Conversion ${label}: ${avg.toFixed(
+              1
+            )}% vs targets.`;
+          }
+        }
       } else {
-        currentMemberTitle.textContent = member.name;
-        currentMemberSub.textContent = `Overall average: ${avg.toFixed(
-          1
-        )}% – ${member.projects.length} project(s) evaluated.`;
+        const avg = computeAssessmentAverage(member);
+        if (member.isAllTeam) {
+          currentMemberTitle.textContent = "All team";
+          currentMemberSub.textContent = `Overall team average: ${avg.toFixed(
+            1
+          )}% – ${member.projects.length} project(s) across ${state.members.length} member(s).`;
+        } else {
+          currentMemberTitle.textContent = member.name;
+          currentMemberSub.textContent = `Overall average: ${avg.toFixed(
+            1
+          )}% – ${member.projects.length} project(s) evaluated.`;
+        }
       }
     }
 
@@ -1975,7 +2108,7 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print) – only first 5 projects <= 60%
+    // Export as PDF (assessment only – projects ≤60%)
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
@@ -2139,6 +2272,9 @@
         state.activeTab = tab;
         saveState();
         renderTabs();
+        const member = getCurrentMember();
+        renderHeaderForMember(member);
+        renderTeamList(); // عشان البيلّ تتحدّث حسب التاب
       });
     });
 
@@ -2158,6 +2294,12 @@
 
     // ==== CONVERSION TAB LOGIC ====
 
+    function percentClass(percent) {
+      if (percent >= 100) return "percent-good";
+      if (percent >= 60) return "percent-mid";
+      return "percent-bad";
+    }
+
     function renderConversionTargets() {
       initConversionState();
       const dateStr = state.conversion.currentDate || todayISO();
@@ -2165,8 +2307,8 @@
 
       convTargetsBody.innerHTML = "";
       CONV_METRICS.forEach(metric => {
-        // مفيش تارجت لـ callBack و activeCalls
-        const noTarget = metric === "callBack" || metric === "activeCalls";
+        if (!hasTarget(metric)) return;
+
         const row = document.createElement("tr");
         const cfg = state.conversion.targets[metric] || {
           mode: "day",
@@ -2186,7 +2328,6 @@
         input.type = "number";
         input.step = "1";
         input.value = cfg.value ?? 0;
-        input.disabled = noTarget;
         input.addEventListener("change", () => {
           const v = parseFloat(input.value);
           state.conversion.targets[metric].value = isNaN(v) ? 0 : v;
@@ -2205,7 +2346,6 @@
           sel.appendChild(opt);
         });
         sel.value = cfg.mode;
-        sel.disabled = noTarget;
         sel.addEventListener("change", () => {
           state.conversion.targets[metric].mode = sel.value;
           saveState();
@@ -2215,18 +2355,10 @@
         tdMode.appendChild(sel);
 
         const tdDaily = document.createElement("td");
-        tdDaily.textContent = noTarget
-          ? "-"
-          : daily
-          ? daily.toFixed(1)
-          : "-";
+        tdDaily.textContent = daily ? daily.toFixed(1) : "-";
 
         const tdMonthly = document.createElement("td");
-        tdMonthly.textContent = noTarget
-          ? "-"
-          : monthly
-          ? monthly.toFixed(1)
-          : "-";
+        tdMonthly.textContent = monthly ? monthly.toFixed(1) : "-";
 
         row.appendChild(tdLabel);
         row.appendChild(tdValue);
@@ -2238,35 +2370,12 @@
       });
     }
 
-    function getDailyTarget(metric, dateStr) {
-      if (metric === "callBack" || metric === "activeCalls") return 0;
-      const cfg = state.conversion.targets[metric];
-      if (!cfg) return 0;
-      const days = daysInMonth(dateStr);
-      if (cfg.mode === "day") return cfg.value || 0;
-      return (cfg.value || 0) / days;
-    }
-
-    function getMonthlyTarget(metric, dateStr) {
-      if (metric === "callBack" || metric === "activeCalls") return 0;
-      const cfg = state.conversion.targets[metric];
-      if (!cfg) return 0;
-      const days = daysInMonth(dateStr);
-      if (cfg.mode === "day") return (cfg.value || 0) * days;
-      return cfg.value || 0;
-    }
-
-    function percentClass(percent) {
-      if (percent >= 100) return "percent-good";
-      if (percent >= 60) return "percent-mid";
-      return "percent-bad";
-    }
-
     function renderConversionTable() {
       convTableBody.innerHTML = "";
       const dateStr = state.conversion.currentDate || todayISO();
       convDateEl.value = dateStr;
-      const entries = state.conversion.entries[dateStr] || {};
+      const entriesToday = state.conversion.entries[dateStr] || {};
+      const allEntries = state.conversion.entries || {};
 
       if (!state.members.length) {
         const tr = document.createElement("tr");
@@ -2279,15 +2388,17 @@
         return;
       }
 
-      const totals = {};
-      const targetTotals = {};
+      const totalsToday = {};
+      const targetTotalsToday = {};
       CONV_METRICS.forEach(m => {
-        totals[m] = 0;
-        targetTotals[m] = 0;
+        totalsToday[m] = 0;
+        targetTotalsToday[m] = 0;
       });
 
+      const monthKey = dateStr.slice(0, 7);
+      const days = daysInMonth(dateStr);
+
       state.members.forEach(member => {
-        // الصف الأساسي (per day)
         const tr = document.createElement("tr");
 
         const nameTd = document.createElement("td");
@@ -2304,7 +2415,7 @@
           const input = document.createElement("input");
           input.type = "number";
           input.step = "1";
-          const current = entries[member.id]?.[metric] || 0;
+          const current = entriesToday[member.id]?.[metric] || 0;
           input.value = current;
           input.addEventListener("change", () => {
             const v = parseFloat(input.value);
@@ -2318,13 +2429,16 @@
               isNaN(v) ? 0 : v;
             saveState();
             renderConversionTable();
+            const currentMember = getCurrentMember();
+            renderHeaderForMember(currentMember);
+            renderTeamList();
           });
 
           td.appendChild(input);
 
           const dailyTarget = getDailyTarget(metric, dateStr);
-          let percent = 0;
-          if (dailyTarget > 0) {
+          if (hasTarget(metric) && dailyTarget > 0) {
+            let percent = 0;
             percent = (current / dailyTarget) * 100;
             const span = document.createElement("div");
             span.className =
@@ -2336,8 +2450,10 @@
             countPercents++;
           }
 
-          totals[metric] += current;
-          targetTotals[metric] += dailyTarget;
+          totalsToday[metric] += current;
+          if (hasTarget(metric)) {
+            targetTotalsToday[metric] += dailyTarget;
+          }
 
           tr.appendChild(td);
         });
@@ -2356,7 +2472,26 @@
 
         convTableBody.appendChild(tr);
 
-        // الصف الشهري تحت كل سيلز
+        // صف monthly total لكل سيلز
+        const monthTotals = {};
+        CONV_METRICS.forEach(metric => {
+          monthTotals[metric] = 0;
+        });
+
+        Object.entries(allEntries).forEach(([d, byMember]) => {
+          if (d.slice(0, 7) === monthKey) {
+            const entry = byMember[member.id];
+            if (entry) {
+              CONV_METRICS.forEach(metric => {
+                monthTotals[metric] += entry[metric] || 0;
+              });
+            }
+          }
+        });
+
+        let sumMonthPerc = 0;
+        let countMonthPerc = 0;
+
         const trTotal = document.createElement("tr");
         trTotal.className = "sales-total-row";
 
@@ -2365,67 +2500,46 @@
         nameTotalTd.textContent = `${member.name} total`;
         trTotal.appendChild(nameTotalTd);
 
-        let sumMonthlyPercents = 0;
-        let countMonthlyPercents = 0;
-
         CONV_METRICS.forEach(metric => {
           const td = document.createElement("td");
-
-          // إجمالي الشهر كله لنفس الشهر بتاع التاريخ المختار
-          let monthlyTotal = 0;
-          Object.entries(state.conversion.entries).forEach(
-            ([dKey, dayEntries]) => {
-              if (!sameMonth(dKey, dateStr)) return;
-              const mEntry = dayEntries[member.id];
-              if (!mEntry) return;
-              const v = parseFloat(mEntry[metric] || 0);
-              if (!isNaN(v)) monthlyTotal += v;
-            }
-          );
-
+          const totalVal = monthTotals[metric];
           const monthlyTarget = getMonthlyTarget(metric, dateStr);
 
-          if (monthlyTotal === 0 && monthlyTarget === 0) {
-            td.textContent = "-";
-          } else if (monthlyTarget > 0) {
-            const pct = (monthlyTotal / monthlyTarget) * 100;
+          if (hasTarget(metric) && monthlyTarget > 0) {
+            const pct = (totalVal / monthlyTarget) * 100;
+            sumMonthPerc += pct;
+            countMonthPerc++;
             const span = document.createElement("span");
-            span.className =
-              "percent-chip " + percentClass(pct);
-            // هنا حطينا "-" بين الرقم والنسبة زي ما طلبت
-            span.textContent = `- ${pct.toFixed(0)}%`;
-            td.innerHTML = `${monthlyTotal} `;
+            span.className = percentClass(pct);
+            span.textContent = `${totalVal} - ${pct.toFixed(0)}%`;
             td.appendChild(span);
-
-            sumMonthlyPercents += pct;
-            countMonthlyPercents++;
           } else {
-            td.textContent = `${monthlyTotal}`;
+            td.textContent = `${totalVal}`;
           }
 
           trTotal.appendChild(td);
         });
 
-        const tdTotalMonth = document.createElement("td");
-        if (countMonthlyPercents > 0) {
-          const avgMonth = sumMonthlyPercents / countMonthlyPercents;
+        const tdMonthTotal = document.createElement("td");
+        if (countMonthPerc > 0) {
+          const avgMonth = sumMonthPerc / countMonthPerc;
           const span = document.createElement("span");
           span.className = percentClass(avgMonth);
           span.textContent = `${avgMonth.toFixed(0)}%`;
-          tdTotalMonth.appendChild(span);
+          tdMonthTotal.appendChild(span);
         } else {
-          tdTotalMonth.textContent = "-";
+          tdMonthTotal.textContent = "-";
         }
-        trTotal.appendChild(tdTotalMonth);
+        trTotal.appendChild(tdMonthTotal);
 
         convTableBody.appendChild(trTotal);
       });
 
-      // Summary (per day) – تيم كله
+      // Summary (day)
       const lines = [];
       CONV_METRICS.forEach(metric => {
-        const total = totals[metric];
-        const target = targetTotals[metric];
+        const total = totalsToday[metric];
+        const target = targetTotalsToday[metric];
         let line = `${CONV_LABELS[metric]}: ${total}`;
         if (target > 0) {
           const pct = (total / target) * 100;
@@ -2434,7 +2548,7 @@
         lines.push(line);
       });
 
-      if (!Object.values(totals).some(v => v > 0)) {
+      if (!Object.values(totalsToday).some(v => v > 0)) {
         convSummaryEl.textContent = "مفيش أرقام لليوم ده لسه.";
       } else {
         convSummaryEl.innerHTML = lines
@@ -2451,6 +2565,9 @@
       saveState();
       renderConversionTargets();
       renderConversionTable();
+      const member = getCurrentMember();
+      renderHeaderForMember(member);
+      renderTeamList();
     });
 
     // Main render
@@ -2462,7 +2579,6 @@
       renderFiltersAndStats(member);
       renderProjectsList(member);
 
-      // conversion
       if (!state.conversion.currentDate) {
         state.conversion.currentDate = todayISO();
       }
