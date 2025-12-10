@@ -232,6 +232,7 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .main-header-left {
@@ -252,8 +253,10 @@
 
     .main-actions {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .btn {
@@ -268,6 +271,7 @@
       align-items: center;
       gap: 4px;
       transition: 0.18s ease;
+      white-space: nowrap;
     }
 
     .btn-primary {
@@ -583,6 +587,7 @@
     }
 
     /* Scrollbar */
+
     ::-webkit-scrollbar {
       width: 5px;
     }
@@ -704,7 +709,11 @@
           </div>
         </div>
         <div class="main-actions">
-          <button class="btn" id="exportBtn" type="button">Export PDF (Current member)</button>
+          <button class="btn" id="exportBtn" type="button">Export PDF</button>
+          <button class="btn" id="backupBtn" type="button">Backup (file)</button>
+          <button class="btn" id="restoreFileBtn" type="button">Restore from file</button>
+          <button class="btn" id="restoreAutoBtn" type="button">Restore auto backup</button>
+          <input type="file" id="restoreFileInput" accept="application/json" style="display:none" />
         </div>
       </div>
 
@@ -740,7 +749,7 @@
 
             <div class="field">
               <label>Developer</label>
-              <input id="projectDeveloper" placeholder="e.g. Palm Hills, SODIC..." />
+              <input id="projectDeveloper" placeholder="e.g. Emaar, Sodic..." />
             </div>
 
             <div class="field">
@@ -859,6 +868,7 @@
 
   <script>
     const STORAGE_KEY = "br_assessment_v3";
+    const AUTO_BACKUP_KEY = "br_assessment_v3_auto_backup";
     const ALL_TEAM_ID = "__ALL_TEAM__";
 
     let state = {
@@ -867,6 +877,8 @@
     };
 
     let editingProjectId = null;
+
+    // ====== STATE / BACKUP HELPERS ======
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -883,8 +895,21 @@
       }
     }
 
+    function autoBackup() {
+      try {
+        const payload = {
+          state,
+          createdAt: Date.now()
+        };
+        localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.error("Auto backup failed", e);
+      }
+    }
+
     function saveState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      autoBackup();
     }
 
     function uid() {
@@ -905,6 +930,10 @@
     const trainingListEl = document.getElementById("trainingList");
     const trainingSummaryListEl = document.getElementById("trainingSummaryList");
     const exportBtn = document.getElementById("exportBtn");
+    const backupBtn = document.getElementById("backupBtn");
+    const restoreFileBtn = document.getElementById("restoreFileBtn");
+    const restoreAutoBtn = document.getElementById("restoreAutoBtn");
+    const restoreFileInput = document.getElementById("restoreFileInput");
 
     const projectNameEl = document.getElementById("projectName");
     const projectDeveloperEl = document.getElementById("projectDeveloper");
@@ -1103,8 +1132,7 @@
               longPressed = true;
               state.members = state.members.filter(m => m.id !== member.id);
               if (state.selectedMemberId === member.id) {
-                state.selectedMemberId =
-                  state.members[0]?.id || ALL_TEAM_ID;
+                state.selectedMemberId = state.members[0]?.id || ALL_TEAM_ID;
               }
               saveState();
               renderAll();
@@ -1135,11 +1163,9 @@
       });
     }
 
-    // Region + Developer filters + stats
+    // Region filter + stats
     function renderRegionFilterAndStats(member) {
       const projects = member?.projects || [];
-
-      // Regions
       const regions = Array.from(
         new Set(
           projects
@@ -1148,7 +1174,7 @@
         )
       );
 
-      const currentRegionValue = regionFilter.value || "all";
+      const currentValue = regionFilter.value || "all";
       regionFilter.innerHTML = "";
       const allOpt = document.createElement("option");
       allOpt.value = "all";
@@ -1162,39 +1188,10 @@
         regionFilter.appendChild(opt);
       });
 
-      if (!regions.includes(currentRegionValue) && currentRegionValue !== "all") {
+      if (!regions.includes(currentValue) && currentValue !== "all") {
         regionFilter.value = "all";
       } else {
-        regionFilter.value = currentRegionValue;
-      }
-
-      // Developers
-      const devs = Array.from(
-        new Set(
-          projects
-            .map(p => (p.developer || "").trim())
-            .filter(Boolean)
-        )
-      );
-
-      const currentDevValue = developerFilter.value || "all";
-      developerFilter.innerHTML = "";
-      const allDevOpt = document.createElement("option");
-      allDevOpt.value = "all";
-      allDevOpt.textContent = "All developers";
-      developerFilter.appendChild(allDevOpt);
-
-      devs.forEach(d => {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        developerFilter.appendChild(opt);
-      });
-
-      if (!devs.includes(currentDevValue) && currentDevValue !== "all") {
-        developerFilter.value = "all";
-      } else {
-        developerFilter.value = currentDevValue;
+        regionFilter.value = currentValue;
       }
 
       if (projects.length === 0) {
@@ -1224,6 +1221,38 @@
             1
           )}% over ${filtered.length} project(s)`;
         }
+      }
+    }
+
+    // Developer filter
+    function renderDeveloperFilter(member) {
+      const projects = member?.projects || [];
+      const devs = Array.from(
+        new Set(
+          projects
+            .map(p => (p.developer || "").trim())
+            .filter(Boolean)
+        )
+      );
+
+      const currentValue = developerFilter.value || "all";
+      developerFilter.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "all";
+      allOpt.textContent = "All developers";
+      developerFilter.appendChild(allOpt);
+
+      devs.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        developerFilter.appendChild(opt);
+      });
+
+      if (!devs.includes(currentValue) && currentValue !== "all") {
+        developerFilter.value = "all";
+      } else {
+        developerFilter.value = currentValue;
       }
     }
 
@@ -1269,22 +1298,6 @@
         typeof s.orientation === "number" ? s.orientation : "";
     }
 
-    function getFilteredProjects(member) {
-      const allProjects = member?.projects || [];
-      const selectedRegion = regionFilter.value || "all";
-      const selectedDeveloper = developerFilter.value || "all";
-
-      return allProjects.filter(p => {
-        const regionOk =
-          selectedRegion === "all" ||
-          (p.region || "").trim() === selectedRegion;
-        const devOk =
-          selectedDeveloper === "all" ||
-          (p.developer || "").trim() === selectedDeveloper;
-        return regionOk && devOk;
-      });
-    }
-
     // Render projects + training
     function renderProjectsList(member) {
       projectsListEl.innerHTML = "";
@@ -1301,12 +1314,23 @@
         return;
       }
 
-      const projects = getFilteredProjects(member);
+      const selectedRegion = regionFilter.value || "all";
+      const selectedDeveloper = developerFilter.value || "all";
+
+      const projects = member.projects.filter(p => {
+        const regionOk =
+          selectedRegion === "all" ||
+          (p.region || "").trim() === selectedRegion;
+        const devOk =
+          selectedDeveloper === "all" ||
+          (p.developer || "").trim() === selectedDeveloper;
+        return regionOk && devOk;
+      });
 
       if (projects.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects matching current filters.";
+        div.textContent = "No projects for this filter yet.";
         projectsListEl.appendChild(div);
       } else {
         projects
@@ -1334,20 +1358,18 @@
             const subtitle = document.createElement("div");
             subtitle.className = "card-subtitle";
 
-            let baseText = "";
+            const regionPart = project.region
+              ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
+              : `${project.overallPercent.toFixed(1)}% overall`;
+
             const devPart = project.developer
-              ? `${project.developer} • `
-              : "";
-            if (project.region) {
-              baseText = `${devPart}${project.region} • ${project.overallPercent.toFixed(1)}%`;
-            } else {
-              baseText = `${devPart}${project.overallPercent.toFixed(1)}% overall`;
-            }
+              ? `${project.developer} – ${regionPart}`
+              : regionPart;
 
             if (member.isAllTeam && project.ownerName) {
-              subtitle.textContent = `${project.ownerName} – ${baseText}`;
+              subtitle.textContent = `${project.ownerName} – ${devPart}`;
             } else {
-              subtitle.textContent = baseText;
+              subtitle.textContent = devPart;
             }
 
             titleBlock.appendChild(title);
@@ -1454,7 +1476,7 @@
                     ? state.members.find(m =>
                         (m.projects || []).some(p => p.id === project.id)
                       )
-                    : state.members.find(m => m.id === member.id);
+                    : member;
                   if (realMember) {
                     realMember.projects = realMember.projects.filter(
                       p => p.id !== project.id
@@ -1477,7 +1499,7 @@
               });
             });
 
-            // Click: toggle + load into form for editing (except All team)
+            // Click: toggle + load into form for editing (مش منطقي نعدّل من All team)
             card.addEventListener("click", () => {
               if (longPressed) return;
               card.classList.toggle("open");
@@ -1490,15 +1512,16 @@
           });
       }
 
-      // Training plan – part 1 & 2 (based on ALL projects of this member, مش الفلتر)
-      const lines = [];
-      const summaryCounts = {};
+      // Training plan – جزئين
+      const lines = []; // حسب كل مشروع
+      const summaryCounts = {}; // أقل من أو يساوي 5 على مستوى كل المشاريع
 
-      (member.projects || []).forEach(project => {
+      member.projects.forEach(project => {
         const weakPoints = [];
         const s = project.scores || {};
         Object.entries(s).forEach(([key, value]) => {
-          const num = typeof value === "number" ? value : 0;
+          if (typeof value !== "number") return;
+          const num = value;
           const label = SCORE_LABELS[key] || key;
 
           if (num < 7) {
@@ -1522,6 +1545,7 @@
         }
       });
 
+      // جزء 1: حسب كل مشروع
       if (lines.length === 0) {
         trainingListEl.textContent =
           "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
@@ -1534,6 +1558,7 @@
         });
       }
 
+      // جزء 2: نقط متكررة ≤ 5/10 على مستوى كل المشاريع
       const summaryEntries = Object.entries(summaryCounts).sort(
         (a, b) => b[1] - a[1]
       );
@@ -1707,7 +1732,7 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print) – only first 5 projects <= 60%, respect filters
+    // Export as PDF (print) – only first 5 projects <= 60% (respect filters)
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
@@ -1715,7 +1740,22 @@
         return;
       }
 
-      let projects = getFilteredProjects(member) || [];
+      const selectedRegion = regionFilter.value || "all";
+      const selectedDeveloper = developerFilter.value || "all";
+
+      let projects = member.projects || [];
+
+      if (selectedRegion !== "all") {
+        projects = projects.filter(
+          p => (p.region || "").trim() === selectedRegion
+        );
+      }
+
+      if (selectedDeveloper !== "all") {
+        projects = projects.filter(
+          p => (p.developer || "").trim() === selectedDeveloper
+        );
+      }
 
       const lowProjects = projects
         .filter(p => (p.overallPercent || 0) <= 60)
@@ -1728,7 +1768,7 @@
       if (limited.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects ≤ 60% in this filter.";
+        div.textContent = "No projects ≤ 60% for this filter.";
         printProjectsListEl.appendChild(div);
       } else {
         limited.forEach(project => {
@@ -1748,18 +1788,18 @@
           const subtitle = document.createElement("div");
           subtitle.className = "card-subtitle";
 
-          const devPart = project.developer
-            ? `${project.developer} • `
-            : "";
+          const regionPart = project.region
+            ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
+            : `${project.overallPercent.toFixed(1)}% overall`;
 
-          const baseText = project.region
-            ? `${devPart}${project.region} • ${project.overallPercent.toFixed(1)}%`
-            : `${devPart}${project.overallPercent.toFixed(1)}% overall`;
+          const devPart = project.developer
+            ? `${project.developer} – ${regionPart}`
+            : regionPart;
 
           if (member.isAllTeam && project.ownerName) {
-            subtitle.textContent = `${project.ownerName} – ${baseText}`;
+            subtitle.textContent = `${project.ownerName} – ${devPart}`;
           } else {
-            subtitle.textContent = baseText;
+            subtitle.textContent = devPart;
           }
 
           titleBlock.appendChild(title);
@@ -1793,15 +1833,109 @@
       window.print();
     });
 
+    // BACKUP TO FILE
+    backupBtn.addEventListener("click", () => {
+      try {
+        const payload = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          state
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json"
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `br-assessment-backup-${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error(e);
+        alert("Backup failed.");
+      }
+    });
+
+    // RESTORE FROM FILE
+    restoreFileBtn.addEventListener("click", () => {
+      restoreFileInput.value = "";
+      restoreFileInput.click();
+    });
+
+    restoreFileInput.addEventListener("change", () => {
+      const file = restoreFileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          const newState = parsed.state || parsed;
+          if (!newState.members || !Array.isArray(newState.members)) {
+            alert("Invalid backup file.");
+            return;
+          }
+          if (!newState.selectedMemberId && newState.members.length > 0) {
+            newState.selectedMemberId = newState.members[0].id;
+          }
+          const ok = confirm(
+            "كل الداتا الحالية هتتبدل بالنسخة اللي في الملف.\nمتأكد إنك عايز تكمل؟"
+          );
+          if (!ok) return;
+          state = newState;
+          saveState();
+          renderAll();
+        } catch (err) {
+          console.error(err);
+          alert("Can't read this file as backup.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // RESTORE AUTO BACKUP
+    restoreAutoBtn.addEventListener("click", () => {
+      const raw = localStorage.getItem(AUTO_BACKUP_KEY);
+      if (!raw) {
+        alert("مفيش auto backup محفوظ.");
+        return;
+      }
+      try {
+        const payload = JSON.parse(raw);
+        const newState = payload.state || payload;
+        if (!newState.members || !Array.isArray(newState.members)) {
+          alert("Auto backup مش صالح.");
+          return;
+        }
+        if (!newState.selectedMemberId && newState.members.length > 0) {
+          newState.selectedMemberId = newState.members[0].id;
+        }
+        const ok = confirm(
+          "هترجع لآخر نسخة auto backup.\nكل التغييرات الحالية هتتمسح. متأكد؟"
+        );
+        if (!ok) return;
+        state = newState;
+        saveState();
+        renderAll();
+      } catch (e) {
+        console.error(e);
+        alert("Auto backup مش صالح.");
+      }
+    });
+
     function renderAll() {
       renderTeamList();
       const member = getCurrentMember();
       renderHeaderForMember(member);
       renderRegionFilterAndStats(member);
+      renderDeveloperFilter(member);
       renderProjectsList(member);
     }
 
     loadState();
+    autoBackup();
     renderAll();
   </script>
 </body>
