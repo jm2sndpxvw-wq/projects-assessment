@@ -320,7 +320,6 @@
       font-size: 11px;
       color: var(--text-muted);
       margin-top: 6px;
-      flex-wrap: wrap;
     }
 
     .filters-row select {
@@ -651,7 +650,6 @@
       text-align: left;
       font-weight: 600;
       font-size: 11px;
-      cursor: pointer;
     }
 
     .percent-chip {
@@ -673,6 +671,11 @@
 
     .conversion-summary-line {
       margin-bottom: 2px;
+    }
+
+    .sales-total-row td {
+      background: #101424;
+      font-weight: 600;
     }
 
     /* Scrollbar */
@@ -809,7 +812,7 @@
         <div class="main-header-left">
           <div class="main-title" id="currentMemberTitle">Select team member</div>
           <div class="main-sub" id="currentMemberSub">
-            Choose a team member from the left to start.
+            Choose a team member from the left to start assessment.
           </div>
         </div>
         <div class="main-actions">
@@ -984,24 +987,20 @@
           <section class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Conversion – Targets</div>
-                <div class="panel-sub">اختر مدى الأيام، وحدد التارجت للتيم كله</div>
+                <div class="panel-title">Daily & monthly conversion</div>
+                <div class="panel-sub">Sales write numbers, tool calculates %</div>
               </div>
             </div>
 
             <div class="form-grid">
               <div class="field">
-                <label>Select date range</label>
-                <div style="display:flex; gap:4px;">
-                  <input type="date" id="convDateFrom" style="flex:1;" />
-                  <input type="date" id="convDateTo" style="flex:1;" />
-                </div>
-                <small>تقدر تختار يوم واحد أو مدى من الأيام، الأرقام بتتجمع على المدى كله.</small>
+                <label>Select date</label>
+                <input type="date" id="convDate" />
               </div>
 
               <div class="field">
                 <label>Targets mode</label>
-                <small>Per day / per month – التارجت ثابت للتيم كله، Call back & Active calls برا التارجت.</small>
+                <small>Choose per day / per month for each metric</small>
               </div>
 
               <div class="field">
@@ -1027,8 +1026,8 @@
           <section class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Team performance (date range)</div>
-                <div class="panel-sub">Sales name → numbers vs targets على المدى المختار</div>
+                <div class="panel-title">Team performance</div>
+                <div class="panel-sub">Per day row + monthly total row per sales</div>
               </div>
             </div>
 
@@ -1054,7 +1053,7 @@
             </div>
 
             <div class="conversion-summary" id="convSummary">
-              مفيش داتا لسه لليوم / المدى ده.
+              مفيش داتا لسه لليوم ده.
             </div>
           </section>
         </div>
@@ -1067,6 +1066,7 @@
     const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
 
+    // Conversion metrics
     const CONV_METRICS = [
       "deals",
       "scheduled",
@@ -1074,6 +1074,15 @@
       "requests",
       "callBack",
       "activeCalls",
+      "calls"
+    ];
+
+    // Metrics اللي ليها Targets فقط (بدون callBack و activeCalls)
+    const CONV_TARGET_METRICS = [
+      "deals",
+      "scheduled",
+      "meetings",
+      "requests",
       "calls"
     ];
 
@@ -1092,10 +1101,9 @@
       selectedMemberId: null,
       activeTab: "assessment",
       conversion: {
-        range: { from: null, to: null },
+        currentDate: null,
         targets: {},
-        entries: {},
-        selectedSalesId: null
+        entries: {}
       }
     };
 
@@ -1104,30 +1112,18 @@
     function initConversionState() {
       if (!state.conversion) {
         state.conversion = {
-          range: { from: null, to: null },
+          currentDate: null,
           targets: {},
-          entries: {},
-          selectedSalesId: null
+          entries: {}
         };
       }
-      if (!state.conversion.range) {
-        state.conversion.range = { from: null, to: null };
-      }
-      // لو فيه currentDate قديم نحوله لمدى
-      if (state.conversion.currentDate && !state.conversion.range.from && !state.conversion.range.to) {
-        state.conversion.range.from = state.conversion.currentDate;
-        state.conversion.range.to = state.conversion.currentDate;
-      }
       if (!state.conversion.targets) state.conversion.targets = {};
-      CONV_METRICS.forEach(m => {
+      CONV_TARGET_METRICS.forEach(m => {
         if (!state.conversion.targets[m]) {
           state.conversion.targets[m] = { mode: "day", value: 0 };
         }
       });
       if (!state.conversion.entries) state.conversion.entries = {};
-      if (!("selectedSalesId" in state.conversion)) {
-        state.conversion.selectedSalesId = null;
-      }
     }
 
     function loadState() {
@@ -1176,26 +1172,6 @@
       return new Date(y, m, 0).getDate();
     }
 
-    function getDateRange(fromStr, toStr) {
-      const dates = [];
-      if (!fromStr || !toStr) return dates;
-      let from = new Date(fromStr);
-      let to = new Date(toStr);
-      if (isNaN(from) || isNaN(to)) return dates;
-      if (to < from) {
-        const tmp = from;
-        from = to;
-        to = tmp;
-      }
-      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        dates.push(`${y}-${m}-${day}`);
-      }
-      return dates;
-    }
-
     // Elements
     const teamListEl = document.getElementById("teamList");
     const newMemberInput = document.getElementById("newMemberInput");
@@ -1227,8 +1203,7 @@
     const assessmentTabEl = document.getElementById("assessmentTab");
     const conversionTabEl = document.getElementById("conversionTab");
 
-    const convDateFromEl = document.getElementById("convDateFrom");
-    const convDateToEl = document.getElementById("convDateTo");
+    const convDateEl = document.getElementById("convDate");
     const convTargetsBody = document.getElementById("convTargetsBody");
     const convTableBody = document.getElementById("convTableBody");
     const convSummaryEl = document.getElementById("convSummary");
@@ -1282,7 +1257,7 @@
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Compute average (assessment only)
+    // Compute average (Assessment only)
     function computeMemberAverage(member) {
       const projects = member?.projects || [];
       if (projects.length === 0) return 0;
@@ -1316,7 +1291,7 @@
         teamListEl.appendChild(div);
         currentMemberTitle.textContent = "Select team member";
         currentMemberSub.textContent =
-          "Choose a team member from the left to start.";
+          "Choose a team member from the left to start assessment.";
         return;
       }
 
@@ -1452,7 +1427,7 @@
       });
     }
 
-    // Region + Developer filters + stats (assessment)
+    // Region + Developer filters + stats
     function renderFiltersAndStats(member) {
       const projects = member?.projects || [];
       const regions = new Set();
@@ -1579,7 +1554,7 @@
         typeof s.orientation === "number" ? s.orientation : "";
     }
 
-    // Render projects + training (assessment)
+    // Render projects + training
     function renderProjectsList(member) {
       projectsListEl.innerHTML = "";
 
@@ -1772,7 +1747,7 @@
               });
             });
 
-            // Click: toggle + load into form for editing (مش منطقي في All team)
+            // Click: toggle + load into form for editing (بس مش منطقي في All team)
             card.addEventListener("click", () => {
               if (longPressed) return;
               card.classList.toggle("open");
@@ -1785,9 +1760,9 @@
           });
       }
 
-      // Training plan – جزئين
-      const lines = []; // per project
-      const summaryCounts = {}; // <=5 across all projects
+      // Training plan (Arabic) – جزئين
+      const lines = []; // حسب كل مشروع
+      const summaryCounts = {}; // أقل من أو يساوي 5 على مستوى كل المشاريع
 
       (member.projects || []).forEach(project => {
         const weakPoints = [];
@@ -1817,6 +1792,7 @@
         }
       });
 
+      // جزء 1: حسب كل مشروع
       if (lines.length === 0) {
         trainingListEl.textContent =
           "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
@@ -1829,6 +1805,7 @@
         });
       }
 
+      // جزء 2: نقط متكررة ≤ 5/10 على مستوى كل المشاريع
       const summaryEntries = Object.entries(summaryCounts).sort(
         (a, b) => b[1] - a[1]
       );
@@ -1850,31 +1827,20 @@
       if (!member) {
         currentMemberTitle.textContent = "Select team member";
         currentMemberSub.textContent =
-          "Choose a team member from the left to start.";
+          "Choose a team member from the left to start assessment.";
         return;
       }
-
-      if (state.activeTab === "assessment") {
-        const avg = computeMemberAverage(member);
-        if (member.isAllTeam) {
-          currentMemberTitle.textContent = "All team (Assessment)";
-          currentMemberSub.textContent = `Overall team average: ${avg.toFixed(
-            1
-          )}% – ${member.projects.length} project(s) across ${state.members.length} member(s).`;
-        } else {
-          currentMemberTitle.textContent = member.name;
-          currentMemberSub.textContent = `Assessment – Overall average: ${avg.toFixed(
-            1
-          )}% – ${member.projects.length} project(s) evaluated.`;
-        }
+      const avg = computeMemberAverage(member);
+      if (member.isAllTeam) {
+        currentMemberTitle.textContent = "All team";
+        currentMemberSub.textContent = `Overall team average: ${avg.toFixed(
+          1
+        )}% – ${member.projects.length} project(s) across ${state.members.length} member(s).`;
       } else {
-        if (member.isAllTeam) {
-          currentMemberTitle.textContent = "All team (Conversion)";
-        } else {
-          currentMemberTitle.textContent = `${member.name} (Conversion)`;
-        }
-        currentMemberSub.textContent =
-          "Conversion tab: الحسابات هنا خاصة بالـ activities بس، ملهاش علاقة بالـ assessment.";
+        currentMemberTitle.textContent = member.name;
+        currentMemberSub.textContent = `Overall average: ${avg.toFixed(
+          1
+        )}% – ${member.projects.length} project(s) evaluated.`;
       }
     }
 
@@ -1911,7 +1877,7 @@
       if (e.key === "Enter") addMemberBtn.click();
     });
 
-    // Add / update project (assessment)
+    // Add / update project (Assessment)
     addProjectBtn.addEventListener("click", () => {
       let member = getCurrentMember();
       if (!member || member.isAllTeam) {
@@ -2001,7 +1967,7 @@
       clearForm();
     });
 
-    // Region / Developer filter change (assessment)
+    // Region / Developer filter change
     regionFilter.addEventListener("change", () => {
       const member = getCurrentMember();
       renderFiltersAndStats(member);
@@ -2014,7 +1980,7 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print) – only first 5 projects <= 60% في التاب بتاع Assessment
+    // Export as PDF (print) – only first 5 projects <= 60%
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
@@ -2178,8 +2144,6 @@
         state.activeTab = tab;
         saveState();
         renderTabs();
-        const member = getCurrentMember();
-        renderHeaderForMember(member);
       });
     });
 
@@ -2201,26 +2165,11 @@
 
     function renderConversionTargets() {
       initConversionState();
-
-      let from = state.conversion.range.from;
-      let to = state.conversion.range.to;
-      if (!from && !to) {
-        const today = todayISO();
-        from = today;
-        to = today;
-        state.conversion.range.from = from;
-        state.conversion.range.to = to;
-      } else {
-        if (!from) from = to || todayISO();
-        if (!to) to = from;
-      }
-
-      const baseDateStr = from || todayISO();
-      const days = daysInMonth(baseDateStr);
+      const dateStr = state.conversion.currentDate || todayISO();
+      const days = daysInMonth(dateStr);
 
       convTargetsBody.innerHTML = "";
-      // Call back & Active calls برا التارجت
-      CONV_METRICS.filter(m => m !== "callBack" && m !== "activeCalls").forEach(metric => {
+      CONV_TARGET_METRICS.forEach(metric => {
         const row = document.createElement("tr");
         const cfg = state.conversion.targets[metric] || {
           mode: "day",
@@ -2280,26 +2229,23 @@
 
         convTargetsBody.appendChild(row);
       });
-
-      convDateFromEl.value = state.conversion.range.from || "";
-      convDateToEl.value = state.conversion.range.to || "";
     }
 
     function getDailyTarget(metric, dateStr) {
-      // Call back & Active calls برا التارجت
-      if (metric === "callBack" || metric === "activeCalls") return 0;
-       const cfg = state.conversion.targets[metric];
-  if (!cfg) return 0;
+      const cfg = state.conversion.targets[metric];
+      if (!cfg) return 0;
+      const days = daysInMonth(dateStr);
+      if (cfg.mode === "day") return cfg.value || 0;
+      return (cfg.value || 0) / days;
+    }
 
-  // لو التارجت "per day" هنستخدمه زي ما هو
-  if (cfg.mode === "day") {
-    return cfg.value || 0;
-  }
-
-  // لو التارجت "per month" نحسب النسبة على التارجت الشهري نفسه
-  // عشان لما تحط 1 deal في الشهر وتعمل 1 deal يبقى 100% مش 3100%
-  return cfg.value || 0;
-}
+    function getMonthlyTarget(metric, dateStr) {
+      const cfg = state.conversion.targets[metric];
+      if (!cfg) return 0;
+      const days = daysInMonth(dateStr);
+      if (cfg.mode === "day") return (cfg.value || 0) * days;
+      return cfg.value || 0;
+    }
 
     function percentClass(percent) {
       if (percent >= 100) return "percent-good";
@@ -2307,27 +2253,29 @@
       return "percent-bad";
     }
 
+    function computeMonthlyTotalForMember(memberId, metric, dateStr) {
+      const [y, m] = dateStr.split("-");
+      const monthPrefix = `${y}-${m}`;
+      let total = 0;
+      Object.entries(state.conversion.entries || {}).forEach(
+        ([dateKey, membersData]) => {
+          if (!dateKey.startsWith(monthPrefix)) return;
+          const val =
+            (membersData &&
+              membersData[memberId] &&
+              membersData[memberId][metric]) ||
+            0;
+          total += Number(val) || 0;
+        }
+      );
+      return total;
+    }
+
     function renderConversionTable() {
       convTableBody.innerHTML = "";
-
-      let from = state.conversion.range.from;
-      let to = state.conversion.range.to;
-      if (!from && !to) {
-        const today = todayISO();
-        from = today;
-        to = today;
-        state.conversion.range.from = from;
-        state.conversion.range.to = to;
-      } else {
-        if (!from) from = to || todayISO();
-        if (!to) to = from;
-      }
-
-      const datesInRange = getDateRange(from, to);
-      convDateFromEl.value = from;
-      convDateToEl.value = to;
-
-      const entries = state.conversion.entries;
+      const dateStr = state.conversion.currentDate || todayISO();
+      convDateEl.value = dateStr;
+      const entries = state.conversion.entries[dateStr] || {};
 
       if (!state.members.length) {
         const tr = document.createElement("tr");
@@ -2347,28 +2295,13 @@
         targetTotals[m] = 0;
       });
 
-      const rangeDaysCount = datesInRange.length || 0;
-
       state.members.forEach(member => {
+        // ====== DAILY ROW ======
         const tr = document.createElement("tr");
-
-        if (state.conversion.selectedSalesId === member.id) {
-          tr.style.backgroundColor = "#1b2233";
-        }
 
         const nameTd = document.createElement("td");
         nameTd.className = "sales-name-cell";
         nameTd.textContent = member.name;
-        nameTd.title = "Click to focus this sales targets";
-        nameTd.addEventListener("click", () => {
-          if (state.conversion.selectedSalesId === member.id) {
-            state.conversion.selectedSalesId = null;
-          } else {
-            state.conversion.selectedSalesId = member.id;
-          }
-          saveState();
-          renderConversionTable();
-        });
         tr.appendChild(nameTd);
 
         let sumPercents = 0;
@@ -2377,33 +2310,20 @@
         CONV_METRICS.forEach(metric => {
           const td = document.createElement("td");
 
-          // إجمالي الأرقام على مدى الأيام
-          let totalForMemberMetric = 0;
-          datesInRange.forEach(dateStr => {
-            const dayEntries = entries[dateStr] || {};
-            const forMember = dayEntries[member.id] || {};
-            const v = forMember[metric] || 0;
-            totalForMemberMetric += v;
-          });
-
           const input = document.createElement("input");
           input.type = "number";
           input.step = "1";
-          // الأرقام اللي بنعدلها تتحفظ على تاريخ "نهاية المدى"
-          const activeDateKey = to;
-          const activeDayEntries = entries[activeDateKey] || {};
-          const activeMemberEntries = activeDayEntries[member.id] || {};
-          const currentForActiveDay = activeMemberEntries[metric] || 0;
-          input.value = currentForActiveDay;
+          const current = entries[member.id]?.[metric] || 0;
+          input.value = current;
           input.addEventListener("change", () => {
             const v = parseFloat(input.value);
-            if (!state.conversion.entries[activeDateKey]) {
-              state.conversion.entries[activeDateKey] = {};
+            if (!state.conversion.entries[dateStr]) {
+              state.conversion.entries[dateStr] = {};
             }
-            if (!state.conversion.entries[activeDateKey][member.id]) {
-              state.conversion.entries[activeDateKey][member.id] = {};
+            if (!state.conversion.entries[dateStr][member.id]) {
+              state.conversion.entries[dateStr][member.id] = {};
             }
-            state.conversion.entries[activeDateKey][member.id][metric] =
+            state.conversion.entries[dateStr][member.id][metric] =
               isNaN(v) ? 0 : v;
             saveState();
             renderConversionTable();
@@ -2411,20 +2331,10 @@
 
           td.appendChild(input);
 
-          // Targets على مدى الأيام
-          let targetForMemberMetric = 0;
-          datesInRange.forEach(dateStr => {
-            const dailyTarget = getDailyTarget(metric, dateStr);
-            targetForMemberMetric += dailyTarget;
-            targetTotals[metric] += dailyTarget;
-          });
-
-          const dailyTargetForDisplay = rangeDaysCount
-            ? targetForMemberMetric / rangeDaysCount
-            : 0;
-
-          if (targetForMemberMetric > 0) {
-            const percent = (totalForMemberMetric / targetForMemberMetric) * 100;
+          const dailyTarget = getDailyTarget(metric, dateStr);
+          let percent = 0;
+          if (dailyTarget > 0) {
+            percent = (current / dailyTarget) * 100;
             const span = document.createElement("div");
             span.className =
               "percent-chip " + percentClass(percent);
@@ -2435,7 +2345,8 @@
             countPercents++;
           }
 
-          totals[metric] += totalForMemberMetric;
+          totals[metric] += Number(current) || 0;
+          targetTotals[metric] += dailyTarget;
 
           tr.appendChild(td);
         });
@@ -2453,52 +2364,61 @@
         tr.appendChild(tdTotal);
 
         convTableBody.appendChild(tr);
-      });
 
-      // صف إجمالي تحت السيلز – Sales total
-      const totalRow = document.createElement("tr");
-      const nameTd = document.createElement("td");
-      nameTd.className = "sales-name-cell";
-      nameTd.textContent = "Sales total";
-      totalRow.appendChild(nameTd);
+        // ====== MONTHLY TOTAL ROW (per sales) ======
+        const totalRow = document.createElement("tr");
+        totalRow.className = "sales-total-row";
 
-      let totalPercentsSum = 0;
-      let totalPercentsCount = 0;
+        const nameTd2 = document.createElement("td");
+        nameTd2.className = "sales-name-cell";
+        nameTd2.textContent = `${member.name} total`;
+        totalRow.appendChild(nameTd2);
 
-      CONV_METRICS.forEach(metric => {
-        const td = document.createElement("td");
-        const total = totals[metric];
-        td.textContent = total;
+        let monthSumPerc = 0;
+        let monthCountPerc = 0;
 
-        const target = targetTotals[metric];
-        if (target > 0) {
-          const pct = (total / target) * 100;
-          const span = document.createElement("div");
-          span.className = "percent-chip " + percentClass(pct);
-          span.textContent = `${pct.toFixed(0)}%`;
-          td.appendChild(span);
-          totalPercentsSum += pct;
-          totalPercentsCount++;
+        CONV_METRICS.forEach(metric => {
+          const td = document.createElement("td");
+
+          const monthlyTotal = computeMonthlyTotalForMember(
+            member.id,
+            metric,
+            dateStr
+          );
+          td.textContent = monthlyTotal || 0;
+
+          const monthlyTarget = getMonthlyTarget(metric, dateStr);
+          if (monthlyTarget > 0) {
+            const pct = (monthlyTotal / monthlyTarget) * 100;
+            const span = document.createElement("div");
+            span.className =
+              "percent-chip " + percentClass(pct);
+            span.textContent = `${pct.toFixed(0)}%`;
+            td.appendChild(span);
+
+            monthSumPerc += pct;
+            monthCountPerc++;
+          }
+
+          totalRow.appendChild(td);
+        });
+
+        const tdTotalMonth = document.createElement("td");
+        if (monthCountPerc > 0) {
+          const avgMonth = monthSumPerc / monthCountPerc;
+          const span = document.createElement("span");
+          span.className = percentClass(avgMonth);
+          span.textContent = `${avgMonth.toFixed(0)}%`;
+          tdTotalMonth.appendChild(span);
+        } else {
+          tdTotalMonth.textContent = "-";
         }
+        totalRow.appendChild(tdTotalMonth);
 
-        totalRow.appendChild(td);
+        convTableBody.appendChild(totalRow);
       });
 
-      const totalPctTd = document.createElement("td");
-      if (totalPercentsCount > 0) {
-        const avgTeamPct = totalPercentsSum / totalPercentsCount;
-        const span = document.createElement("span");
-        span.className = percentClass(avgTeamPct);
-        span.textContent = `${avgTeamPct.toFixed(0)}%`;
-        totalPctTd.appendChild(span);
-      } else {
-        totalPctTd.textContent = "-";
-      }
-      totalRow.appendChild(totalPctTd);
-
-      convTableBody.appendChild(totalRow);
-
-      // Summary
+      // Summary (per day)
       const lines = [];
       CONV_METRICS.forEach(metric => {
         const total = totals[metric];
@@ -2511,67 +2431,20 @@
         lines.push(line);
       });
 
-      let summaryHtml = "";
-
-      // لو مختار سيلز في التارجت
-      if (state.conversion.selectedSalesId) {
-        const selMember = state.members.find(
-          m => m.id === state.conversion.selectedSalesId
-        );
-        if (selMember) {
-          const rangeDates = datesInRange;
-          const daysCount = rangeDates.length || 0;
-          const parts = [];
-          CONV_METRICS.forEach(metric => {
-            const baseDate = rangeDates[0] || todayISO();
-            const dailyTarget = getDailyTarget(metric, baseDate);
-            const totalTarget = dailyTarget * daysCount;
-            if (dailyTarget > 0 || totalTarget > 0) {
-              parts.push(
-                `${CONV_LABELS[metric]}: daily ${dailyTarget.toFixed(
-                  1
-                )} / total ${totalTarget.toFixed(1)}`
-              );
-            }
-          });
-          if (parts.length) {
-            summaryHtml += `<div class="conversion-summary-line"><strong>${selMember.name} targets (${from} → ${to}):</strong> ${parts.join(
-              " | "
-            )}</div><hr/>`;
-          }
-        }
-      }
-
       if (!Object.values(totals).some(v => v > 0)) {
-        summaryHtml += "مفيش أرقام لليوم / المدى ده لسه.";
+        convSummaryEl.textContent = "مفيش أرقام لليوم ده لسه.";
       } else {
-        summaryHtml += lines
+        convSummaryEl.innerHTML = lines
           .map(
             l => `<div class="conversion-summary-line">${l}</div>`
           )
           .join("");
       }
-
-      convSummaryEl.innerHTML = summaryHtml;
     }
 
-    convDateFromEl.addEventListener("change", () => {
-      const val = convDateFromEl.value || todayISO();
-      state.conversion.range.from = val;
-      if (!state.conversion.range.to) {
-        state.conversion.range.to = val;
-      }
-      saveState();
-      renderConversionTargets();
-      renderConversionTable();
-    });
-
-    convDateToEl.addEventListener("change", () => {
-      const val = convDateToEl.value || todayISO();
-      state.conversion.range.to = val;
-      if (!state.conversion.range.from) {
-        state.conversion.range.from = val;
-      }
+    convDateEl.addEventListener("change", () => {
+      const val = convDateEl.value || todayISO();
+      state.conversion.currentDate = val;
       saveState();
       renderConversionTargets();
       renderConversionTable();
@@ -2586,11 +2459,8 @@
       renderFiltersAndStats(member);
       renderProjectsList(member);
 
-      // conversion
-      if (!state.conversion.range.from && !state.conversion.range.to) {
-        const today = todayISO();
-        state.conversion.range.from = today;
-        state.conversion.range.to = today;
+      if (!state.conversion.currentDate) {
+        state.conversion.currentDate = todayISO();
       }
       renderConversionTargets();
       renderConversionTable();
