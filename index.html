@@ -1460,9 +1460,13 @@
 
         const metaEl = document.createElement("div");
         metaEl.className = "team-meta";
-        const projectsCount = member.projects?.length || 0;
-        metaEl.textContent =
-          projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+        if (state.activeTab === "conversion") {
+  metaEl.textContent = "Conversion";
+} else {
+  const projectsCount = member.projects?.length || 0;
+  metaEl.textContent =
+    projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+}
 
         main.appendChild(nameEl);
         main.appendChild(metaEl);
