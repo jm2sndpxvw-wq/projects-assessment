@@ -224,7 +224,7 @@
       padding: 18px 18px 18px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .main-header {
@@ -252,7 +252,7 @@
 
     .main-actions {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
       flex-wrap: wrap;
       justify-content: flex-end;
@@ -270,7 +270,6 @@
       align-items: center;
       gap: 4px;
       transition: 0.18s ease;
-      white-space: nowrap;
     }
 
     .btn-primary {
@@ -282,13 +281,45 @@
     .btn-primary:hover { background: #3a70ff; }
     .btn:hover { background: #171c29; }
 
+    .btn input[type="file"] {
+      display: none;
+    }
+
+    /* Tabs */
+
+    .tabs-row {
+      display: flex;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .tab-btn {
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(8,10,16,0.9);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      border-color: rgba(79,140,255,0.9);
+      color: #fff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
     .filters-row {
       display: flex;
       gap: 8px;
       align-items: center;
       font-size: 11px;
       color: var(--text-muted);
-      flex-wrap: wrap;
+      margin-top: 6px;
     }
 
     .filters-row select {
@@ -317,7 +348,7 @@
 
     .content-grid {
       display: grid;
-      grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
       gap: 12px;
       margin-top: 6px;
       height: calc(100% - 60px);
@@ -374,7 +405,8 @@
     }
 
     .field input,
-    .field textarea {
+    .field textarea,
+    .field select {
       background: #0d1017;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -385,7 +417,8 @@
     }
 
     .field input:focus,
-    .field textarea:focus {
+    .field textarea:focus,
+    .field select:focus {
       border-color: var(--primary);
     }
 
@@ -571,18 +604,73 @@
       text-align: center;
     }
 
-    .region-summary {
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .region-summary span {
-      margin-right: 6px;
-    }
-
     .print-only {
       display: none;
+    }
+
+    /* Conversion tab */
+
+    .conversion-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .conversion-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+
+    .conversion-table th,
+    .conversion-table td {
+      border: 1px solid var(--border);
+      padding: 4px 5px;
+      text-align: center;
+    }
+
+    .conversion-table th {
+      font-size: 10px;
+      background: #151a25;
+    }
+
+    .conversion-table td input {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #05070b;
+      color: var(--text);
+      font-size: 10px;
+      padding: 3px 4px;
+      text-align: center;
+    }
+
+    .conversion-table .sales-name-cell {
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .percent-chip {
+      font-size: 9px;
+      margin-top: 2px;
+      display: inline-block;
+    }
+
+    .percent-good { color: var(--success); }
+    .percent-mid { color: var(--warning); }
+    .percent-bad { color: var(--danger); }
+
+    .conversion-summary {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .conversion-summary-line {
+      margin-bottom: 2px;
     }
 
     /* Scrollbar */
@@ -607,7 +695,8 @@
         border-bottom: 1px solid var(--border);
         flex-direction: column;
       }
-      .content-grid {
+      .content-grid,
+      .conversion-layout {
         grid-template-columns: 1fr;
         height: auto;
       }
@@ -633,13 +722,20 @@
         color: #f5f7fb !important;
       }
 
-      .content-grid {
-        grid-template-columns: 1fr !important;
-      }
-      .content-grid > section:first-child {
+      .main-actions,
+      .tabs-row {
         display: none !important;
       }
 
+      /* اخفي فورم ال assessment في الـ PDF (لما نكون في تاب assessment) */
+      #assessmentTab .content-grid {
+        grid-template-columns: 1fr !important;
+      }
+      #assessmentTab .content-grid > section:first-child {
+        display: none !important;
+      }
+
+      /* إظهار member الحالي فقط */
       .team-item {
         display: none !important;
       }
@@ -651,6 +747,7 @@
         display: none !important;
       }
 
+      /* استخدم قائمة خاصة للـ PDF */
       #projectsList {
         display: none !important;
       }
@@ -659,6 +756,12 @@
       }
       #printProjectsList .card {
         cursor: default;
+      }
+
+      /* هنطبع التاب اللي ظاهر بس */
+      #assessmentTab.hidden,
+      #conversionTab.hidden {
+        display: none !important;
       }
     }
   </style>
@@ -708,174 +811,305 @@
           </div>
         </div>
         <div class="main-actions">
-          <button class="btn" id="exportBtn" type="button">Export PDF (Current member)</button>
+          <button class="btn" id="exportBtn" type="button">Export PDF (Current)</button>
           <button class="btn" id="backupBtn" type="button">Backup</button>
-          <button class="btn" id="restoreBtn" type="button">Restore from file</button>
-          <button class="btn" id="restoreAutoBtn" type="button">Restore auto-backup</button>
-          <input type="file" id="restoreFileInput" accept="application/json" style="display:none" />
+          <label class="btn">
+            Restore file
+            <input type="file" id="restoreFileInput" accept="application/json" />
+          </label>
+          <button class="btn" id="restoreAutoBtn" type="button">Restore auto</button>
         </div>
       </div>
 
-      <div class="filters-row">
-        <span>Region:</span>
-        <select id="regionFilter">
-          <option value="all">All regions</option>
-        </select>
-
-        <span>Developer:</span>
-        <select id="developerFilter">
-          <option value="all">All developers</option>
-        </select>
-
-        <span class="chip chip-soft" id="regionStats">No projects yet</span>
+      <!-- Tabs -->
+      <div class="tabs-row">
+        <button class="tab-btn active" data-tab="assessment">Assessment</button>
+        <button class="tab-btn" data-tab="conversion">Conversion</button>
       </div>
 
-      <div class="content-grid">
-        <!-- LEFT: FORM -->
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title" id="formTitle">New Project Assessment</div>
-              <div class="panel-sub">Rate each point from 0 to 10 (English labels)</div>
-            </div>
-          </div>
+      <!-- ASSESSMENT TAB -->
+      <div id="assessmentTab">
+        <div class="filters-row">
+          <span>Region:</span>
+          <select id="regionFilter">
+            <option value="all">All regions</option>
+          </select>
+          <span>Developer:</span>
+          <select id="developerFilter">
+            <option value="all">All developers</option>
+          </select>
+          <span class="chip chip-soft" id="regionStats">No projects yet</span>
+        </div>
 
-          <div class="form-grid">
-            <div class="field">
-              <label>Project name</label>
-              <input id="projectName" placeholder="e.g. New Zayed Lakes" />
-            </div>
-
-            <div class="field">
-              <label>Developer</label>
-              <input id="projectDeveloper" placeholder="e.g. Palm Hills, SODIC..." />
-            </div>
-
-            <div class="field">
-              <label>Region / Area</label>
-              <input id="projectRegion" placeholder="e.g. New Zayed, NAC..." />
-            </div>
-
-            <div class="scores-grid">
-              <div class="field">
-                <label>Development</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreDevelopment" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Location</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreLocation" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Masterplan</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreMasterplan" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Facilities</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreFacilities" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Type mix</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreType" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Price positioning</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scorePrice" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Payment plan</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scorePayment" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Delivery date</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreDelivery" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Finishing quality</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreFinishing" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Maintenance (deposit)</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreMaintenance" placeholder="0–10" />
-              </div>
-              <div class="field">
-                <label>Orientation skills</label>
-                <input type="number" min="0" max="10" step="0.5"
-                       class="score-input" id="scoreOrientation" placeholder="0–10" />
+        <div class="content-grid">
+          <!-- LEFT: FORM -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title" id="formTitle">New Project Assessment</div>
+                <div class="panel-sub">Rate each point from 0 to 10 (English labels)</div>
               </div>
             </div>
 
-            <div class="field">
-              <label>Notes (optional)</label>
-              <textarea id="projectNotes"
-                        placeholder="Any remarks, red flags, comparison with competitors..."></textarea>
-            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Project name</label>
+                <input id="projectName" placeholder="e.g. New Zayed Lakes" />
+              </div>
 
-            <div class="submit-row">
-              <button class="btn btn-primary" id="addProjectBtn" type="button">
-                Save project
-              </button>
-              <button class="btn" id="cancelEditBtn" type="button">
-                Cancel edit
-              </button>
-            </div>
-          </div>
-        </section>
+              <div class="field">
+                <label>Developer</label>
+                <input id="projectDeveloper" placeholder="e.g. Emaar, SODIC..." />
+              </div>
 
-        <!-- RIGHT: CARDS + TRAINING -->
-        <section class="panel projects-panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Projects & Scores</div>
-              <div class="panel-sub">
-                Click on a card to expand details – filtered by region & developer.
+              <div class="field">
+                <label>Region / Area</label>
+                <input id="projectRegion" placeholder="e.g. New Zayed, NAC..." />
+              </div>
+
+              <div class="scores-grid">
+                <div class="field">
+                  <label>Development</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreDevelopment" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Location</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreLocation" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Masterplan</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreMasterplan" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Facilities</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreFacilities" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Type mix</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreType" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Price positioning</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scorePrice" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Payment plan</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scorePayment" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Delivery date</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreDelivery" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Finishing quality</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreFinishing" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Maintenance (deposit)</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreMaintenance" placeholder="0–10" />
+                </div>
+                <div class="field">
+                  <label>Orientation skills</label>
+                  <input type="number" min="0" max="10" step="0.5"
+                         class="score-input" id="scoreOrientation" placeholder="0–10" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Notes (optional)</label>
+                <textarea id="projectNotes"
+                          placeholder="Any remarks, red flags, comparison with competitors..."></textarea>
+              </div>
+
+              <div class="submit-row">
+                <button class="btn btn-primary" id="addProjectBtn" type="button">
+                  Save project
+                </button>
+                <button class="btn" id="cancelEditBtn" type="button">
+                  Cancel edit
+                </button>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Normal list (screen) -->
-          <div class="cards-list" id="projectsList">
-            <div class="empty-state">No projects yet. Add a new assessment on the left.</div>
-          </div>
-
-          <!-- Print-only list (≤60% & max 5) -->
-          <div class="cards-list print-only" id="printProjectsList"></div>
-
-          <div class="training-panel">
-            <div><strong>خطة التدريب (أوتوماتيك): نقاط ضعف حسب كل مشروع</strong></div>
-            <div class="training-list" id="trainingList">
-              لسه مافيش داتا كفاية دلوقتي.
+          <!-- RIGHT: CARDS + TRAINING -->
+          <section class="panel projects-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Projects & Scores</div>
+                <div class="panel-sub">
+                  Click on a card to expand details – filtered by region & developer.
+                </div>
+              </div>
             </div>
-            <div style="margin-top:4px;"><strong>نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع:</strong></div>
-            <div class="training-list" id="trainingSummaryList">
-              لسه مافيش داتا كفاية دلوقتي.
+
+            <!-- Normal list (screen) -->
+            <div class="cards-list" id="projectsList">
+              <div class="empty-state">No projects yet. Add a new assessment on the left.</div>
             </div>
-          </div>
-        </section>
+
+            <!-- Print-only list (≤60% & max 5) -->
+            <div class="cards-list print-only" id="printProjectsList"></div>
+
+            <div class="training-panel">
+              <div><strong>خطة التدريب (أوتوماتيك): نقاط ضعف حسب كل مشروع</strong></div>
+              <div class="training-list" id="trainingList">
+                لسه مافيش داتا كفاية دلوقتي.
+              </div>
+              <div style="margin-top:4px;"><strong>نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع:</strong></div>
+              <div class="training-list" id="trainingSummaryList">
+                لسه مافيش داتا كفاية دلوقتي.
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- CONVERSION TAB -->
+      <div id="conversionTab" class="hidden">
+        <div class="conversion-layout">
+          <!-- LEFT: Targets & Date -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Daily conversion</div>
+                <div class="panel-sub">Sales write numbers, tool calculates %</div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label>Select date</label>
+                <input type="date" id="convDate" />
+              </div>
+
+              <div class="field">
+                <label>Targets mode</label>
+                <small>Choose per day / per month for each metric</small>
+              </div>
+
+              <div class="field">
+                <table class="conversion-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Target</th>
+                      <th>Mode</th>
+                      <th>Daily</th>
+                      <th>Monthly</th>
+                    </tr>
+                  </thead>
+                  <tbody id="convTargetsBody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- RIGHT: Table -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Team performance (per day)</div>
+                <div class="panel-sub">Numbers per sales – last column is overall % vs targets</div>
+              </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="conversion-table" id="convTable">
+                <thead>
+                  <tr>
+                    <th>Sales name</th>
+                    <th>Deals</th>
+                    <th>Scheduled</th>
+                    <th>Meetings</th>
+                    <th>Requests</th>
+                    <th>Call back</th>
+                    <th>Active calls</th>
+                    <th>Calls</th>
+                    <th>Total %</th>
+                  </tr>
+                </thead>
+                <tbody id="convTableBody">
+                  <!-- Filled by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="conversion-summary" id="convSummary">
+              مفيش داتا لسه لليوم ده.
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   </div>
 
   <script>
     const STORAGE_KEY = "br_assessment_v3";
-    const BACKUP_KEY = "br_assessment_v3_auto_backup";
+    const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
+
+    const CONV_METRICS = [
+      "deals",
+      "scheduled",
+      "meetings",
+      "requests",
+      "callBack",
+      "activeCalls",
+      "calls"
+    ];
+
+    const CONV_LABELS = {
+      deals: "Deals",
+      scheduled: "Scheduled",
+      meetings: "Meetings",
+      requests: "Requests",
+      callBack: "Call back",
+      activeCalls: "Active calls",
+      calls: "Calls"
+    };
 
     let state = {
       members: [],
-      selectedMemberId: null
+      selectedMemberId: null,
+      activeTab: "assessment",
+      conversion: {
+        currentDate: null,
+        targets: {},
+        entries: {}
+      }
     };
 
     let editingProjectId = null;
+
+    function initConversionState() {
+      if (!state.conversion) {
+        state.conversion = {
+          currentDate: null,
+          targets: {},
+          entries: {}
+        };
+      }
+      if (!state.conversion.targets) state.conversion.targets = {};
+      CONV_METRICS.forEach(m => {
+        if (!state.conversion.targets[m]) {
+          state.conversion.targets[m] = { mode: "day", value: 0 };
+        }
+      });
+      if (!state.conversion.entries) state.conversion.entries = {};
+    }
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -890,17 +1124,37 @@
       if (!state.selectedMemberId && state.members.length > 0) {
         state.selectedMemberId = state.members[0].id;
       }
+      if (!state.activeTab) state.activeTab = "assessment";
+      initConversionState();
+    }
+
+    function autoBackup() {
+      try {
+        localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn("Auto backup failed", e);
+      }
     }
 
     function saveState() {
-      const data = JSON.stringify(state);
-      localStorage.setItem(STORAGE_KEY, data);
-      // Auto backup داخلي
-      localStorage.setItem(BACKUP_KEY, data);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      autoBackup();
     }
 
     function uid() {
       return Date.now().toString(36) + Math.random().toString(16).slice(2);
+    }
+
+    function todayISO() {
+      const d = new Date();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${d.getFullYear()}-${m}-${day}`;
+    }
+
+    function daysInMonth(dateStr) {
+      const [y, m] = dateStr.split("-").map(n => parseInt(n, 10));
+      return new Date(y, m, 0).getDate();
     }
 
     // Elements
@@ -918,9 +1172,8 @@
     const trainingSummaryListEl = document.getElementById("trainingSummaryList");
     const exportBtn = document.getElementById("exportBtn");
     const backupBtn = document.getElementById("backupBtn");
-    const restoreBtn = document.getElementById("restoreBtn");
-    const restoreAutoBtn = document.getElementById("restoreAutoBtn");
     const restoreFileInput = document.getElementById("restoreFileInput");
+    const restoreAutoBtn = document.getElementById("restoreAutoBtn");
 
     const projectNameEl = document.getElementById("projectName");
     const projectDeveloperEl = document.getElementById("projectDeveloper");
@@ -930,6 +1183,15 @@
     const cancelEditBtn = document.getElementById("cancelEditBtn");
     const formTitleEl = document.getElementById("formTitle");
     const defaultFormTitle = formTitleEl.textContent;
+
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const assessmentTabEl = document.getElementById("assessmentTab");
+    const conversionTabEl = document.getElementById("conversionTab");
+
+    const convDateEl = document.getElementById("convDate");
+    const convTargetsBody = document.getElementById("convTargetsBody");
+    const convTableBody = document.getElementById("convTableBody");
+    const convSummaryEl = document.getElementById("convSummary");
 
     const scoreIds = [
       "scoreDevelopment",
@@ -1035,7 +1297,8 @@
 
       const allMeta = document.createElement("div");
       allMeta.className = "team-meta";
-      allMeta.textContent = state.members.length + " team member(s)";
+      allMeta.textContent =
+        state.members.length + " member(s) • " + totalProjects + " project(s)";
 
       allMain.appendChild(allName);
       allMain.appendChild(allMeta);
@@ -1149,35 +1412,56 @@
       });
     }
 
-    // Region filter + stats
-    function renderRegionFilterAndStats(member) {
+    // Region + Developer filters + stats
+    function renderFiltersAndStats(member) {
       const projects = member?.projects || [];
-      const regions = Array.from(
-        new Set(
-          projects
-            .map(p => (p.region || "").trim())
-            .filter(Boolean)
-        )
-      );
+      const regions = new Set();
+      const developers = new Set();
 
-      const currentValue = regionFilter.value || "all";
+      projects.forEach(p => {
+        const r = (p.region || "").trim();
+        const d = (p.developer || "").trim();
+        if (r) regions.add(r);
+        if (d) developers.add(d);
+      });
+
+      const prevRegion = regionFilter.value || "all";
+      const prevDev = developerFilter.value || "all";
+
       regionFilter.innerHTML = "";
-      const allOpt = document.createElement("option");
-      allOpt.value = "all";
-      allOpt.textContent = "All regions";
-      regionFilter.appendChild(allOpt);
-
-      regions.forEach(r => {
+      const allOptR = document.createElement("option");
+      allOptR.value = "all";
+      allOptR.textContent = "All regions";
+      regionFilter.appendChild(allOptR);
+      Array.from(regions).forEach(r => {
         const opt = document.createElement("option");
         opt.value = r;
         opt.textContent = r;
         regionFilter.appendChild(opt);
       });
 
-      if (!regions.includes(currentValue) && currentValue !== "all") {
-        regionFilter.value = "all";
+      developerFilter.innerHTML = "";
+      const allOptD = document.createElement("option");
+      allOptD.value = "all";
+      allOptD.textContent = "All developers";
+      developerFilter.appendChild(allOptD);
+      Array.from(developers).forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        developerFilter.appendChild(opt);
+      });
+
+      if (regions.has(prevRegion) || prevRegion === "all") {
+        regionFilter.value = prevRegion;
       } else {
-        regionFilter.value = currentValue;
+        regionFilter.value = "all";
+      }
+
+      if (developers.has(prevDev) || prevDev === "all") {
+        developerFilter.value = prevDev;
+      } else {
+        developerFilter.value = "all";
       }
 
       if (projects.length === 0) {
@@ -1186,59 +1470,31 @@
       }
 
       const selectedRegion = regionFilter.value;
-      if (selectedRegion === "all") {
-        const avg = computeMemberAverage(member);
-        regionStats.textContent = `Overall: ${avg.toFixed(
-          1
-        )}% for ${projects.length} project(s)`;
-      } else {
-        const filtered = projects.filter(
-          p => (p.region || "").trim() === selectedRegion
-        );
-        if (filtered.length === 0) {
-          regionStats.textContent = `No projects yet in ${selectedRegion}`;
-        } else {
-          const sum = filtered.reduce(
-            (acc, p) => acc + (p.overallPercent || 0),
-            0
-          );
-          const avg = sum / filtered.length;
-          regionStats.textContent = `${selectedRegion}: ${avg.toFixed(
-            1
-          )}% over ${filtered.length} project(s)`;
-        }
-      }
-    }
+      const selectedDev = developerFilter.value;
 
-    function renderDeveloperFilter(member) {
-      const projects = member?.projects || [];
-      const devs = Array.from(
-        new Set(
-          projects
-            .map(p => (p.developer || "").trim())
-            .filter(Boolean)
-        )
-      );
-
-      const currentValue = developerFilter.value || "all";
-      developerFilter.innerHTML = "";
-      const allOpt = document.createElement("option");
-      allOpt.value = "all";
-      allOpt.textContent = "All developers";
-      developerFilter.appendChild(allOpt);
-
-      devs.forEach(d => {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        developerFilter.appendChild(opt);
+      const filtered = projects.filter(p => {
+        const r = (p.region || "").trim();
+        const d = (p.developer || "").trim();
+        const regionMatch =
+          selectedRegion === "all" ? true : r === selectedRegion;
+        const devMatch =
+          selectedDev === "all" ? true : d === selectedDev;
+        return regionMatch && devMatch;
       });
 
-      if (!devs.includes(currentValue) && currentValue !== "all") {
-        developerFilter.value = "all";
-      } else {
-        developerFilter.value = currentValue;
+      if (filtered.length === 0) {
+        regionStats.textContent = "No projects with current filters";
+        return;
       }
+
+      const sum = filtered.reduce(
+        (acc, p) => acc + (p.overallPercent || 0),
+        0
+      );
+      const avg = sum / filtered.length;
+      regionStats.textContent = `Filtered: ${avg.toFixed(
+        1
+      )}% over ${filtered.length} project(s)`;
     }
 
     function tagFromPercent(percent) {
@@ -1303,21 +1559,19 @@
       const selectedDev = developerFilter.value || "all";
 
       const projects = member.projects.filter(p => {
-        const regionOk =
-          selectedRegion === "all"
-            ? true
-            : (p.region || "").trim() === selectedRegion;
-        const devOk =
-          selectedDev === "all"
-            ? true
-            : (p.developer || "").trim() === selectedDev;
-        return regionOk && devOk;
+        const r = (p.region || "").trim();
+        const d = (p.developer || "").trim();
+        const regionMatch =
+          selectedRegion === "all" ? true : r === selectedRegion;
+        const devMatch =
+          selectedDev === "all" ? true : d === selectedDev;
+        return regionMatch && devMatch;
       });
 
       if (projects.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects in this filter yet.";
+        div.textContent = "No projects with current filters.";
         projectsListEl.appendChild(div);
       } else {
         projects
@@ -1345,20 +1599,11 @@
             const subtitle = document.createElement("div");
             subtitle.className = "card-subtitle";
 
-            const baseRegion = project.region
-              ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
-              : `${project.overallPercent.toFixed(1)}% overall`;
-
-            let line = baseRegion;
-            if (project.developer) {
-              line = `${project.developer} • ${baseRegion}`;
-            }
-
-            if (member.isAllTeam && project.ownerName) {
-              subtitle.textContent = `${project.ownerName} – ${line}`;
-            } else {
-              subtitle.textContent = line;
-            }
+            const bits = [];
+            if (project.region) bits.push(project.region);
+            if (project.developer) bits.push(project.developer);
+            bits.push(`${project.overallPercent.toFixed(1)}%`);
+            subtitle.textContent = bits.join(" • ");
 
             titleBlock.appendChild(title);
             titleBlock.appendChild(subtitle);
@@ -1424,7 +1669,7 @@
               ["Delivery", project.scores.delivery],
               ["Finishing", project.scores.finishing],
               ["Maintenance", project.scores.maintenance],
-              ["Orientation skills", project.scores.orientation]
+              ["Orientation", project.scores.orientation]
             ];
 
             mapping.forEach(([label, value]) => {
@@ -1464,7 +1709,7 @@
                     ? state.members.find(m =>
                         (m.projects || []).some(p => p.id === project.id)
                       )
-                    : state.members.find(m => m.id === member.id);
+                    : member;
                   if (realMember) {
                     realMember.projects = realMember.projects.filter(
                       p => p.id !== project.id
@@ -1487,7 +1732,7 @@
               });
             });
 
-            // Click: toggle + load into form for editing
+            // Click: toggle + load into form for editing (بس مش منطقي في All team)
             card.addEventListener("click", () => {
               if (longPressed) return;
               card.classList.toggle("open");
@@ -1500,11 +1745,11 @@
           });
       }
 
-      // Training plan – جزئين
+      // Training plan (Arabic) – جزئين
       const lines = []; // حسب كل مشروع
       const summaryCounts = {}; // أقل من أو يساوي 5 على مستوى كل المشاريع
 
-      member.projects.forEach(project => {
+      (member.projects || []).forEach(project => {
         const weakPoints = [];
         const s = project.scores || {};
         Object.entries(s).forEach(([key, value]) => {
@@ -1707,15 +1952,16 @@
       clearForm();
     });
 
-    // Filters change
+    // Region / Developer filter change
     regionFilter.addEventListener("change", () => {
       const member = getCurrentMember();
-      renderRegionFilterAndStats(member);
+      renderFiltersAndStats(member);
       renderProjectsList(member);
     });
 
     developerFilter.addEventListener("change", () => {
       const member = getCurrentMember();
+      renderFiltersAndStats(member);
       renderProjectsList(member);
     });
 
@@ -1727,181 +1973,406 @@
         return;
       }
 
-      const selectedRegion = regionFilter.value || "all";
-      const selectedDev = developerFilter.value || "all";
-      let projects = member.projects || [];
+      // لو احنا في تاب الـ Assessment: نشتغل على المشاريع
+      if (state.activeTab === "assessment") {
+        const selectedRegion = regionFilter.value || "all";
+        const selectedDev = developerFilter.value || "all";
+        let projects = member.projects || [];
 
-      if (selectedRegion !== "all") {
-        projects = projects.filter(
-          p => (p.region || "").trim() === selectedRegion
-        );
-      }
-      if (selectedDev !== "all") {
-        projects = projects.filter(
-          p => (p.developer || "").trim() === selectedDev
-        );
-      }
-
-      const lowProjects = projects
-        .filter(p => (p.overallPercent || 0) <= 60)
-        .sort((a, b) => a.overallPercent - b.overallPercent);
-
-      const limited = lowProjects.slice(0, 5);
-
-      printProjectsListEl.innerHTML = "";
-
-      if (limited.length === 0) {
-        const div = document.createElement("div");
-        div.className = "empty-state";
-        div.textContent = "No projects ≤ 60% in this filter.";
-        printProjectsListEl.appendChild(div);
-      } else {
-        limited.forEach(project => {
-          const card = document.createElement("div");
-          card.className = "card";
-
-          const header = document.createElement("div");
-          header.className = "card-header";
-
-          const titleBlock = document.createElement("div");
-          titleBlock.className = "card-title-block";
-
-          const title = document.createElement("div");
-          title.className = "card-title";
-          title.textContent = project.name || "Untitled project";
-
-          const subtitle = document.createElement("div");
-          subtitle.className = "card-subtitle";
-
-          const baseRegion = project.region
-            ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
-            : `${project.overallPercent.toFixed(1)}% overall`;
-
-          let line = baseRegion;
-          if (project.developer) {
-            line = `${project.developer} • ${baseRegion}`;
-          }
-
-          if (member.isAllTeam && project.ownerName) {
-            subtitle.textContent = `${project.ownerName} – ${line}`;
-          } else {
-            subtitle.textContent = line;
-          }
-
-          titleBlock.appendChild(title);
-          titleBlock.appendChild(subtitle);
-
-          const tagEl = document.createElement("div");
-          const tagInfo = tagFromPercent(project.overallPercent);
-          tagEl.className = "card-tag " + tagInfo.className;
-          tagEl.textContent = tagInfo.text;
-
-          header.appendChild(titleBlock);
-          header.appendChild(tagEl);
-
-          const footer = document.createElement("div");
-          footer.className = "card-footer";
-
-          const scoreSpan = document.createElement("span");
-          scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(
-            1
-          )}%</span> avg (0–10 scale)`;
-
-          footer.appendChild(scoreSpan);
-
-          card.appendChild(header);
-          card.appendChild(footer);
-
-          printProjectsListEl.appendChild(card);
+        projects = projects.filter(p => {
+          const r = (p.region || "").trim();
+          const d = (p.developer || "").trim();
+          const regionMatch =
+            selectedRegion === "all" ? true : r === selectedRegion;
+          const devMatch =
+            selectedDev === "all" ? true : d === selectedDev;
+          return regionMatch && devMatch;
         });
+
+        // فلتر اللي 60% أو أقل بس
+        const lowProjects = projects
+          .filter(p => (p.overallPercent || 0) <= 60)
+          .sort((a, b) => a.overallPercent - b.overallPercent);
+
+        const limited = lowProjects.slice(0, 5);
+
+        printProjectsListEl.innerHTML = "";
+
+        if (limited.length === 0) {
+          const div = document.createElement("div");
+          div.className = "empty-state";
+          div.textContent = "No projects ≤ 60% with current filters.";
+          printProjectsListEl.appendChild(div);
+        } else {
+          limited.forEach(project => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const header = document.createElement("div");
+            header.className = "card-header";
+
+            const titleBlock = document.createElement("div");
+            titleBlock.className = "card-title-block";
+
+            const title = document.createElement("div");
+            title.className = "card-title";
+            title.textContent = project.name || "Untitled project";
+
+            const subtitle = document.createElement("div");
+            subtitle.className = "card-subtitle";
+
+            const bits = [];
+            if (project.region) bits.push(project.region);
+            if (project.developer) bits.push(project.developer);
+            bits.push(`${project.overallPercent.toFixed(1)}%`);
+            subtitle.textContent = bits.join(" • ");
+
+            titleBlock.appendChild(title);
+            titleBlock.appendChild(subtitle);
+
+            const tagEl = document.createElement("div");
+            const tagInfo = tagFromPercent(project.overallPercent);
+            tagEl.className = "card-tag " + tagInfo.className;
+            tagEl.textContent = tagInfo.text;
+
+            header.appendChild(titleBlock);
+            header.appendChild(tagEl);
+
+            const footer = document.createElement("div");
+            footer.className = "card-footer";
+
+            const scoreSpan = document.createElement("span");
+            scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(
+              1
+            )}%</span> avg (0–10 scale)`;
+
+            footer.appendChild(scoreSpan);
+
+            card.appendChild(header);
+            card.appendChild(footer);
+
+            printProjectsListEl.appendChild(card);
+          });
+        }
       }
 
       window.print();
     });
 
-    // Backup to file
+    // Backup / Restore
     backupBtn.addEventListener("click", () => {
-      const dataStr = JSON.stringify(state, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(state, null, 2)], {
+        type: "application/json"
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
       a.href = url;
-      a.download = `br_assessment_backup_${ts}.json`;
+      a.download = `br_assessment_backup_${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
 
-    // Restore from file
-    restoreBtn.addEventListener("click", () => {
-      restoreFileInput.click();
-    });
-
-    restoreFileInput.addEventListener("change", (e) => {
+    restoreFileInput.addEventListener("change", e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = evt => {
         try {
-          const imported = JSON.parse(ev.target.result);
-          if (!imported || !Array.isArray(imported.members)) {
+          const data = JSON.parse(evt.target.result);
+          if (!data || !Array.isArray(data.members)) {
             alert("Invalid backup file.");
             return;
           }
-          state = imported;
-          if (!state.members) state.members = [];
-          if (!state.selectedMemberId && state.members[0]) {
-            state.selectedMemberId = state.members[0].id;
-          }
+          state = data;
+          initConversionState();
           saveState();
           renderAll();
           alert("Backup restored successfully.");
         } catch (err) {
           console.error(err);
-          alert("Error reading backup file.");
-        } finally {
-          restoreFileInput.value = "";
+          alert("Failed to read backup file.");
         }
       };
       reader.readAsText(file);
+      restoreFileInput.value = "";
     });
 
-    // Restore from auto-backup (internal)
     restoreAutoBtn.addEventListener("click", () => {
-      const raw = localStorage.getItem(BACKUP_KEY);
+      const raw = localStorage.getItem(AUTO_BACKUP_KEY);
       if (!raw) {
-        alert("No auto-backup found.");
+        alert("No auto backup found.");
         return;
       }
       try {
-        const imported = JSON.parse(raw);
-        if (!imported || !Array.isArray(imported.members)) {
-          alert("Auto-backup is corrupted.");
+        const data = JSON.parse(raw);
+        if (!data || !Array.isArray(data.members)) {
+          alert("Invalid auto backup data.");
           return;
         }
-        state = imported;
-        if (!state.members) state.members = [];
-        if (!state.selectedMemberId && state.members[0]) {
-          state.selectedMemberId = state.members[0].id;
-        }
+        state = data;
+        initConversionState();
         saveState();
         renderAll();
-        alert("Auto-backup restored.");
-      } catch (err) {
-        console.error(err);
-        alert("Error restoring auto-backup.");
+        alert("Auto backup restored.");
+      } catch (e) {
+        console.error(e);
+        alert("Failed to restore auto backup.");
       }
     });
 
+    // Tabs switching
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        state.activeTab = tab;
+        saveState();
+        renderTabs();
+      });
+    });
+
+    function renderTabs() {
+      tabButtons.forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === state.activeTab);
+      });
+
+      if (state.activeTab === "assessment") {
+        assessmentTabEl.classList.remove("hidden");
+        conversionTabEl.classList.add("hidden");
+      } else {
+        assessmentTabEl.classList.add("hidden");
+        conversionTabEl.classList.remove("hidden");
+      }
+    }
+
+    // ==== CONVERSION TAB LOGIC ====
+
+    function renderConversionTargets() {
+      initConversionState();
+      const dateStr = state.conversion.currentDate || todayISO();
+      const days = daysInMonth(dateStr);
+
+      convTargetsBody.innerHTML = "";
+      CONV_METRICS.forEach(metric => {
+        const row = document.createElement("tr");
+        const cfg = state.conversion.targets[metric] || {
+          mode: "day",
+          value: 0
+        };
+
+        const daily =
+          cfg.mode === "day" ? cfg.value : (cfg.value || 0) / days;
+        const monthly =
+          cfg.mode === "day" ? (cfg.value || 0) * days : cfg.value || 0;
+
+        const tdLabel = document.createElement("td");
+        tdLabel.textContent = CONV_LABELS[metric];
+
+        const tdValue = document.createElement("td");
+        const input = document.createElement("input");
+        input.type = "number";
+        input.step = "1";
+        input.value = cfg.value ?? 0;
+        input.addEventListener("change", () => {
+          const v = parseFloat(input.value);
+          state.conversion.targets[metric].value = isNaN(v) ? 0 : v;
+          saveState();
+          renderConversionTargets();
+          renderConversionTable();
+        });
+        tdValue.appendChild(input);
+
+        const tdMode = document.createElement("td");
+        const sel = document.createElement("select");
+        ["day", "month"].forEach(mode => {
+          const opt = document.createElement("option");
+          opt.value = mode;
+          opt.textContent = mode === "day" ? "Per day" : "Per month";
+          sel.appendChild(opt);
+        });
+        sel.value = cfg.mode;
+        sel.addEventListener("change", () => {
+          state.conversion.targets[metric].mode = sel.value;
+          saveState();
+          renderConversionTargets();
+          renderConversionTable();
+        });
+        tdMode.appendChild(sel);
+
+        const tdDaily = document.createElement("td");
+        tdDaily.textContent = daily ? daily.toFixed(1) : "-";
+
+        const tdMonthly = document.createElement("td");
+        tdMonthly.textContent = monthly ? monthly.toFixed(1) : "-";
+
+        row.appendChild(tdLabel);
+        row.appendChild(tdValue);
+        row.appendChild(tdMode);
+        row.appendChild(tdDaily);
+        row.appendChild(tdMonthly);
+
+        convTargetsBody.appendChild(row);
+      });
+    }
+
+    function getDailyTarget(metric, dateStr) {
+      const cfg = state.conversion.targets[metric];
+      if (!cfg) return 0;
+      const days = daysInMonth(dateStr);
+      if (cfg.mode === "day") return cfg.value || 0;
+      return (cfg.value || 0) / days;
+    }
+
+    function percentClass(percent) {
+      if (percent >= 100) return "percent-good";
+      if (percent >= 60) return "percent-mid";
+      return "percent-bad";
+    }
+
+    function renderConversionTable() {
+      convTableBody.innerHTML = "";
+      const dateStr = state.conversion.currentDate || todayISO();
+      convDateEl.value = dateStr;
+      const entries = state.conversion.entries[dateStr] || {};
+
+      if (!state.members.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 9;
+        td.textContent = "Add team members from Assessment tab first.";
+        tr.appendChild(td);
+        convTableBody.appendChild(tr);
+        convSummaryEl.textContent = "مفيش تيم لسه.";
+        return;
+      }
+
+      const totals = {};
+      const targetTotals = {};
+      CONV_METRICS.forEach(m => {
+        totals[m] = 0;
+        targetTotals[m] = 0;
+      });
+
+      state.members.forEach(member => {
+        const tr = document.createElement("tr");
+
+        const nameTd = document.createElement("td");
+        nameTd.className = "sales-name-cell";
+        nameTd.textContent = member.name;
+        tr.appendChild(nameTd);
+
+        let sumPercents = 0;
+        let countPercents = 0;
+
+        CONV_METRICS.forEach(metric => {
+          const td = document.createElement("td");
+
+          const input = document.createElement("input");
+          input.type = "number";
+          input.step = "1";
+          const current = entries[member.id]?.[metric] || 0;
+          input.value = current;
+          input.addEventListener("change", () => {
+            const v = parseFloat(input.value);
+            if (!state.conversion.entries[dateStr]) {
+              state.conversion.entries[dateStr] = {};
+            }
+            if (!state.conversion.entries[dateStr][member.id]) {
+              state.conversion.entries[dateStr][member.id] = {};
+            }
+            state.conversion.entries[dateStr][member.id][metric] =
+              isNaN(v) ? 0 : v;
+            saveState();
+            renderConversionTable();
+          });
+
+          td.appendChild(input);
+
+          const dailyTarget = getDailyTarget(metric, dateStr);
+          let percent = 0;
+          if (dailyTarget > 0) {
+            percent = (current / dailyTarget) * 100;
+            const span = document.createElement("div");
+            span.className =
+              "percent-chip " + percentClass(percent);
+            span.textContent = `${percent.toFixed(0)}%`;
+            td.appendChild(span);
+
+            sumPercents += percent;
+            countPercents++;
+          }
+
+          totals[metric] += current;
+          targetTotals[metric] += dailyTarget;
+
+          tr.appendChild(td);
+        });
+
+        const tdTotal = document.createElement("td");
+        if (countPercents > 0) {
+          const avgPercent = sumPercents / countPercents;
+          const span = document.createElement("span");
+          span.className = percentClass(avgPercent);
+          span.textContent = `${avgPercent.toFixed(0)}%`;
+          tdTotal.appendChild(span);
+        } else {
+          tdTotal.textContent = "-";
+        }
+        tr.appendChild(tdTotal);
+
+        convTableBody.appendChild(tr);
+      });
+
+      // Summary
+      const lines = [];
+      CONV_METRICS.forEach(metric => {
+        const total = totals[metric];
+        const target = targetTotals[metric];
+        let line = `${CONV_LABELS[metric]}: ${total}`;
+        if (target > 0) {
+          const pct = (total / target) * 100;
+          line += ` / target ${target.toFixed(1)} → ${pct.toFixed(0)}%`;
+        }
+        lines.push(line);
+      });
+
+      if (!Object.values(totals).some(v => v > 0)) {
+        convSummaryEl.textContent = "مفيش أرقام لليوم ده لسه.";
+      } else {
+        convSummaryEl.innerHTML = lines
+          .map(
+            l => `<div class="conversion-summary-line">${l}</div>`
+          )
+          .join("");
+      }
+    }
+
+    convDateEl.addEventListener("change", () => {
+      const val = convDateEl.value || todayISO();
+      state.conversion.currentDate = val;
+      saveState();
+      renderConversionTargets();
+      renderConversionTable();
+    });
+
+    // Main render
     function renderAll() {
+      renderTabs();
       renderTeamList();
       const member = getCurrentMember();
       renderHeaderForMember(member);
-      renderRegionFilterAndStats(member);
-      renderDeveloperFilter(member);
+      renderFiltersAndStats(member);
       renderProjectsList(member);
+
+      // conversion
+      if (!state.conversion.currentDate) {
+        state.conversion.currentDate = todayISO();
+      }
+      renderConversionTargets();
+      renderConversionTable();
     }
 
     loadState();
