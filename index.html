@@ -232,7 +232,6 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-      flex-wrap: wrap;
     }
 
     .main-header-left {
@@ -253,7 +252,7 @@
 
     .main-actions {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
       flex-wrap: wrap;
       justify-content: flex-end;
@@ -709,10 +708,10 @@
           </div>
         </div>
         <div class="main-actions">
-          <button class="btn" id="exportBtn" type="button">Export PDF</button>
-          <button class="btn" id="backupBtn" type="button">Backup (file)</button>
-          <button class="btn" id="restoreFileBtn" type="button">Restore from file</button>
-          <button class="btn" id="restoreAutoBtn" type="button">Restore auto backup</button>
+          <button class="btn" id="exportBtn" type="button">Export PDF (Current member)</button>
+          <button class="btn" id="backupBtn" type="button">Backup</button>
+          <button class="btn" id="restoreBtn" type="button">Restore from file</button>
+          <button class="btn" id="restoreAutoBtn" type="button">Restore auto-backup</button>
           <input type="file" id="restoreFileInput" accept="application/json" style="display:none" />
         </div>
       </div>
@@ -749,7 +748,7 @@
 
             <div class="field">
               <label>Developer</label>
-              <input id="projectDeveloper" placeholder="e.g. Emaar, Sodic..." />
+              <input id="projectDeveloper" placeholder="e.g. Palm Hills, SODIC..." />
             </div>
 
             <div class="field">
@@ -868,7 +867,7 @@
 
   <script>
     const STORAGE_KEY = "br_assessment_v3";
-    const AUTO_BACKUP_KEY = "br_assessment_v3_auto_backup";
+    const BACKUP_KEY = "br_assessment_v3_auto_backup";
     const ALL_TEAM_ID = "__ALL_TEAM__";
 
     let state = {
@@ -877,8 +876,6 @@
     };
 
     let editingProjectId = null;
-
-    // ====== STATE / BACKUP HELPERS ======
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -895,21 +892,11 @@
       }
     }
 
-    function autoBackup() {
-      try {
-        const payload = {
-          state,
-          createdAt: Date.now()
-        };
-        localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(payload));
-      } catch (e) {
-        console.error("Auto backup failed", e);
-      }
-    }
-
     function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      autoBackup();
+      const data = JSON.stringify(state);
+      localStorage.setItem(STORAGE_KEY, data);
+      // Auto backup داخلي
+      localStorage.setItem(BACKUP_KEY, data);
     }
 
     function uid() {
@@ -931,7 +918,7 @@
     const trainingSummaryListEl = document.getElementById("trainingSummaryList");
     const exportBtn = document.getElementById("exportBtn");
     const backupBtn = document.getElementById("backupBtn");
-    const restoreFileBtn = document.getElementById("restoreFileBtn");
+    const restoreBtn = document.getElementById("restoreBtn");
     const restoreAutoBtn = document.getElementById("restoreAutoBtn");
     const restoreFileInput = document.getElementById("restoreFileInput");
 
@@ -1048,8 +1035,7 @@
 
       const allMeta = document.createElement("div");
       allMeta.className = "team-meta";
-      allMeta.textContent =
-        state.members.length + " member(s) • " + totalProjects + " project(s)";
+      allMeta.textContent = state.members.length + " team member(s)";
 
       allMain.appendChild(allName);
       allMain.appendChild(allMeta);
@@ -1224,7 +1210,6 @@
       }
     }
 
-    // Developer filter
     function renderDeveloperFilter(member) {
       const projects = member?.projects || [];
       const devs = Array.from(
@@ -1315,22 +1300,24 @@
       }
 
       const selectedRegion = regionFilter.value || "all";
-      const selectedDeveloper = developerFilter.value || "all";
+      const selectedDev = developerFilter.value || "all";
 
       const projects = member.projects.filter(p => {
         const regionOk =
-          selectedRegion === "all" ||
-          (p.region || "").trim() === selectedRegion;
+          selectedRegion === "all"
+            ? true
+            : (p.region || "").trim() === selectedRegion;
         const devOk =
-          selectedDeveloper === "all" ||
-          (p.developer || "").trim() === selectedDeveloper;
+          selectedDev === "all"
+            ? true
+            : (p.developer || "").trim() === selectedDev;
         return regionOk && devOk;
       });
 
       if (projects.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects for this filter yet.";
+        div.textContent = "No projects in this filter yet.";
         projectsListEl.appendChild(div);
       } else {
         projects
@@ -1358,18 +1345,19 @@
             const subtitle = document.createElement("div");
             subtitle.className = "card-subtitle";
 
-            const regionPart = project.region
+            const baseRegion = project.region
               ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
               : `${project.overallPercent.toFixed(1)}% overall`;
 
-            const devPart = project.developer
-              ? `${project.developer} – ${regionPart}`
-              : regionPart;
+            let line = baseRegion;
+            if (project.developer) {
+              line = `${project.developer} • ${baseRegion}`;
+            }
 
             if (member.isAllTeam && project.ownerName) {
-              subtitle.textContent = `${project.ownerName} – ${devPart}`;
+              subtitle.textContent = `${project.ownerName} – ${line}`;
             } else {
-              subtitle.textContent = devPart;
+              subtitle.textContent = line;
             }
 
             titleBlock.appendChild(title);
@@ -1476,7 +1464,7 @@
                     ? state.members.find(m =>
                         (m.projects || []).some(p => p.id === project.id)
                       )
-                    : member;
+                    : state.members.find(m => m.id === member.id);
                   if (realMember) {
                     realMember.projects = realMember.projects.filter(
                       p => p.id !== project.id
@@ -1499,7 +1487,7 @@
               });
             });
 
-            // Click: toggle + load into form for editing (مش منطقي نعدّل من All team)
+            // Click: toggle + load into form for editing
             card.addEventListener("click", () => {
               if (longPressed) return;
               card.classList.toggle("open");
@@ -1520,8 +1508,7 @@
         const weakPoints = [];
         const s = project.scores || {};
         Object.entries(s).forEach(([key, value]) => {
-          if (typeof value !== "number") return;
-          const num = value;
+          const num = typeof value === "number" ? value : 0;
           const label = SCORE_LABELS[key] || key;
 
           if (num < 7) {
@@ -1732,7 +1719,7 @@
       renderProjectsList(member);
     });
 
-    // Export as PDF (print) – only first 5 projects <= 60% (respect filters)
+    // Export as PDF (print) – only first 5 projects <= 60%
     exportBtn.addEventListener("click", () => {
       const member = getCurrentMember();
       if (!member) {
@@ -1741,8 +1728,7 @@
       }
 
       const selectedRegion = regionFilter.value || "all";
-      const selectedDeveloper = developerFilter.value || "all";
-
+      const selectedDev = developerFilter.value || "all";
       let projects = member.projects || [];
 
       if (selectedRegion !== "all") {
@@ -1750,10 +1736,9 @@
           p => (p.region || "").trim() === selectedRegion
         );
       }
-
-      if (selectedDeveloper !== "all") {
+      if (selectedDev !== "all") {
         projects = projects.filter(
-          p => (p.developer || "").trim() === selectedDeveloper
+          p => (p.developer || "").trim() === selectedDev
         );
       }
 
@@ -1768,7 +1753,7 @@
       if (limited.length === 0) {
         const div = document.createElement("div");
         div.className = "empty-state";
-        div.textContent = "No projects ≤ 60% for this filter.";
+        div.textContent = "No projects ≤ 60% in this filter.";
         printProjectsListEl.appendChild(div);
       } else {
         limited.forEach(project => {
@@ -1788,18 +1773,19 @@
           const subtitle = document.createElement("div");
           subtitle.className = "card-subtitle";
 
-          const regionPart = project.region
+          const baseRegion = project.region
             ? `${project.region} • ${project.overallPercent.toFixed(1)}%`
             : `${project.overallPercent.toFixed(1)}% overall`;
 
-          const devPart = project.developer
-            ? `${project.developer} – ${regionPart}`
-            : regionPart;
+          let line = baseRegion;
+          if (project.developer) {
+            line = `${project.developer} • ${baseRegion}`;
+          }
 
           if (member.isAllTeam && project.ownerName) {
-            subtitle.textContent = `${project.ownerName} – ${devPart}`;
+            subtitle.textContent = `${project.ownerName} – ${line}`;
           } else {
-            subtitle.textContent = devPart;
+            subtitle.textContent = line;
           }
 
           titleBlock.appendChild(title);
@@ -1833,95 +1819,79 @@
       window.print();
     });
 
-    // BACKUP TO FILE
+    // Backup to file
     backupBtn.addEventListener("click", () => {
-      try {
-        const payload = {
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          state
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], {
-          type: "application/json"
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const dateStr = new Date().toISOString().slice(0, 10);
-        a.href = url;
-        a.download = `br-assessment-backup-${dateStr}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        console.error(e);
-        alert("Backup failed.");
-      }
+      const dataStr = JSON.stringify(state, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+      a.href = url;
+      a.download = `br_assessment_backup_${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     });
 
-    // RESTORE FROM FILE
-    restoreFileBtn.addEventListener("click", () => {
-      restoreFileInput.value = "";
+    // Restore from file
+    restoreBtn.addEventListener("click", () => {
       restoreFileInput.click();
     });
 
-    restoreFileInput.addEventListener("change", () => {
-      const file = restoreFileInput.files[0];
+    restoreFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = e => {
+      reader.onload = (ev) => {
         try {
-          const parsed = JSON.parse(e.target.result);
-          const newState = parsed.state || parsed;
-          if (!newState.members || !Array.isArray(newState.members)) {
+          const imported = JSON.parse(ev.target.result);
+          if (!imported || !Array.isArray(imported.members)) {
             alert("Invalid backup file.");
             return;
           }
-          if (!newState.selectedMemberId && newState.members.length > 0) {
-            newState.selectedMemberId = newState.members[0].id;
+          state = imported;
+          if (!state.members) state.members = [];
+          if (!state.selectedMemberId && state.members[0]) {
+            state.selectedMemberId = state.members[0].id;
           }
-          const ok = confirm(
-            "كل الداتا الحالية هتتبدل بالنسخة اللي في الملف.\nمتأكد إنك عايز تكمل؟"
-          );
-          if (!ok) return;
-          state = newState;
           saveState();
           renderAll();
+          alert("Backup restored successfully.");
         } catch (err) {
           console.error(err);
-          alert("Can't read this file as backup.");
+          alert("Error reading backup file.");
+        } finally {
+          restoreFileInput.value = "";
         }
       };
       reader.readAsText(file);
     });
 
-    // RESTORE AUTO BACKUP
+    // Restore from auto-backup (internal)
     restoreAutoBtn.addEventListener("click", () => {
-      const raw = localStorage.getItem(AUTO_BACKUP_KEY);
+      const raw = localStorage.getItem(BACKUP_KEY);
       if (!raw) {
-        alert("مفيش auto backup محفوظ.");
+        alert("No auto-backup found.");
         return;
       }
       try {
-        const payload = JSON.parse(raw);
-        const newState = payload.state || payload;
-        if (!newState.members || !Array.isArray(newState.members)) {
-          alert("Auto backup مش صالح.");
+        const imported = JSON.parse(raw);
+        if (!imported || !Array.isArray(imported.members)) {
+          alert("Auto-backup is corrupted.");
           return;
         }
-        if (!newState.selectedMemberId && newState.members.length > 0) {
-          newState.selectedMemberId = newState.members[0].id;
+        state = imported;
+        if (!state.members) state.members = [];
+        if (!state.selectedMemberId && state.members[0]) {
+          state.selectedMemberId = state.members[0].id;
         }
-        const ok = confirm(
-          "هترجع لآخر نسخة auto backup.\nكل التغييرات الحالية هتتمسح. متأكد؟"
-        );
-        if (!ok) return;
-        state = newState;
         saveState();
         renderAll();
-      } catch (e) {
-        console.error(e);
-        alert("Auto backup مش صالح.");
+        alert("Auto-backup restored.");
+      } catch (err) {
+        console.error(err);
+        alert("Error restoring auto-backup.");
       }
     });
 
@@ -1935,7 +1905,6 @@
     }
 
     loadState();
-    autoBackup();
     renderAll();
   </script>
 </body>
