@@ -28,7 +28,7 @@
     .pill-red{color:var(--danger);border-color:rgba(255,75,92,.65)}
     .pill-yellow{color:var(--warning);border-color:rgba(255,191,71,.7)}
     .pill-green{color:var(--success);border-color:rgba(40,199,111,.7)}
-    /* sidebar hide pills visually — keep data elsewhere */
+    /* hide pills visually in the sidebar (we still compute them) */
     .sidebar .team-score-pill{display:none!important}
 
     .add-team{display:flex;gap:6px;margin-top:4px}
@@ -71,11 +71,7 @@
     .sales-total-row td{background:#101521;font-weight:600}
     .overview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:8px}
     .member-card{background:var(--bg-alt-soft);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
-    /* small helper - hide the small sub header in print by default as well */
-    @media print{
-      #currentMemberSub{display:none!important}
-    }
-    /* responsive */
+    @media print{ #currentMemberSub{display:none!important} }
     @media (max-width:900px){.app{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--border);flex-direction:column}.content-grid,.conversion-layout{grid-template-columns:1fr;height:auto}}
   </style>
 </head>
@@ -218,15 +214,14 @@
   </div>
 
   <script>
-    /* -------------------------
-       state + helpers
-       ------------------------- */
+    // keys & metrics
     const STORAGE_KEY = "br_assessment_v3";
     const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
     const CONV_METRICS = ["deals","scheduled","meetings","requests","callBack","activeCalls","calls"];
     const CONV_TARGET_METRICS = ["deals","scheduled","meetings","requests","calls"];
     const CONV_LABELS = { deals:"Deals", scheduled:"Scheduled", meetings:"Meetings", requests:"Requests", callBack:"Call back", activeCalls:"Active calls", calls:"Calls" };
+
     let state = { members: [], selectedMemberId: null, activeTab: "assessment", conversion: { currentDate: null, targets:{}, entries:{} } };
     let editingProjectId = null;
 
@@ -238,7 +233,7 @@
     }
     function loadState(){
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) { try { state = JSON.parse(raw); } catch(e){ console.error("parse fail",e); } }
+      if (raw){ try{ state = JSON.parse(raw); }catch(e){ console.error("parse fail", e); } }
       if (!state.members) state.members = [];
       if (!state.selectedMemberId && state.members.length) state.selectedMemberId = state.members[0].id;
       initConversionState();
@@ -247,45 +242,8 @@
     function uid(){ return Date.now().toString(36) + Math.random().toString(16).slice(2) }
     function todayISO(){ const d=new Date(); const m=String(d.getMonth()+1).padStart(2,"0"); const day=String(d.getDate()).padStart(2,"0"); return `${d.getFullYear()}-${m}-${day}` }
     function daysInMonth(dateStr){ const [y,m] = dateStr.split("-").map(n=>parseInt(n,10)); return new Date(y,m,0).getDate() }
-    function getCurrentMember(){
-      if (state.selectedMemberId === ALL_TEAM_ID) return { id: ALL_TEAM_ID, name: "All team", isAllTeam:true, projects: state.members.flatMap(m => (m.projects||[]).map(p => ({...p, ownerName: m.name}))) };
-      return state.members.find(m=>m.id===state.selectedMemberId) || null;
-    }
-    function computeAssessmentAverage(member){
-      const projects = member?.projects || []; if (!projects.length) return 0;
-      return projects.reduce((s,p)=>s+(p.overallPercent||0),0)/projects.length;
-    }
-    function getMonthlyTarget(metric, dateStr){
-      if (!CONV_TARGET_METRICS.includes(metric)) return 0;
-      const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
-      const days = daysInMonth(dateStr);
-      return cfg.mode==="day" ? (cfg.value||0)*days : (cfg.value||0);
-    }
-    function getDailyTargetForPercent(metric, dateStr){
-      if (!CONV_TARGET_METRICS.includes(metric)) return 0;
-      const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
-      return cfg.value || 0;
-    }
-    function computeConversionMonthlyScoreForMember(memberId, dateStr){
-      if (!dateStr) dateStr = state.conversion.currentDate || todayISO();
-      const [y,m] = dateStr.split("-"); const prefix = `${y}-${m}`;
-      const totals = {}; CONV_METRICS.forEach(x=>totals[x]=0);
-      Object.entries(state.conversion.entries||{}).forEach(([day,per])=>{
-        if (!day.startsWith(prefix)) return;
-        const e = per[memberId]; if (!e) return;
-        CONV_METRICS.forEach(k=> totals[k] += e[k] || 0);
-      });
-      let sum=0,count=0;
-      CONV_TARGET_METRICS.forEach(metric=>{
-        const monthlyTarget = getMonthlyTarget(metric, dateStr);
-        if (monthlyTarget>0){ const pct = (totals[metric]/monthlyTarget)*100; sum+=pct; count++; }
-      });
-      return count?sum/count:0;
-    }
 
-    /* -------------------------
-       DOM refs
-       ------------------------- */
+    // DOM refs
     const teamListEl = document.getElementById("teamList");
     const newMemberInput = document.getElementById("newMemberInput");
     const addMemberBtn = document.getElementById("addMemberBtn");
@@ -295,7 +253,6 @@
     const developerFilter = document.getElementById("developerFilter");
     const regionStats = document.getElementById("regionStats");
     const projectsListEl = document.getElementById("projectsList");
-    const printProjectsListEl = document.getElementById("printProjectsList");
     const exportBtn = document.getElementById("exportBtn");
     const backupBtn = document.getElementById("backupBtn");
     const restoreFileInput = document.getElementById("restoreFileInput");
@@ -308,67 +265,103 @@
     const overviewMonthInput = document.getElementById("overviewMonthInput");
     const overviewDateLabel = document.getElementById("overviewDateLabel");
 
-    /* -------------------------
-       render team list
-       ------------------------- */
+    function getCurrentMember(){
+      if (state.selectedMemberId === ALL_TEAM_ID) return { id: ALL_TEAM_ID, name: "All team", isAllTeam:true, projects: state.members.flatMap(m => (m.projects||[]).map(p => ({...p, ownerName: m.name}))) };
+      return state.members.find(m=>m.id===state.selectedMemberId) || null;
+    }
+
+    function computeAssessmentAverage(member){
+      const projects = member?.projects || []; if (!projects.length) return 0;
+      return projects.reduce((s,p)=>s+(p.overallPercent||0),0)/projects.length;
+    }
+
+    function getMonthlyTarget(metric, dateStr){
+      if (!CONV_TARGET_METRICS.includes(metric)) return 0;
+      const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
+      const days = daysInMonth(dateStr);
+      return cfg.mode==="day" ? (cfg.value||0)*days : (cfg.value||0);
+    }
+    function getDailyTargetForPercent(metric, dateStr){
+      if (!CONV_TARGET_METRICS.includes(metric)) return 0;
+      const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
+      return cfg.value || 0;
+    }
+
+    function computeConversionMonthlyScoreForMember(memberId, dateStr){
+      if (!dateStr) dateStr = state.conversion.currentDate || todayISO();
+      const [y,m] = dateStr.split("-"); const prefix = `${y}-${m}`;
+      const totals = {}; CONV_METRICS.forEach(x=>totals[x]=0);
+      Object.entries(state.conversion.entries||{}).forEach(([day, per])=>{
+        if (!day.startsWith(prefix)) return;
+        const e = per[memberId]; if (!e) return;
+        CONV_METRICS.forEach(k=> totals[k] += e[k] || 0);
+      });
+      let sum=0,count=0;
+      CONV_TARGET_METRICS.forEach(metric=>{
+        const monthlyTarget = getMonthlyTarget(metric, dateStr);
+        if (monthlyTarget>0){ const pct = (totals[metric]/monthlyTarget)*100; sum+=pct; count++; }
+      });
+      return count?sum/count:0;
+    }
+
+    /* ---------- render team list ---------- */
     function renderTeamList(){
-      teamListEl.innerHTML="";
+      teamListEl.innerHTML = "";
       if (!state.members.length){
-        const div=document.createElement("div");div.className="empty-state";div.textContent="Add your team members to start.";teamListEl.appendChild(div);
+        const d = document.createElement("div"); d.className="empty-state"; d.textContent="Add your team members to start."; teamListEl.appendChild(d);
         currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member from the left to start assessment.";
         return;
       }
       const currentDate = state.conversion.currentDate || todayISO();
-      // all team entry
+
+      // All team item
       const allItem = document.createElement("div"); allItem.className="team-item"+(state.selectedMemberId===ALL_TEAM_ID?" active":"");
       const allMain = document.createElement("div"); allMain.className="team-main";
       const allName = document.createElement("div"); allName.className="team-name"; allName.textContent="All team";
       const allMeta = document.createElement("div"); allMeta.className="team-meta"; allMeta.textContent = state.members.length + " member(s)";
       allMain.appendChild(allName); allMain.appendChild(allMeta);
       const allPill = document.createElement("div"); allPill.className="team-score-pill";
-      let allAvg = state.activeTab==="conversion" ? (state.members.length? state.members.reduce((s,m)=>s+computeConversionMonthlyScoreForMember(m.id,currentDate),0)/state.members.length:0) : (state.members.length? state.members.reduce((s,m)=>s+computeAssessmentAverage(m),0)/state.members.length:0);
-      if ((state.activeTab==="assessment" && state.members.every(m=>!(m.projects||[]).length)) || (state.activeTab==="conversion" && !Object.keys(state.conversion.entries||{}).length)) { allPill.textContent="No score"; allPill.classList.add("pill-yellow"); }
-      else { allPill.textContent = `${Math.round(allAvg)}%`; if (allAvg<60) allPill.classList.add("pill-red"); else if (allAvg<80) allPill.classList.add("pill-yellow"); else allPill.classList.add("pill-green"); }
-      allItem.appendChild(allMain); allItem.appendChild(allPill); allItem.addEventListener("click", ()=>{ state.selectedMemberId = ALL_TEAM_ID; saveState(); renderAll(); }); teamListEl.appendChild(allItem);
+      const allAvg = state.members.length ? state.members.reduce((s,m)=>s+computeAssessmentAverage(m),0)/state.members.length : 0;
+      allPill.textContent = `${Math.round(allAvg)}%`; if (allAvg<60) allPill.classList.add("pill-red"); else if (allAvg<80) allPill.classList.add("pill-yellow"); else allPill.classList.add("pill-green");
+      allItem.appendChild(allMain); allItem.appendChild(allPill); allItem.addEventListener("click", ()=>{ state.selectedMemberId = ALL_TEAM_ID; saveState(); renderAll(); });
+      teamListEl.appendChild(allItem);
 
       state.members.forEach(member=>{
-        const item = document.createElement("div"); item.className="team-item"+(member.id===state.selectedMemberId?" active":""); item.dataset.id=member.id;
+        const item = document.createElement("div"); item.className="team-item"+(member.id===state.selectedMemberId?" active":""); item.dataset.id = member.id;
         const main = document.createElement("div"); main.className="team-main";
         const nameEl = document.createElement("div"); nameEl.className="team-name"; nameEl.textContent = member.name;
         const metaEl = document.createElement("div"); metaEl.className="team-meta";
         const projectsCount = (member.projects||[]).length;
-        // show projects count in sidebar in non-overview tabs; in overview we want it empty
         metaEl.textContent = state.activeTab === "overview" ? "" : projectsCount + " project" + (projectsCount!==1 ? "s" : "");
         main.appendChild(nameEl); main.appendChild(metaEl);
+
         const pill = document.createElement("div"); pill.className="team-score-pill";
-        const avg = state.activeTab==="conversion" ? computeConversionMonthlyScoreForMember(member.id,currentDate) : computeAssessmentAverage(member);
-        if ((state.activeTab==="assessment" && projectsCount===0) || (state.activeTab==="conversion" && !Object.keys(state.conversion.entries||{}).length)) { pill.textContent="No score"; pill.classList.add("pill-yellow"); }
-        else { pill.textContent = `${Math.round(avg)}%`; if (avg<60) pill.classList.add("pill-red"); else if (avg<80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green"); }
+        const avg = state.activeTab === "conversion" ? computeConversionMonthlyScoreForMember(member.id, currentDate) : computeAssessmentAverage(member);
+        pill.textContent = `${Math.round(avg)}%`; if (avg<60) pill.classList.add("pill-red"); else if (avg<80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
         item.appendChild(main); item.appendChild(pill);
 
         // long press delete
         let pressTimer=null; let longPressed=false;
         item.addEventListener("pointerdown", ()=>{ longPressed=false; pressTimer=setTimeout(()=>{ const ok = confirm(`تمسح ${member.name} وكل التقييمات بتاعته؟`); if (ok){ longPressed=true; state.members = state.members.filter(m=>m.id!==member.id); if (state.selectedMemberId===member.id) state.selectedMemberId = state.members[0]?.id || ALL_TEAM_ID; saveState(); renderAll(); } else longPressed=false; },650); });
-        ["pointerup","pointerleave","pointercancel"].forEach(ev=> item.addEventListener(ev, ()=>{ if (pressTimer){ clearTimeout(pressTimer); pressTimer = null; } }));
+        ["pointerup","pointerleave","pointercancel"].forEach(ev=> item.addEventListener(ev, ()=>{ if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }));
         item.addEventListener("click", ()=>{ if (longPressed) return; state.selectedMemberId = member.id; saveState(); renderAll(); });
+
         teamListEl.appendChild(item);
       });
     }
 
-    /* -------------------------
-       projects list + training
-       ------------------------- */
+    /* ---------- filters & projects ---------- */
     function renderFiltersAndStats(member){
       const projects = member?.projects || [];
       const regions = new Set(); const developers = new Set();
       projects.forEach(p=>{ if (p.region) regions.add(p.region.trim()); if (p.developer) developers.add(p.developer.trim()); });
       const prevR = regionFilter.value || "all"; const prevD = developerFilter.value || "all";
-      regionFilter.innerHTML = ""; const optAllR = document.createElement("option"); optAllR.value="all"; optAllR.textContent="All regions"; regionFilter.appendChild(optAllR);
-      Array.from(regions).forEach(r=>{ const o=document.createElement("option"); o.value=r; o.textContent=r; regionFilter.appendChild(o);});
-      developerFilter.innerHTML = ""; const optAllD = document.createElement("option"); optAllD.value="all"; optAllD.textContent="All developers"; developerFilter.appendChild(optAllD);
-      Array.from(developers).forEach(d=>{ const o=document.createElement("option"); o.value=d; o.textContent=d; developerFilter.appendChild(o);});
-      if (regions.has(prevR)||prevR==="all") regionFilter.value = prevR; else regionFilter.value = "all";
-      if (developers.has(prevD)||prevD==="all") developerFilter.value = prevD; else developerFilter.value = "all";
+      regionFilter.innerHTML = ""; const optAllR=document.createElement("option"); optAllR.value="all"; optAllR.textContent="All regions"; regionFilter.appendChild(optAllR);
+      Array.from(regions).forEach(r=>{ const o=document.createElement("option"); o.value=r; o.textContent=r; regionFilter.appendChild(o); });
+      developerFilter.innerHTML = ""; const optAllD=document.createElement("option"); optAllD.value="all"; optAllD.textContent="All developers"; developerFilter.appendChild(optAllD);
+      Array.from(developers).forEach(d=>{ const o=document.createElement("option"); o.value=d; o.textContent=d; developerFilter.appendChild(o); });
+      if (regions.has(prevR) || prevR==="all") regionFilter.value = prevR; else regionFilter.value="all";
+      if (developers.has(prevD) || prevD==="all") developerFilter.value = prevD; else developerFilter.value="all";
       if (!projects.length){ regionStats.textContent="No projects yet"; return; }
       const selR = regionFilter.value; const selD = developerFilter.value;
       const filtered = projects.filter(p=> (selR==="all"|| (p.region||"").trim()===selR) && (selD==="all"|| (p.developer||"").trim()===selD) );
@@ -397,9 +390,7 @@
       });
     }
 
-    /* -------------------------
-       header rendering (remove overall text for overview)
-       ------------------------- */
+    /* ---------- header ---------- */
     function renderHeaderForMember(member){
       if (state.activeTab === "overview"){ currentMemberTitle.textContent = "Members overview"; currentMemberSub.textContent = ""; return; }
       if (!member){ currentMemberTitle.textContent = "Select team member"; currentMemberSub.textContent = "Choose a team member from the left to start assessment."; return; }
@@ -412,7 +403,6 @@
         } else {
           const avg = state.members.length ? state.members.reduce((s,m)=>s+computeAssessmentAverage(m),0)/state.members.length : 0;
           currentMemberTitle.textContent = "All team – Assessment";
-          // to follow your request: keep assessment tab header as-is (don't change), but overview should not show overall
           currentMemberSub.textContent = `Overall team assessment: ${avg.toFixed(1)}% – ${member.projects.length} project(s) total.`;
         }
       } else {
@@ -428,13 +418,11 @@
       }
     }
 
-    /* -------------------------
-       conversion rendering (kept same)
-       ------------------------- */
+    /* ---------- conversion rendering ---------- */
     function renderConversionTargets(){
       initConversionState();
       const dateStr = state.conversion.currentDate || todayISO(); const days = daysInMonth(dateStr);
-      convTargetsBody.innerHTML="";
+      convTargetsBody.innerHTML = "";
       CONV_TARGET_METRICS.forEach(metric=>{
         const row = document.createElement("tr");
         const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
@@ -442,10 +430,10 @@
         const monthly = cfg.mode==="day" ? (cfg.value||0)*days : cfg.value||0;
         const tdLabel = document.createElement("td"); tdLabel.textContent = CONV_LABELS[metric];
         const tdValue = document.createElement("td"); const input = document.createElement("input"); input.type="number"; input.step="1"; input.value = cfg.value ?? 0;
-        input.addEventListener("change", ()=>{ state.conversion.targets[metric].value = Number(input.value) || 0; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const m=getCurrentMember(); renderHeaderForMember(m); });
+        input.addEventListener("change", ()=>{ state.conversion.targets[metric].value = Number(input.value) || 0; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); renderHeaderForMember(getCurrentMember()); });
         tdValue.appendChild(input);
         const tdMode = document.createElement("td"); const sel = document.createElement("select"); ["day","month"].forEach(mode=>{ const opt=document.createElement("option"); opt.value=mode; opt.textContent = mode==="day" ? "Per day" : "Per month"; sel.appendChild(opt); }); sel.value = cfg.mode;
-        sel.addEventListener("change", ()=>{ state.conversion.targets[metric].mode = sel.value; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const m=getCurrentMember(); renderHeaderForMember(m); });
+        sel.addEventListener("change", ()=>{ state.conversion.targets[metric].mode = sel.value; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); renderHeaderForMember(getCurrentMember()); });
         tdMode.appendChild(sel);
         const tdDaily = document.createElement("td"); tdDaily.textContent = daily ? daily.toFixed(1) : "-";
         const tdMonthly = document.createElement("td"); tdMonthly.textContent = monthly ? monthly.toFixed(1) : "-";
@@ -455,7 +443,7 @@
     }
 
     function renderConversionTable(){
-      convTableBody.innerHTML="";
+      convTableBody.innerHTML = "";
       const dateStr = state.conversion.currentDate || todayISO(); convDateEl.value = dateStr;
       if (!state.members.length){ const tr=document.createElement("tr"); const td=document.createElement("td"); td.colSpan=9; td.textContent="Add team members from Assessment tab first."; tr.appendChild(td); convTableBody.appendChild(tr); convSummaryEl.textContent="مفيش تيم لسه."; return; }
       const totalsToday = {}; CONV_METRICS.forEach(m=>totalsToday[m]=0);
@@ -467,7 +455,6 @@
         monthlyTotalsBySales[member.id]=totals;
       });
       const monthlyTargetPerMetric = {}; CONV_METRICS.forEach(metric=> monthlyTargetPerMetric[metric] = getMonthlyTarget(metric, dateStr) );
-
       state.members.forEach(member=>{
         const tr = document.createElement("tr");
         const nameTd = document.createElement("td"); nameTd.className="sales-name-cell"; nameTd.textContent = member.name; tr.appendChild(nameTd);
@@ -508,9 +495,7 @@
       convSummaryEl.innerHTML = Object.values(totalsToday).some(v=>v>0) ? lines.map(l=>`<div>${l}</div>`).join("") : "مفيش أرقام لليوم ده لسه.";
     }
 
-    /* -------------------------
-       Overview grid
-       ------------------------- */
+    /* ---------- overview ---------- */
     function previousMonthPrefixFromMonthValue(monthValue){
       if (!monthValue) return null;
       const [y,m] = monthValue.split("-").map(n=>parseInt(n,10));
@@ -520,8 +505,8 @@
       const assessment = computeAssessmentAverage(member);
       let monthStr = monthValue ? monthValue + "-01" : (state.conversion.currentDate || todayISO());
       const conv = computeConversionMonthlyScoreForMember(member.id, monthStr);
-      const a = isFinite(assessment)?assessment:0, c = isFinite(conv)?conv:0;
-      return { assessment:a, conversion:c, combined:(a*0.5)+(c*0.5) };
+      const a = isFinite(assessment) ? assessment : 0; const c = isFinite(conv) ? conv : 0;
+      return { assessment: a, conversion: c, combined: (a*0.5)+(c*0.5) };
     }
     function renderMembersOverview(){
       overviewGrid.innerHTML = "";
@@ -531,8 +516,7 @@
         const { assessment, conversion, combined } = computeMemberCombined(member, monthValue);
         const card = document.createElement("div"); card.className="member-card";
         const top = document.createElement("div"); top.style.display="flex"; top.style.justifyContent="space-between"; top.style.alignItems="center";
-        const left = document.createElement("div");
-        const name = document.createElement("div"); name.style.fontWeight="700"; name.textContent = member.name;
+        const left = document.createElement("div"); const name = document.createElement("div"); name.style.fontWeight="700"; name.textContent = member.name;
         const meta = document.createElement("div"); meta.style.fontSize="11px"; meta.style.color="var(--text-muted)"; meta.textContent = `${(member.projects||[]).length} project(s)`;
         left.appendChild(name); left.appendChild(meta);
         const pill = document.createElement("div"); pill.className="team-score-pill"; pill.textContent = `${Math.round(combined)}%`; if (combined<60) pill.classList.add("pill-red"); else if (combined<80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
@@ -546,16 +530,13 @@
         const trendEl = document.createElement("div"); trendEl.style.fontSize="13px";
         const prevPrefix = previousMonthPrefixFromMonthValue(monthValue); let prevCombined = combined;
         if (prevPrefix){ const prevDateStr = prevPrefix + "-01"; const prevA = computeAssessmentAverage(member); const prevC = computeConversionMonthlyScoreForMember(member.id, prevDateStr); prevCombined = (prevA*0.5)+(prevC*0.5); }
-        const diff = combined - prevCombined;
-        trendEl.textContent = diff > 0.5 ? `▲ +${diff.toFixed(1)}%` : (diff < -0.5 ? `▼ ${diff.toFixed(1)}%` : `— 0.0%`);
+        const diff = combined - prevCombined; trendEl.textContent = diff > 0.5 ? `▲ +${diff.toFixed(1)}%` : (diff < -0.5 ? `▼ ${diff.toFixed(1)}%` : `— 0.0%`);
         totalRow.appendChild(leftTotal); totalRow.appendChild(trendEl); card.appendChild(totalRow);
         overviewGrid.appendChild(card);
       });
     }
 
-    /* -------------------------
-       add/update projects & members
-       ------------------------- */
+    /* ---------- add projects & members ---------- */
     document.getElementById("addProjectBtn").addEventListener("click", ()=>{
       const member = getCurrentMember(); if (!member || member.isAllTeam){ alert("Select a specific team member first (not All team)."); return; }
       const realMember = state.members.find(m=>m.id===member.id); if (!realMember) return;
@@ -579,72 +560,54 @@
     addMemberBtn.addEventListener("click", ()=>{ const name = newMemberInput.value.trim(); if (!name) return; const member = { id: uid(), name, projects: [] }; state.members.push(member); state.selectedMemberId = member.id; newMemberInput.value=""; saveState(); renderAll(); });
     newMemberInput.addEventListener("keydown", e=>{ if (e.key==="Enter") addMemberBtn.click(); });
 
-    regionFilter.addEventListener("change", ()=>{ const m = getCurrentMember(); renderFiltersAndStats(m); renderProjectsList(m); });
-    developerFilter.addEventListener("change", ()=>{ const m = getCurrentMember(); renderFiltersAndStats(m); renderProjectsList(m); });
+    regionFilter.addEventListener("change", ()=>{ renderFiltersAndStats(getCurrentMember()); renderProjectsList(getCurrentMember()); });
+    developerFilter.addEventListener("change", ()=>{ renderFiltersAndStats(getCurrentMember()); renderProjectsList(getCurrentMember()); });
 
-    /* -------------------------
-       export / print (NEW: open new window with content)
-       - assessment export: prints limited low projects (<=60%) as before
-       - conversion export: prints only selected member totals (no daily conversion table)
-       ------------------------- */
+    /* ---------- export/print (CONVERSION: only selected member totals, no daily section) ---------- */
     exportBtn.addEventListener("click", ()=>{
       const member = getCurrentMember(); if (!member){ alert("Select a team member first."); return; }
 
-      // ASSESSMENT export
       if (state.activeTab === "assessment"){
+        // keep previous behaviour: print low projects for selected member (or All team)
         let projects = member.projects || [];
-        projects = projects.filter(p=>{ const selR = regionFilter.value || "all"; const selD = developerFilter.value || "all"; const r = (p.region||"").trim(); const d = (p.developer||"").trim(); const regionMatch = selR==="all"?true:r===selR; const devMatch = selD==="all"?true:d===selD; return regionMatch && devMatch; });
+        projects = projects.filter(p=>{ const selR = regionFilter.value || "all"; const selD = developerFilter.value || "all"; const r=(p.region||"").trim(); const d=(p.developer||"").trim(); return (selR==="all"?true:r===selR) && (selD==="all"?true:d===selD); });
         const low = projects.filter(p=> (p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent).slice(0,10);
-
-        // build printable html
         const html = buildPrintableHTML_Assessment(member, low);
         const w = window.open("", "_blank", "noopener,noreferrer");
-        if (!w) { alert("Popup blocked — allow popups for this site."); return; }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        w.focus();
-        w.print();
-        // optional: close window after print (some browsers block auto-close), so keep it.
+        if (!w){ alert("Popup blocked — allow popups for this site."); return; }
+        w.document.open(); w.document.write(html); w.document.close(); w.focus(); w.print();
         return;
       }
 
-      // CONVERSION export
       if (state.activeTab === "conversion"){
         if (!member || member.isAllTeam){ alert("Please select a specific team member for Conversion PDF."); return; }
-        const entry = Object.values(state.conversion.entries || {}).filter(e=>e[member.id]).reduce((acc,day)=>{ Object.keys(day[member.id]).forEach(k=> acc[k] = (acc[k]||0) + (day[member.id][k]||0)); return acc; }, {});
-        const html = buildPrintableHTML_Conversion(member, entry, state.conversion.currentDate || todayISO());
+        // build totals for selected member across current month
+        const dateStr = state.conversion.currentDate || todayISO();
+        const [y,m] = dateStr.split("-"); const prefix = `${y}-${m}`;
+        const totals = {}; CONV_METRICS.forEach(k=>totals[k]=0);
+        Object.entries(state.conversion.entries || {}).forEach(([day, per])=>{
+          if (!day.startsWith(prefix)) return;
+          const e = per[member.id]; if (!e) return;
+          CONV_METRICS.forEach(k=> totals[k] += Number(e[k] || 0));
+        });
+        const html = buildPrintableHTML_Conversion_SelectedMember(member, totals, dateStr);
         const w = window.open("", "_blank", "noopener,noreferrer");
-        if (!w) { alert("Popup blocked — allow popups for this site."); return; }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        w.focus();
-        w.print();
+        if (!w){ alert("Popup blocked — allow popups for this site."); return; }
+        w.document.open(); w.document.write(html); w.document.close(); w.focus(); w.print();
         return;
       }
 
-      // OVERVIEW export: if needed, we can export overview cards — (not requested explicitly)
       if (state.activeTab === "overview"){
-        // build simple overview printable with combined scores
         const monthValue = overviewMonthInput.value || (state.conversion.currentDate||todayISO()).slice(0,7);
-        const cards = state.members.map(m=> computeMemberCombined(m, monthValue));
-        // reuse assessment style or implement later
         const html = buildPrintableHTML_Overview(state.members, monthValue);
         const w = window.open("", "_blank", "noopener,noreferrer");
-        if (!w) { alert("Popup blocked — allow popups for this site."); return; }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        w.focus();
-        w.print();
+        if (!w){ alert("Popup blocked — allow popups for this site."); return; }
+        w.document.open(); w.document.write(html); w.document.close(); w.focus(); w.print();
         return;
       }
     });
 
-    /* -------------------------
-       printable HTML builders
-       ------------------------- */
+    // printable builders
     function buildPrintableHTML_Assessment(member, projects){
       const styles = `
         body{font-family:system-ui,-apple-system,Segoe UI,Arial;background:#0b0d10;color:#f5f7fb;padding:18px}
@@ -659,7 +622,8 @@
       return `<!doctype html><html><head><meta charset="utf-8"><title>Assessment export</title><style>${styles}</style></head><body><div class="container"><h1>Assessment report – ${escapeHtml(member.name)}</h1><div class="meta">Filtered projects ≤ 60% (max 10 shown)</div>${rows || '<div class="card">No projects to show.</div>'}</div></body></html>`;
     }
 
-    function buildPrintableHTML_Conversion(member, totalsEntry, dateStr){
+    // NEW: only selected member totals, no daily conversion section, simple clean table
+    function buildPrintableHTML_Conversion_SelectedMember(member, totalsEntry, dateStr){
       const styles = `
         body{font-family:system-ui,-apple-system,Segoe UI,Arial;background:#0b0d10;color:#f5f7fb;padding:18px}
         .container{max-width:900px;margin:0 auto}
@@ -670,10 +634,20 @@
         th{background:#111827;color:#cbd5e1}
       `;
       const metrics = ["deals","scheduled","meetings","requests","callBack","activeCalls","calls"];
-      const row = metrics.map(m=>`<td>${(totalsEntry[m]||0)}</td>`).join("");
       const headerCols = metrics.map(m=>`<th>${escapeHtml(CONV_LABELS[m])}</th>`).join("");
+      const row = metrics.map(m=>`<td>${(totalsEntry[m]||0)}</td>`).join("");
       const month = (dateStr||"").slice(0,7);
-      return `<!doctype html><html><head><meta charset="utf-8"><title>Conversion export</title><style>${styles}</style></head><body><div class="container"><h1>Conversion report – ${escapeHtml(member.name)}</h1><div class="meta">Month: ${escapeHtml(month)}</div><table><thead><tr>${headerCols}</tr></thead><tbody><tr>${row}</tr></tbody></table></div></body></html>`;
+      // build summary of % vs monthly target if targets set
+      const targetRows = metrics.map(m=>{
+        const monthlyTarget = getMonthlyTarget(m, dateStr);
+        if (monthlyTarget > 0){
+          const val = totalsEntry[m] || 0;
+          const pct = Math.round((val/monthlyTarget)*100);
+          return `<tr><td style="text-align:left;padding:6px" colspan="2">${escapeHtml(CONV_LABELS[m])} vs monthly target: ${val} / ${monthlyTarget} → ${pct}%</td></tr>`;
+        }
+        return "";
+      }).join("");
+      return `<!doctype html><html><head><meta charset="utf-8"><title>Conversion export</title><style>${styles}</style></head><body><div class="container"><h1>Conversion report – ${escapeHtml(member.name)}</h1><div class="meta">Month: ${escapeHtml(month)}</div><table><thead><tr>${headerCols}</tr></thead><tbody><tr>${row}</tr></tbody></table>${targetRows ? ('<div style="margin-top:10px;color:#9aa4c0">'+targetRows+'</div>') : ''}</div></body></html>`;
     }
 
     function buildPrintableHTML_Overview(members, monthValue){
@@ -692,14 +666,11 @@
 
     function escapeHtml(str){ if (!str && str!==0) return ""; return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-    /* -------------------------
-       backup / restore
-       ------------------------- */
+    // backup/restore
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state,null,2)], { type: "application/json" });
       const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `br_assessment_backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     });
-
     restoreFileInput.addEventListener("change", e=>{
       const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
       reader.onload = ev => { try { const data = JSON.parse(ev.target.result); if (!data || !Array.isArray(data.members)) { alert("Invalid backup file."); return; } state = data; initConversionState(); saveState(); renderAll(); alert("Backup restored."); } catch(err){ console.error(err); alert("Failed to read backup file."); } };
@@ -710,16 +681,9 @@
       try { const data = JSON.parse(raw); if (!data || !Array.isArray(data.members)) { alert("Invalid auto backup data."); return; } state = data; initConversionState(); saveState(); renderAll(); alert("Auto backup restored."); } catch(e){ console.error(e); alert("Failed to restore auto backup."); }
     });
 
-    /* -------------------------
-       tabs + render all
-       ------------------------- */
+    // tabs + render
     document.querySelectorAll(".tab-btn").forEach(btn=> btn.addEventListener("click", ()=>{ document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); state.activeTab = btn.dataset.tab; saveState(); renderAll(); }));
-
-    function renderTabsAndContent(){
-      document.getElementById("assessmentTab").classList.toggle("hidden", state.activeTab !== "assessment");
-      document.getElementById("conversionTab").classList.toggle("hidden", state.activeTab !== "conversion");
-      document.getElementById("overviewTab").classList.toggle("hidden", state.activeTab !== "overview");
-    }
+    function renderTabsAndContent(){ document.getElementById("assessmentTab").classList.toggle("hidden", state.activeTab !== "assessment"); document.getElementById("conversionTab").classList.toggle("hidden", state.activeTab !== "conversion"); document.getElementById("overviewTab").classList.toggle("hidden", state.activeTab !== "overview"); }
 
     function renderAll(){
       renderTabsAndContent();
@@ -735,20 +699,14 @@
       renderMembersOverview();
     }
 
-    /* -------------------------
-       conv date change
-       ------------------------- */
     convDateEl.addEventListener("change", ()=>{ state.conversion.currentDate = convDateEl.value || todayISO(); saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); renderHeaderForMember(getCurrentMember()); });
-
     overviewMonthInput.addEventListener("change", ()=> renderMembersOverview());
 
-    /* -------------------------
-       init
-       ------------------------- */
+    // init
     loadState();
     renderAll();
 
-    // small helper: expose renderAll for debugging in console
+    // expose for debug
     window._renderAll = renderAll;
   </script>
 </body>
