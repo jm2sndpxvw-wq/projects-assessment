@@ -44,6 +44,9 @@
     .pill-yellow { color:var(--warning); border-color:rgba(255,191,71,0.7); }
     .pill-green { color:var(--success); border-color:rgba(40,199,111,0.7); }
 
+    /* <-- ADDED: hide score pills inside the sidebar only (removes the % shown next to names in the left menu) --> */
+    .sidebar .team-score-pill { display: none !important; }
+
     .add-team { display:flex; gap:6px; margin-top:4px; }
     .add-team input { flex:1; padding:6px 8px; border-radius:999px; border:1px solid var(--border); background:rgba(8,10,16,0.9); color:var(--text); font-size:12px; outline:none; }
     .add-team button { border-radius:999px; padding:0 10px; font-size:11px; border:none; background:var(--primary); color:#fff; cursor:pointer; transition:0.18s ease; }
@@ -155,66 +158,22 @@
     @media (max-width:900px) {
       .app { grid-template-columns:1fr; }
       .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
-      .content-grid, .conversion-layout { grid-template-columns:1fr; height: @media print {
-  /* background / color adjust */
-  body {
-    background: #05060a !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color: #f5f7fb !important;
-  }
+      .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
+    }
 
-  /* force app to single column so print area uses full width */
-  .app { grid-template-columns: 1fr !important; max-width: 100% !important; border-radius: 0 !important; box-shadow: none !important; }
-  .sidebar { display: none !important; } /* hide the left sidebar while printing */
-
-  /* make main content full width and visible */
-  .main, .panel, .card {
-    background-color: #111623 !important;
-    color: #f5f7fb !important;
-    border: none !important;
-  }
-
-  /* hide interactive UI we don't want in PDF */
-  .main-actions, .tabs-row, .add-team, .hint-mini, .filters-row { display: none !important; }
-
-  /* show only the print area we build in JS */
-  #projectsList { display: none !important; }
-  #printProjectsList { display: block !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
-
-  /* ensure our wrapper/table expand */
-  .print-wrapper {
-    display: block !important;
-    width: 100% !important;
-    padding: 18px !important;
-    box-sizing: border-box !important;
-    color: inherit !important;
-    background: transparent !important;
-  }
-
-  /* readable table */
-  .print-wrapper table, #printProjectsList table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    font-size: 11px !important;
-    color: inherit !important;
-  }
-  .print-wrapper th, .print-wrapper td, #printProjectsList th, #printProjectsList td {
-    border: 1px solid #333 !important;
-    padding: 8px !important;
-    text-align: left !important;
-  }
-
-  /* show print-only elements */
-  .print-only { display: block !important; }
-
-  /* avoid overflow cutting content */
-  html, body {
-    height: auto !important;
-    overflow: visible !important;
-  }
-} /* اگر في قواعد إضافية حساسة للطباعة، خلّيها هنا */
-}
+    @media print {
+      body { background:#05060a !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .app, .sidebar, .main, .panel, .card, .team-item.active, .filters-row, .training-panel { background-color:#111623 !important; color:#f5f7fb !important; }
+      .main-actions, .tabs-row { display:none !important; }
+      #assessmentTab .content-grid { grid-template-columns:1fr !important; }
+      #assessmentTab .content-grid > section:first-child { display:none !important; }
+      .team-item { display:none !important; }
+      .team-item.active { display:flex !important; }
+      .add-team, .hint-mini { display:none !important; }
+      #projectsList { display:none !important; }
+      #printProjectsList { display:flex !important; }
+      #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important; }
+    }
   </style>
 </head>
 <body>
@@ -784,157 +743,20 @@
     regionFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
     developerFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
 
-    // ===== EXPORT / backup / restore =====
+    // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
-  const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
-
-  // ASSESSMENT export (unchanged behavior)
-  if (state.activeTab === "assessment") {
-    const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
-    projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
-    const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
-    const limited = lowProjects.slice(0,5);
-    printProjectsListEl.innerHTML = "";
-    if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
-    else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
-    // print assessment list
-    window.print();
-    return;
-  }
-
-  // ===== CONVERSION export — show ONLY team performance for selected sales (single row) =====
-  if (state.activeTab === "conversion") {
-    // must be a specific member (not All team)
-    if (!member || member.isAllTeam) {
-      alert("Please select a specific team member for Conversion PDF.");
-      return;
-    }
-
-    // clear print area
-    printProjectsListEl.innerHTML = "";
-
-    // wrapper (print area)
-    const wrapper = document.createElement("div");
-    wrapper.className = "print-wrapper";
-    wrapper.style.padding = "18px";
-    wrapper.style.display = "flex";
-    wrapper.style.flexDirection = "column";
-    wrapper.style.gap = "12px";
-    wrapper.style.background = "transparent";
-    wrapper.style.color = "#f5f7fb";
-
-    // header
-    const hdr = document.createElement("div");
-    hdr.style.display = "flex";
-    hdr.style.justifyContent = "space-between";
-    hdr.style.alignItems = "center";
-    hdr.innerHTML = `<div style="font-size:18px;font-weight:700">Bold Routes – Team performance</div>
-                     <div style="font-size:12px;color:var(--text-muted)">${member.name}</div>`;
-    wrapper.appendChild(hdr);
-
-    // month label
-    const dateLabel = document.createElement("div");
-    dateLabel.style.fontSize = "12px";
-    dateLabel.style.color = "var(--text-muted)";
-    const printMonth = state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7);
-    dateLabel.textContent = `Month: ${printMonth}`;
-    wrapper.appendChild(dateLabel);
-
-    // build table (ONLY one sales row)
-    const table = document.createElement("table");
-    table.style.width = "100%";
-    table.style.borderCollapse = "collapse";
-    table.style.fontSize = "11px";
-
-    const thead = document.createElement("thead");
-    thead.innerHTML = `
-      <tr>
-        <th style="padding:8px;border:1px solid #333;text-align:left;">Sales name</th>
-        <th style="padding:8px;border:1px solid #333;">Deals</th>
-        <th style="padding:8px;border:1px solid #333;">Scheduled</th>
-        <th style="padding:8px;border:1px solid #333;">Meetings</th>
-        <th style="padding:8px;border:1px solid #333;">Requests</th>
-        <th style="padding:8px;border:1px solid #333;">Call back</th>
-        <th style="padding:8px;border:1px solid #333;">Active calls</th>
-        <th style="padding:8px;border:1px solid #333;">Calls</th>
-        <th style="padding:8px;border:1px solid #333;">Total %</th>
-      </tr>
-    `;
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-
-    // compute monthly totals for this member
-    const dateStr = state.conversion.currentDate || todayISO();
-    const [y,m] = dateStr.split("-");
-    const monthPrefix = `${y}-${m}`;
-    const monthlyTotals = {};
-    CONV_METRICS.forEach(metric => monthlyTotals[metric] = 0);
-    Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
-      if (!d.startsWith(monthPrefix)) return;
-      const e = perMember[member.id];
-      if (!e) return;
-      CONV_METRICS.forEach(metric => monthlyTotals[metric] += e[metric] || 0);
-    });
-
-    // single row: show monthly totals for the selected sales person
-    const row = document.createElement("tr");
-    row.style.border = "1px solid #333";
-
-    const nameTd = document.createElement("td");
-    nameTd.style.padding = "8px"; nameTd.style.border = "1px solid #333"; nameTd.style.fontWeight = "600"; nameTd.style.textAlign = "left";
-    nameTd.textContent = member.name;
-    row.appendChild(nameTd);
-
-    let monthlySumPct = 0; let monthlyCntPct = 0;
-    CONV_METRICS.forEach(metric => {
-      const td = document.createElement("td");
-      td.style.padding = "8px"; td.style.border = "1px solid #333"; td.style.textAlign = "center";
-      const val = monthlyTotals[metric] || 0;
-      td.textContent = val;
-      row.appendChild(td);
-
-      const monthlyTarget = getMonthlyTarget(metric, dateStr);
-      if (hasTarget(metric) && monthlyTarget > 0) {
-        const pct = (val / monthlyTarget) * 100;
-        if (isFinite(pct)) { monthlySumPct += pct; monthlyCntPct++; }
+      const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
+      if (state.activeTab === "assessment") {
+        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
+        projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+        const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
+        const limited = lowProjects.slice(0,5);
+        printProjectsListEl.innerHTML = "";
+        if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
+        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
       }
+      window.print();
     });
-
-    // total percent cell
-    const totalMonthTd = document.createElement("td");
-    totalMonthTd.style.padding = "8px"; totalMonthTd.style.border = "1px solid #333"; totalMonthTd.style.textAlign = "center";
-    if (monthlyCntPct > 0) {
-      const avgMonthPct = monthlySumPct / monthlyCntPct;
-      totalMonthTd.textContent = `${avgMonthPct.toFixed(0)}%`;
-    } else {
-      totalMonthTd.textContent = "-";
-    }
-    row.appendChild(totalMonthTd);
-
-    tbody.appendChild(row);
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
-
-    // optional short note
-    const note = document.createElement("div");
-    note.style.marginTop = "8px";
-    note.style.fontSize = "11px";
-    note.style.color = "var(--text-muted)";
-    note.textContent = "This report shows monthly totals for the selected sales representative only.";
-    wrapper.appendChild(note);
-
-    // append to print area
-    printProjectsListEl.appendChild(wrapper);
-
-    // trigger print
-    window.print();
-    return;
-  }
-
-  // default fallback — print current visible content
-  window.print();
-});
 
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
