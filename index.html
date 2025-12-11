@@ -857,8 +857,6 @@ if (state.activeTab === "conversion") {
     window.print();
     return;
 }
-      window.print();
-    });
 
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
