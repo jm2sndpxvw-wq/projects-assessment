@@ -769,6 +769,94 @@ if (state.activeTab === "overview") {
         if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
         else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
       }
+     // === NEW: Conversion PDF export ===
+if (state.activeTab === "conversion") {
+
+    const member = getCurrentMember();
+    if (!member || member.isAllTeam) {
+        alert("Please select a specific team member for Conversion PDF.");
+        return;
+    }
+
+    // clear print area
+    printProjectsListEl.innerHTML = "";
+
+    // build custom PDF layout
+    const wrapper = document.createElement("div");
+    wrapper.style.padding = "10px";
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.gap = "12px";
+
+    // header
+    const title = document.createElement("div");
+    title.style.fontSize = "16px";
+    title.style.fontWeight = "700";
+    title.textContent = `Conversion report – ${member.name}`;
+    wrapper.appendChild(title);
+
+    // date label
+    const dateLabel = document.createElement("div");
+    dateLabel.style.fontSize = "12px";
+    dateLabel.style.marginBottom = "6px";
+    dateLabel.textContent = `Month: ${state.conversion.currentDate?.slice(0,7)}`;
+    wrapper.appendChild(dateLabel);
+
+    // team performance table for this member ONLY
+    const table = document.createElement("table");
+    table.style.fontSize = "10px";
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+
+    // table header
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Deals</th>
+          <th>Scheduled</th>
+          <th>Meetings</th>
+          <th>Requests</th>
+          <th>Call back</th>
+          <th>Active calls</th>
+          <th>Calls</th>
+        </tr>
+      </thead>
+    `;
+
+    // table body
+    const tbody = document.createElement("tbody");
+    const monthlyTotals = computeConversionMonthlyScoreForMember(member.id, state.conversion.currentDate);
+
+    const row = document.createElement("tr");
+
+    const entry = Object.values(state.conversion.entries)
+      .filter(e => e[member.id])
+      .reduce((acc, day) => {
+        Object.keys(day[member.id]).forEach(metric => {
+          acc[metric] = (acc[metric] || 0) + (day[member.id][metric] || 0);
+        });
+        return acc;
+      }, {});
+
+    // fill cells
+    ["deals","scheduled","meetings","requests","callBack","activeCalls","calls"].forEach(metric=>{
+        const td = document.createElement("td");
+        td.style.border = "1px solid #333";
+        td.style.padding = "4px";
+        td.textContent = entry[metric] ?? 0;
+        row.appendChild(td);
+    });
+
+    tbody.appendChild(row);
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+
+    // insert into print container
+    printProjectsListEl.appendChild(wrapper);
+
+    window.print();
+    return;
+}
       window.print();
     });
 
