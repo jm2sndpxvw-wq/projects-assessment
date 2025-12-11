@@ -1,3 +1,5 @@
+كسم الكود دة احفظه اساسي وبعدين هقولك دين ام التعديلات بجد قرفت واتعصبت
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -742,134 +744,16 @@
 
     // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
-      const member = getCurrentMember();
-      if (!member) { alert("Select a team member first."); return; }
-
-      // If user selected "All team", require them to pick a specific member for a focused export
-      if (member.isAllTeam) {
-        alert("اختار عضو من الشمال عشان يتعمله Export. الطباعة دلوقتي ظهرة للتيم كله ومطلوب تحدد عضو واحد.");
-        return;
-      }
-
-      // Clear previous print area
-      printProjectsListEl.innerHTML = "";
-
-      // If we're on Assessment tab -> print that member's projects (subject to filters)
+      const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
       if (state.activeTab === "assessment") {
-        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all";
-        let projects = member.projects || [];
+        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
         projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
-
-        if (!projects.length) {
-          const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects to print for this member with current filters."; printProjectsListEl.appendChild(div);
-        } else {
-          // create a print card per project (or show all projects)
-          projects.slice().sort((a,b)=>b.createdAt - a.createdAt).forEach(project=>{
-            const card=document.createElement("div"); card.className="card";
-            const header=document.createElement("div"); header.className="card-header";
-            const titleBlock=document.createElement("div"); titleBlock.className="card-title-block";
-            const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project";
-            const subtitle=document.createElement("div"); subtitle.className="card-subtitle";
-            const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • ");
-            titleBlock.appendChild(title); titleBlock.appendChild(subtitle);
-            const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text;
-            header.appendChild(titleBlock); header.appendChild(tagEl);
-            const footer=document.createElement("div"); footer.className="card-footer";
-            const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan);
-            // details (simple)
-            const details=document.createElement("div"); details.className="details"; details.style.display="block";
-            const rows=document.createElement("div"); rows.className="details-row";
-            const mapping=[["Development", project.scores.development], ["Location", project.scores.location], ["Masterplan", project.scores.masterplan], ["Facilities", project.scores.facilities], ["Type mix", project.scores.type], ["Price position", project.scores.price], ["Payment plan", project.scores.payment], ["Delivery", project.scores.delivery], ["Finishing", project.scores.finishing], ["Maintenance", project.scores.maintenance], ["Orientation", project.scores.orientation]];
-            mapping.forEach(([label, value])=>{ const span=document.createElement("span"); const v = typeof value==="number"?value.toFixed(1):"-"; span.innerHTML=`<strong>${label}</strong><span>${v}/10</span>`; rows.appendChild(span); });
-            details.appendChild(rows);
-            if (project.notes && project.notes.trim()){ const note=document.createElement("div"); note.style.marginTop="6px"; note.textContent = `Notes: ${project.notes}`; details.appendChild(note); }
-            // add owner info
-            const ownerInfo=document.createElement("div"); ownerInfo.className="card-footer"; const ownerSpan=document.createElement("span"); ownerSpan.textContent = `Sales: ${member.name}`; ownerInfo.appendChild(ownerSpan);
-            card.appendChild(header); card.appendChild(details); card.appendChild(footer); card.appendChild(ownerInfo);
-            printProjectsListEl.appendChild(card);
-          });
-        }
+        const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
+        const limited = lowProjects.slice(0,5);
+        printProjectsListEl.innerHTML = "";
+        if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
+        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
       }
-      // If we're on Overview tab -> print member's overview card only
-      else if (state.activeTab === "overview") {
-        // build a single overview-style card for the selected member
-        const monthValue = overviewMonthInput.value || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
-        const { assessment, conversion, combined } = (function computeForSingle(m){
-          const a = computeAssessmentAverage(m);
-          const monthStr = monthValue + "-01";
-          const c = computeConversionMonthlyScoreForMember(m.id, monthStr);
-          return { assessment: a, conversion: c, combined: (a*0.5 + c*0.5) };
-        })(member);
-
-        const card = document.createElement("div"); card.className="member-card card";
-        const top = document.createElement("div"); top.className="member-top";
-        const left = document.createElement("div");
-        const name = document.createElement("div"); name.className="member-name"; name.textContent = member.name;
-        const meta = document.createElement("div"); meta.className="member-meta"; meta.textContent = `${(member.projects?.length||0)} project(s)`;
-        left.appendChild(name); left.appendChild(meta);
-
-        const pill = document.createElement("div"); pill.className = "team-score-pill";
-        pill.textContent = `${combined.toFixed(0)}%`;
-        if (combined < 60) pill.classList.add("pill-red"); else if (combined < 80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
-        top.appendChild(left); top.appendChild(pill);
-        card.appendChild(top);
-
-        const scoresRow = document.createElement("div"); scoresRow.className="scores-row";
-        const blockA = document.createElement("div"); blockA.className="score-block"; blockA.innerHTML = `<div class="score-label">Assessment</div><div class="score-value">${assessment.toFixed(0)}%</div>`;
-        const blockB = document.createElement("div"); blockB.className="score-block"; blockB.innerHTML = `<div class="score-label">Conversion (${monthValue})</div><div class="score-value">${conversion.toFixed(0)}%</div>`;
-        scoresRow.appendChild(blockA); scoresRow.appendChild(blockB);
-        card.appendChild(scoresRow);
-
-        const totalRow = document.createElement("div"); totalRow.className="total-performance";
-        const leftTotal = document.createElement("div"); leftTotal.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">Total performance (50/50)</div><div style="font-weight:700;font-size:16px">${combined.toFixed(0)}%</div>`;
-        totalRow.appendChild(leftTotal);
-        card.appendChild(totalRow);
-
-        // add small projects summary below (optional)
-        const projectsSummary = document.createElement("div"); projectsSummary.className="panel-sub"; projectsSummary.style.marginTop="8px";
-        projectsSummary.textContent = `Projects (${member.projects?.length || 0}): ` + (member.projects?.map(p=>p.name).slice(0,5).join(", ") || "—");
-        card.appendChild(projectsSummary);
-
-        printProjectsListEl.appendChild(card);
-      }
-      // If Conversion tab -> print conversion summary for that sales (we'll show monthly totals)
-      else if (state.activeTab === "conversion") {
-        // show conversion totals for the member for the selected month
-        const dateStr = state.conversion.currentDate || todayISO();
-        const [year,month] = dateStr.split("-");
-        const prefix = `${year}-${month}`;
-        const totals = {}; CONV_METRICS.forEach(m=>totals[m]=0);
-        Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
-          if (!d.startsWith(prefix)) return;
-          const e = perMember[member.id]; if (!e) return;
-          CONV_METRICS.forEach(metric => totals[metric] += e[metric] || 0);
-        });
-
-        const card = document.createElement("div"); card.className="card";
-        const header = document.createElement("div"); header.className="card-header";
-        const titleBlock = document.createElement("div"); titleBlock.className="card-title-block";
-        const title = document.createElement("div"); title.className="card-title"; title.textContent = `Conversion – ${member.name} (${month})`;
-        const subtitle = document.createElement("div"); subtitle.className="card-subtitle"; subtitle.textContent = `Monthly totals for ${month}`;
-        titleBlock.appendChild(title); titleBlock.appendChild(subtitle);
-        header.appendChild(titleBlock);
-        card.appendChild(header);
-
-        const table = document.createElement("table"); table.style.width="100%"; table.style.borderCollapse="collapse"; table.style.marginTop="8px";
-        const tbody = document.createElement("tbody");
-        CONV_METRICS.forEach(metric=>{
-          const tr = document.createElement("tr");
-          const tdLabel = document.createElement("td"); tdLabel.style.textAlign="left"; tdLabel.style.padding="6px"; tdLabel.style.borderTop="1px solid rgba(255,255,255,0.03)"; tdLabel.textContent = CONV_LABELS[metric];
-          const tdVal = document.createElement("td"); tdVal.style.textAlign="right"; tdVal.style.padding="6px"; tdVal.style.borderTop="1px solid rgba(255,255,255,0.03)"; tdVal.textContent = totals[metric] || 0;
-          tr.appendChild(tdLabel); tr.appendChild(tdVal);
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        card.appendChild(table);
-
-        printProjectsListEl.appendChild(card);
-      }
-
-      // Finally print
       window.print();
     });
 
@@ -1089,7 +973,7 @@
         scoresRow.appendChild(blockA); scoresRow.appendChild(blockB);
         card.appendChild(scoresRow);
 
-        const totalRow = document.createElement("div"); totalRow.className = "total-performance";
+        const totalRow = document.createElement("div"); totalRow.className="total-performance";
         const leftTotal = document.createElement("div"); leftTotal.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">Total performance (50/50)</div><div style="font-weight:700;font-size:16px">${combined.toFixed(0)}%</div>`;
         const trendEl = document.createElement("div"); trendEl.className="trend";
         // compute previous month combined and show arrow + diff
