@@ -44,9 +44,6 @@
     .pill-yellow { color:var(--warning); border-color:rgba(255,191,71,0.7); }
     .pill-green { color:var(--success); border-color:rgba(40,199,111,0.7); }
 
-    /* hide score pills inside the sidebar only (removes the % shown next to names in the left menu) */
-    .sidebar .team-score-pill { display: none !important; }
-
     .add-team { display:flex; gap:6px; margin-top:4px; }
     .add-team input { flex:1; padding:6px 8px; border-radius:999px; border:1px solid var(--border); background:rgba(8,10,16,0.9); color:var(--text); font-size:12px; outline:none; }
     .add-team button { border-radius:999px; padding:0 10px; font-size:11px; border:none; background:var(--primary); color:#fff; cursor:pointer; transition:0.18s ease; }
@@ -556,13 +553,12 @@
         const metaEl = document.createElement("div"); metaEl.className="team-meta";
         const projectsCount = member.projects?.length || 0;
 
-        // always show projects count under name (removed the 'Conversion' label)
-        // always show projects count under name (hidden on Members overview tab)
-if (state.activeTab === "overview") {
-  metaEl.textContent = ""; // في تاب Members overview نخلي النص فاضي
-} else {
-  metaEl.textContent = projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
-}
+        // show projects count normally, but hide it when we're on the Members overview tab or in Conversion tab
+        if (state.activeTab === "overview" || state.activeTab === "conversion") {
+          metaEl.textContent = "";
+        } else {
+          metaEl.textContent = projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+        }
 
         main.appendChild(nameEl); main.appendChild(metaEl);
 
@@ -759,104 +755,109 @@ if (state.activeTab === "overview") {
 
     // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
-      const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
+      const member = getCurrentMember();
+      if (!member) { alert("Select a team member first."); return; }
+
+      // === Assessment export (unchanged) ===
       if (state.activeTab === "assessment") {
-        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
+        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all";
+        let projects = member.projects || [];
         projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
         const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
         const limited = lowProjects.slice(0,5);
         printProjectsListEl.innerHTML = "";
-        if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
-        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
-      }
-     // === NEW: Conversion PDF export ===
-if (state.activeTab === "conversion") {
-
-    const member = getCurrentMember();
-    if (!member || member.isAllTeam) {
-        alert("Please select a specific team member for Conversion PDF.");
+        if (limited.length === 0) {
+          const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div);
+        } else {
+          limited.forEach(project=>{
+            const card=document.createElement("div"); card.className="card";
+            const header=document.createElement("div"); header.className="card-header";
+            const titleBlock=document.createElement("div"); titleBlock.className="card-title-block";
+            const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project";
+            const subtitle=document.createElement("div"); subtitle.className="card-subtitle";
+            const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`);
+            subtitle.textContent = bits.join(" • ");
+            titleBlock.appendChild(title); titleBlock.appendChild(subtitle);
+            const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent);
+            tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text;
+            header.appendChild(titleBlock); header.appendChild(tagEl);
+            const footer=document.createElement("div"); footer.className="card-footer";
+            const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`;
+            footer.appendChild(scoreSpan);
+            card.appendChild(header); card.appendChild(footer);
+            printProjectsListEl.appendChild(card);
+          });
+        }
+        window.print();
         return;
-    }
+      }
 
-    // clear print area
-    printProjectsListEl.innerHTML = "";
+      // === Conversion export: show ONLY selected sales member, remove daily conversion ===
+      if (state.activeTab === "conversion") {
+        if (!member || member.isAllTeam) { alert("Please select a specific team member for Conversion PDF."); return; }
 
-    // build custom PDF layout
-    const wrapper = document.createElement("div");
-    wrapper.style.padding = "10px";
-    wrapper.style.display = "flex";
-    wrapper.style.flexDirection = "column";
-    wrapper.style.gap = "12px";
+        printProjectsListEl.innerHTML = "";
 
-    // header
-    const title = document.createElement("div");
-    title.style.fontSize = "16px";
-    title.style.fontWeight = "700";
-    title.textContent = `Conversion report – ${member.name}`;
-    wrapper.appendChild(title);
+        const wrapper = document.createElement("div");
+        wrapper.style.padding = "10px"; wrapper.style.display = "flex"; wrapper.style.flexDirection = "column"; wrapper.style.gap = "12px";
 
-    // date label
-    const dateLabel = document.createElement("div");
-    dateLabel.style.fontSize = "12px";
-    dateLabel.style.marginBottom = "6px";
-    dateLabel.textContent = `Month: ${state.conversion.currentDate?.slice(0,7)}`;
-    wrapper.appendChild(dateLabel);
+        const title = document.createElement("div"); title.style.fontSize = "16px"; title.style.fontWeight = "700";
+        title.textContent = `Conversion report – ${member.name}`; wrapper.appendChild(title);
 
-    // team performance table for this member ONLY
-    const table = document.createElement("table");
-    table.style.fontSize = "10px";
-    table.style.borderCollapse = "collapse";
-    table.style.width = "100%";
+        const dateLabel = document.createElement("div"); dateLabel.style.fontSize = "12px"; dateLabel.style.marginBottom = "6px";
+        dateLabel.textContent = `Month: ${state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : ""}`;
+        wrapper.appendChild(dateLabel);
 
-    // table header
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Deals</th>
-          <th>Scheduled</th>
-          <th>Meetings</th>
-          <th>Requests</th>
-          <th>Call back</th>
-          <th>Active calls</th>
-          <th>Calls</th>
-        </tr>
-      </thead>
-    `;
+        // build table with monthly totals for the selected member
+        const table = document.createElement("table");
+        table.style.fontSize = "10px"; table.style.borderCollapse = "collapse"; table.style.width = "100%";
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th style="border:1px solid #333;padding:6px">Deals</th>
+              <th style="border:1px solid #333;padding:6px">Scheduled</th>
+              <th style="border:1px solid #333;padding:6px">Meetings</th>
+              <th style="border:1px solid #333;padding:6px">Requests</th>
+              <th style="border:1px solid #333;padding:6px">Call back</th>
+              <th style="border:1px solid #333;padding:6px">Active calls</th>
+              <th style="border:1px solid #333;padding:6px">Calls</th>
+            </tr>
+          </thead>
+        `;
 
-    // table body
-    const tbody = document.createElement("tbody");
-    const monthlyTotals = computeConversionMonthlyScoreForMember(member.id, state.conversion.currentDate);
+        const entry = Object.values(state.conversion.entries || {})
+          .filter(day => day[member.id])
+          .reduce((acc, day) => {
+            Object.keys(day[member.id]).forEach(metric => {
+              acc[metric] = (acc[metric] || 0) + (day[member.id][metric] || 0);
+            });
+            return acc;
+          }, {});
 
-    const row = document.createElement("tr");
-
-    const entry = Object.values(state.conversion.entries)
-      .filter(e => e[member.id])
-      .reduce((acc, day) => {
-        Object.keys(day[member.id]).forEach(metric => {
-          acc[metric] = (acc[metric] || 0) + (day[member.id][metric] || 0);
+        const tbody = document.createElement("tbody");
+        const row = document.createElement("tr");
+        ["deals","scheduled","meetings","requests","callBack","activeCalls","calls"].forEach(metric=>{
+          const td = document.createElement("td"); td.style.border="1px solid #333"; td.style.padding="6px";
+          td.textContent = entry[metric] ?? 0;
+          row.appendChild(td);
         });
-        return acc;
-      }, {});
+        tbody.appendChild(row);
+        table.appendChild(tbody);
+        wrapper.appendChild(table);
 
-    // fill cells
-    ["deals","scheduled","meetings","requests","callBack","activeCalls","calls"].forEach(metric=>{
-        const td = document.createElement("td");
-        td.style.border = "1px solid #333";
-        td.style.padding = "4px";
-        td.textContent = entry[metric] ?? 0;
-        row.appendChild(td);
+        printProjectsListEl.appendChild(wrapper);
+        window.print();
+        return;
+      }
+
+      // === Overview tab: default behavior (if you want special PDF for overview add here) ===
+      if (state.activeTab === "overview") {
+        // reuse assessment export behavior or build a custom one
+        alert("Overview PDF export not implemented specifically — will use default behavior.");
+        window.print();
+        return;
+      }
     });
-
-    tbody.appendChild(row);
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
-
-    // insert into print container
-    printProjectsListEl.appendChild(wrapper);
-
-    window.print();
-    return;
-}
 
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
