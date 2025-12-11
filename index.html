@@ -1403,8 +1403,8 @@
 
       const allMeta = document.createElement("div");
 allMeta.className = "team-meta";
-// Show only team count for "All team" (no total projects)
-allMeta.textContent = `${state.members.length} member(s)`;
+allMeta.textContent =
+  state.members.length + " member(s) • " + totalProjects + " project(s)";
 
       allMain.appendChild(allName);
       allMain.appendChild(allMeta);
