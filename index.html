@@ -1,3 +1,8 @@
+ضيف الpopup على baseline دة ومش محتاج demo 
+
+احفظ الكود وضيف عليه ال popup  
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,9 +48,6 @@
     .pill-red { color:var(--danger); border-color:rgba(255,75,92,0.65); }
     .pill-yellow { color:var(--warning); border-color:rgba(255,191,71,0.7); }
     .pill-green { color:var(--success); border-color:rgba(40,199,111,0.7); }
-
-    /* hide score pills inside the sidebar only (removes the % shown next to names in the left menu) */
-    .sidebar .team-score-pill { display: none !important; }
 
     .add-team { display:flex; gap:6px; margin-top:4px; }
     .add-team input { flex:1; padding:6px 8px; border-radius:999px; border:1px solid var(--border); background:rgba(8,10,16,0.9); color:var(--text); font-size:12px; outline:none; }
@@ -555,15 +557,8 @@
         const nameEl = document.createElement("div"); nameEl.className="team-name"; nameEl.textContent = member.name;
         const metaEl = document.createElement("div"); metaEl.className="team-meta";
         const projectsCount = member.projects?.length || 0;
-
-        // always show projects count under name (removed the 'Conversion' label)
-        // always show projects count under name (hidden on Members overview tab)
-if (state.activeTab === "overview") {
-  metaEl.textContent = ""; // في تاب Members overview نخلي النص فاضي
-} else {
-  metaEl.textContent = projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
-}
-
+        if (state.activeTab === "assessment") metaEl.textContent = projectsCount + " project" + (projectsCount!==1 ? "s":"");
+        else metaEl.textContent = "Conversion";
         main.appendChild(nameEl); main.appendChild(metaEl);
 
         const pill = document.createElement("div"); pill.className="team-score-pill";
@@ -696,13 +691,6 @@ if (state.activeTab === "overview") {
     }
 
     function renderHeaderForMember(member){
-      // if overview tab active, show fixed title and remove the overall assessment line
-      if (state.activeTab === "overview") {
-        currentMemberTitle.textContent = "Members overview";
-        currentMemberSub.textContent = ""; // removed overall assessment line
-        return;
-      }
-
       if (!member) { currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member from the left to start assessment."; return; }
       const currentDate = state.conversion.currentDate || todayISO();
       if (member.isAllTeam) {
