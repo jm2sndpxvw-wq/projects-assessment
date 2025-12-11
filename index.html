@@ -158,34 +158,41 @@
       .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
     }
 
-    @media print {
-      body { background:#05060a !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-      .app, .sidebar, .main, .panel, .card, .team-item.active, .filters-row, .training-panel { background-color:#111623 !important; color:#f5f7fb !important; }
-      .main-actions, .tabs-row { display:none !important; }
-      #assessmentTab .content-grid { grid-template-columns:1fr !important; }
-      #assessmentTab .content-grid > section:first-child { display:none !important; }
-      .team-item { display:none !important; }
-      .team-item.active { display:flex !important; }
-      .add-team, .hint-mini { display:none !important; }
-      #projectsList { display:none !important; }
-      #printProjectsList { display:flex !important; }
-      #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important; }
-      
-      /* وضع طباعة خاص لتصدير Conversion: خبّي لوحة الـ conversion العادية،
-   وأظهر مكان العرض المخصّص للطباعة (#printProjectsList) */
-@media print {
-  /* اخفاء الـ conversion layout العادي */
+  @media print {
+  body {
+    background:#05060a !important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+
+  /* عام: خلي المكونات الأساسية تبان كويس للطباعة */
+  .app, .sidebar, .main, .panel, .card, .team-item.active, .filters-row, .training-panel {
+    background-color:#111623 !important;
+    color:#f5f7fb !important;
+  }
+
+  /* اخفي العناصر التفاعلية يلي مش مهمة في الطباعة */
+  .main-actions, .tabs-row, .add-team, .hint-mini { display:none !important; }
+  .team-item { display:none !important; }            /* اخفي كل الميمبرز */
+  .team-item.active { display:flex !important; }     /* خلي العضو المحدد ظاهر لو حابب */
+  #projectsList { display:none !important; }         /* اخفي لستة المشاريع العادية */
+  #printProjectsList { display:flex !important; }    /* أظهر مساحة الطباعة الخاصة */
+
+  /* hide normal conversion layout so the print-wrapper shows only */
   #conversionTab .conversion-layout { display: none !important; }
-  /* اخفاء باقي المحتوى غير المطلوب (اضبط لو بدك تغير) */
-  .tabs-row, .main-actions { display: none !important; }
 
-  /* أظهر الـ print area اللي بنبني فيها الجدول */
-  #printProjectsList { display: flex !important; }
+  /* ensure print-wrapper layout */
+  .print-wrapper { display: flex !important; flex-direction: column !important; gap: 12px !important; padding: 18px !important; color: #f5f7fb !important; }
 
-  /* لو حابب نكون أدقّ ونظهر فقط الـ print-wrapper */
-  .print-wrapper { display: flex !important; flex-direction: column; }
-  
-    }
+  /* make printed table readable */
+  #printProjectsList table { width:100% !important; border-collapse:collapse !important; font-size:11px !important; color:inherit !important; }
+  #printProjectsList th, #printProjectsList td { border:1px solid #333 !important; padding:8px !important; text-align:left !important; }
+
+  /* اجعل أي عنصر مخفي على الشاشة يظهر بالطباعة لو احتجناه */
+  .print-only { display: block !important; }
+
+  /* اگر في قواعد إضافية حساسة للطباعة، خلّيها هنا */
+}
   </style>
 </head>
 <body>
