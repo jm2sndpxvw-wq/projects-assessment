@@ -1461,8 +1461,13 @@
         const metaEl = document.createElement("div");
         metaEl.className = "team-meta";
         const projectsCount = member.projects?.length || 0;
-        metaEl.textContent =
-          projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+if (state.activeTab === "assessment") {
+  metaEl.textContent =
+    projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+} else {
+  // في تاب الـ conversion ما نعرضش عدد المشاريع — بس نعرض كلمة "Conversion" لو عايز
+  metaEl.textContent = "Conversion";
+}
 
         main.appendChild(nameEl);
         main.appendChild(metaEl);
