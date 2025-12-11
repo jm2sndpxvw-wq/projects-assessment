@@ -155,43 +155,65 @@
     @media (max-width:900px) {
       .app { grid-template-columns:1fr; }
       .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
-      .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
-    }
-
-  @media print {
+      .content-grid, .conversion-layout { grid-template-columns:1fr; height: @media print {
+  /* background / color adjust */
   body {
-    background:#05060a !important;
-    -webkit-print-color-adjust:exact;
-    print-color-adjust:exact;
+    background: #05060a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color: #f5f7fb !important;
   }
 
-  /* عام: خلي المكونات الأساسية تبان كويس للطباعة */
-  .app, .sidebar, .main, .panel, .card, .team-item.active, .filters-row, .training-panel {
-    background-color:#111623 !important;
-    color:#f5f7fb !important;
+  /* force app to single column so print area uses full width */
+  .app { grid-template-columns: 1fr !important; max-width: 100% !important; border-radius: 0 !important; box-shadow: none !important; }
+  .sidebar { display: none !important; } /* hide the left sidebar while printing */
+
+  /* make main content full width and visible */
+  .main, .panel, .card {
+    background-color: #111623 !important;
+    color: #f5f7fb !important;
+    border: none !important;
   }
 
-  /* اخفي العناصر التفاعلية يلي مش مهمة في الطباعة */
-  .main-actions, .tabs-row, .add-team, .hint-mini { display:none !important; }
-  .team-item { display:none !important; }            /* اخفي كل الميمبرز */
-  .team-item.active { display:flex !important; }     /* خلي العضو المحدد ظاهر لو حابب */
-  #projectsList { display:none !important; }         /* اخفي لستة المشاريع العادية */
-  #printProjectsList { display:flex !important; }    /* أظهر مساحة الطباعة الخاصة */
+  /* hide interactive UI we don't want in PDF */
+  .main-actions, .tabs-row, .add-team, .hint-mini, .filters-row { display: none !important; }
 
-  /* hide normal conversion layout so the print-wrapper shows only */
-  #conversionTab .conversion-layout { display: none !important; }
+  /* show only the print area we build in JS */
+  #projectsList { display: none !important; }
+  #printProjectsList { display: block !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
 
-  /* ensure print-wrapper layout */
-  .print-wrapper { display: flex !important; flex-direction: column !important; gap: 12px !important; padding: 18px !important; color: #f5f7fb !important; }
+  /* ensure our wrapper/table expand */
+  .print-wrapper {
+    display: block !important;
+    width: 100% !important;
+    padding: 18px !important;
+    box-sizing: border-box !important;
+    color: inherit !important;
+    background: transparent !important;
+  }
 
-  /* make printed table readable */
-  #printProjectsList table { width:100% !important; border-collapse:collapse !important; font-size:11px !important; color:inherit !important; }
-  #printProjectsList th, #printProjectsList td { border:1px solid #333 !important; padding:8px !important; text-align:left !important; }
+  /* readable table */
+  .print-wrapper table, #printProjectsList table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+    color: inherit !important;
+  }
+  .print-wrapper th, .print-wrapper td, #printProjectsList th, #printProjectsList td {
+    border: 1px solid #333 !important;
+    padding: 8px !important;
+    text-align: left !important;
+  }
 
-  /* اجعل أي عنصر مخفي على الشاشة يظهر بالطباعة لو احتجناه */
+  /* show print-only elements */
   .print-only { display: block !important; }
 
-  /* اگر في قواعد إضافية حساسة للطباعة، خلّيها هنا */
+  /* avoid overflow cutting content */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+} /* اگر في قواعد إضافية حساسة للطباعة، خلّيها هنا */
 }
   </style>
 </head>
