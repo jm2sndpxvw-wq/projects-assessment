@@ -557,7 +557,12 @@
         const projectsCount = member.projects?.length || 0;
 
         // always show projects count under name (removed the 'Conversion' label)
-        metaEl.textContent = projectsCount + " project" + (projectsCount!==1 ? "s":"");
+        // always show projects count under name (hidden on Members overview tab)
+if (state.activeTab === "overview") {
+  metaEl.textContent = ""; // في تاب Members overview نخلي النص فاضي
+} else {
+  metaEl.textContent = projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+}
 
         main.appendChild(nameEl); main.appendChild(metaEl);
 
