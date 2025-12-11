@@ -781,144 +781,140 @@
           return;
         }
 
-        // prepare print area
-        printProjectsListEl.innerHTML = "";
-        const wrapper = document.createElement("div");
-        wrapper.className = "print-wrapper";
-        wrapper.style.padding = "10px";
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.gap = "12px";
+  // ===== CONVERSION export — show ONLY team performance for selected sales (single row) =====
+if (state.activeTab === "conversion") {
+  // must be a specific member (not All team)
+  if (!member || member.isAllTeam) {
+    alert("Please select a specific team member for Conversion PDF.");
+    return;
+  }
 
-        // header
-        const title = document.createElement("div");
-        title.style.fontSize = "16px";
-        title.style.fontWeight = "700";
-        title.textContent = `Conversion report – ${member.name}`;
-        wrapper.appendChild(title);
+  // clear print area
+  printProjectsListEl.innerHTML = "";
 
-        // month label
-        const dateLabel = document.createElement("div");
-        dateLabel.style.fontSize = "12px";
-        dateLabel.style.marginBottom = "6px";
-        const printMonth = state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7);
-        dateLabel.textContent = `Month: ${printMonth}`;
-        wrapper.appendChild(dateLabel);
+  // wrapper (print area)
+  const wrapper = document.createElement("div");
+  wrapper.className = "print-wrapper";
+  wrapper.style.padding = "18px";
+  wrapper.style.display = "flex";
+  wrapper.style.flexDirection = "column";
+  wrapper.style.gap = "12px";
+  wrapper.style.background = "transparent";
+  wrapper.style.color = "#f5f7fb";
 
-        // build table header
-        const table = document.createElement("table");
-        table.style.fontSize = "10px";
-        table.style.borderCollapse = "collapse";
-        table.style.width = "100%";
-        table.style.border = "1px solid #333";
-        const thead = document.createElement("thead");
-        thead.innerHTML = `
-          <tr>
-            <th style="padding:6px;border:1px solid #333;text-align:left;">Sales name</th>
-            <th style="padding:6px;border:1px solid #333;">Deals</th>
-            <th style="padding:6px;border:1px solid #333;">Scheduled</th>
-            <th style="padding:6px;border:1px solid #333;">Meetings</th>
-            <th style="padding:6px;border:1px solid #333;">Requests</th>
-            <th style="padding:6px;border:1px solid #333;">Call back</th>
-            <th style="padding:6px;border:1px solid #333;">Active calls</th>
-            <th style="padding:6px;border:1px solid #333;">Calls</th>
-            <th style="padding:6px;border:1px solid #333;">Total %</th>
-          </tr>
-        `;
-        table.appendChild(thead);
-        const tbody = document.createElement("tbody");
+  // header
+  const hdr = document.createElement("div");
+  hdr.style.display = "flex";
+  hdr.style.justifyContent = "space-between";
+  hdr.style.alignItems = "center";
+  hdr.innerHTML = `<div style="font-size:18px;font-weight:700">Bold Routes – Team performance</div>
+                   <div style="font-size:12px;color:var(--text-muted)">${member.name}</div>`;
+  wrapper.appendChild(hdr);
 
-        // Day row: numbers for the selected date (but we DON'T show the entire daily conversion panel, only this single row)
-        const dateStr = state.conversion.currentDate || todayISO();
-        const entriesForDay = state.conversion.entries[dateStr] || {};
-        const entryForMember = entriesForDay[member.id] || {};
-        const dayRow = document.createElement("tr");
-        dayRow.style.border = "1px solid #333";
+  // month label
+  const dateLabel = document.createElement("div");
+  dateLabel.style.fontSize = "12px";
+  dateLabel.style.color = "var(--text-muted)";
+  const printMonth = state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7);
+  dateLabel.textContent = `Month: ${printMonth}`;
+  wrapper.appendChild(dateLabel);
 
-        const nameTd = document.createElement("td");
-        nameTd.style.padding = "6px"; nameTd.style.border = "1px solid #333"; nameTd.style.fontWeight = "600"; nameTd.style.textAlign = "left";
-        nameTd.textContent = member.name;
-        dayRow.appendChild(nameTd);
+  // build table (ONLY one sales row + monthly totals row)
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.fontSize = "11px";
 
-        let sumPct = 0; let cntPct = 0;
-        CONV_METRICS.forEach(metric => {
-          const td = document.createElement("td");
-          td.style.padding = "6px"; td.style.border = "1px solid #333";
-          const val = entryForMember[metric] || 0;
-          td.textContent = val;
-          dayRow.appendChild(td);
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th style="padding:8px;border:1px solid #333;text-align:left;">Sales name</th>
+      <th style="padding:8px;border:1px solid #333;">Deals</th>
+      <th style="padding:8px;border:1px solid #333;">Scheduled</th>
+      <th style="padding:8px;border:1px solid #333;">Meetings</th>
+      <th style="padding:8px;border:1px solid #333;">Requests</th>
+      <th style="padding:8px;border:1px solid #333;">Call back</th>
+      <th style="padding:8px;border:1px solid #333;">Active calls</th>
+      <th style="padding:8px;border:1px solid #333;">Calls</th>
+      <th style="padding:8px;border:1px solid #333;">Total %</th>
+    </tr>
+  `;
+  table.appendChild(thead);
 
-          const dailyTarget = getDailyTargetForPercent(metric, dateStr);
-          if (hasTarget(metric) && dailyTarget > 0) {
-            const pct = (val / dailyTarget) * 100;
-            if (isFinite(pct)) { sumPct += pct; cntPct++; }
-          }
-        });
+  const tbody = document.createElement("tbody");
 
-        const totalTd = document.createElement("td");
-        totalTd.style.padding = "6px"; totalTd.style.border = "1px solid #333";
-        if (cntPct > 0) {
-          const avgPct = sumPct / cntPct;
-          totalTd.textContent = `${avgPct.toFixed(0)}%`;
-        } else {
-          totalTd.textContent = "-";
-        }
-        dayRow.appendChild(totalTd);
-        tbody.appendChild(dayRow);
+  // compute monthly totals for this member
+  const dateStr = state.conversion.currentDate || todayISO();
+  const [y,m] = dateStr.split("-");
+  const monthPrefix = `${y}-${m}`;
+  const monthlyTotals = {};
+  CONV_METRICS.forEach(metric => monthlyTotals[metric] = 0);
+  Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
+    if (!d.startsWith(monthPrefix)) return;
+    const e = perMember[member.id];
+    if (!e) return;
+    CONV_METRICS.forEach(metric => monthlyTotals[metric] += e[metric] || 0);
+  });
 
-        // Monthly total row for this member
-        const [y,m] = dateStr.split("-");
-        const monthPrefix = `${y}-${m}`;
-        const monthlyTotals = {};
-        CONV_METRICS.forEach(metric => monthlyTotals[metric] = 0);
-        Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
-          if (!d.startsWith(monthPrefix)) return;
-          const e = perMember[member.id];
-          if (!e) return;
-          CONV_METRICS.forEach(metric => monthlyTotals[metric] += e[metric] || 0);
-        });
+  // single row: show monthly totals for the selected sales person
+  const row = document.createElement("tr");
+  row.style.border = "1px solid #333";
 
-        const totalRow = document.createElement("tr");
-        totalRow.style.border = "1px solid #333";
-        const totalNameTd = document.createElement("td");
-        totalNameTd.style.padding = "6px"; totalNameTd.style.border = "1px solid #333"; totalNameTd.style.fontWeight = "600"; totalNameTd.style.textAlign = "left";
-        totalNameTd.textContent = `${member.name} total`;
-        totalRow.appendChild(totalNameTd);
+  const nameTd = document.createElement("td");
+  nameTd.style.padding = "8px"; nameTd.style.border = "1px solid #333"; nameTd.style.fontWeight = "600"; nameTd.style.textAlign = "left";
+  nameTd.textContent = member.name;
+  row.appendChild(nameTd);
 
-        let monthlySumPct = 0; let monthlyCntPct = 0;
-        CONV_METRICS.forEach(metric => {
-          const td = document.createElement("td");
-          td.style.padding = "6px"; td.style.border = "1px solid #333";
-          const val = monthlyTotals[metric] || 0;
-          td.textContent = val;
-          totalRow.appendChild(td);
+  let monthlySumPct = 0; let monthlyCntPct = 0;
+  CONV_METRICS.forEach(metric => {
+    const td = document.createElement("td");
+    td.style.padding = "8px"; td.style.border = "1px solid #333"; td.style.textAlign = "center";
+    const val = monthlyTotals[metric] || 0;
+    td.textContent = val;
+    row.appendChild(td);
 
-          const monthlyTarget = getMonthlyTarget(metric, dateStr);
-          if (hasTarget(metric) && monthlyTarget > 0) {
-            const pct = (val / monthlyTarget) * 100;
-            if (isFinite(pct)) { monthlySumPct += pct; monthlyCntPct++; }
-          }
-        });
+    const monthlyTarget = getMonthlyTarget(metric, dateStr);
+    if (hasTarget(metric) && monthlyTarget > 0) {
+      const pct = (val / monthlyTarget) * 100;
+      if (isFinite(pct)) { monthlySumPct += pct; monthlyCntPct++; }
+    }
+  });
 
-        const totalMonthTd = document.createElement("td");
-        totalMonthTd.style.padding = "6px"; totalMonthTd.style.border = "1px solid #333";
-        if (monthlyCntPct > 0) {
-          const avgMonthPct = monthlySumPct / monthlyCntPct;
-          totalMonthTd.textContent = `${avgMonthPct.toFixed(0)}%`;
-        } else {
-          totalMonthTd.textContent = "-";
-        }
-        totalRow.appendChild(totalMonthTd);
-        tbody.appendChild(totalRow);
+  // total percent cell
+  const totalMonthTd = document.createElement("td");
+  totalMonthTd.style.padding = "8px"; totalMonthTd.style.border = "1px solid #333"; totalMonthTd.style.textAlign = "center";
+  if (monthlyCntPct > 0) {
+    const avgMonthPct = monthlySumPct / monthlyCntPct;
+    totalMonthTd.textContent = `${avgMonthPct.toFixed(0)}%`;
+  } else {
+    totalMonthTd.textContent = "-";
+  }
+  row.appendChild(totalMonthTd);
 
-        table.appendChild(tbody);
-        wrapper.appendChild(table);
+  tbody.appendChild(row);
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
 
-        printProjectsListEl.appendChild(wrapper);
+  // optional short note
+  const note = document.createElement("div");
+  note.style.marginTop = "8px";
+  note.style.fontSize = "11px";
+  note.style.color = "var(--text-muted)";
+  note.textContent = "This report shows monthly totals for the selected sales representative only.";
+  wrapper.appendChild(note);
 
-        // print
-        window.print();
-        return;
+  // append to print area
+  printProjectsListEl.appendChild(wrapper);
+
+  // trigger print with printing-conversion class so CSS shows only print-wrapper
+  document.body.classList.add("printing-conversion");
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=> document.body.classList.remove("printing-conversion"), 300);
+  }, 150);
+
+  return;
+}
       }
 
       // default fallback — print current visible content
