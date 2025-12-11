@@ -740,9 +740,11 @@
     regionFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
     developerFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
 
-    // Export / backup / restore
+    // ===== EXPORT / backup / restore =====
     exportBtn.addEventListener("click", ()=>{
       const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
+
+      // ASSESSMENT export (unchanged behavior)
       if (state.activeTab === "assessment") {
         const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
         projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
@@ -751,7 +753,160 @@
         printProjectsListEl.innerHTML = "";
         if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
         else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
+        // print
+        window.print();
+        return;
       }
+
+      // ===== CONVERSION export — custom: remove daily conversion, show only selected sales row + monthly total row =====
+      if (state.activeTab === "conversion") {
+        // must be a specific member (not All team)
+        if (!member || member.isAllTeam) {
+          alert("Please select a specific team member for Conversion PDF.");
+          return;
+        }
+
+        // prepare print area
+        printProjectsListEl.innerHTML = "";
+        const wrapper = document.createElement("div");
+        wrapper.className = "print-wrapper";
+        wrapper.style.padding = "10px";
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.gap = "12px";
+
+        // header
+        const title = document.createElement("div");
+        title.style.fontSize = "16px";
+        title.style.fontWeight = "700";
+        title.textContent = `Conversion report – ${member.name}`;
+        wrapper.appendChild(title);
+
+        // month label
+        const dateLabel = document.createElement("div");
+        dateLabel.style.fontSize = "12px";
+        dateLabel.style.marginBottom = "6px";
+        const printMonth = state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7);
+        dateLabel.textContent = `Month: ${printMonth}`;
+        wrapper.appendChild(dateLabel);
+
+        // build table header
+        const table = document.createElement("table");
+        table.style.fontSize = "10px";
+        table.style.borderCollapse = "collapse";
+        table.style.width = "100%";
+        table.style.border = "1px solid #333";
+        const thead = document.createElement("thead");
+        thead.innerHTML = `
+          <tr>
+            <th style="padding:6px;border:1px solid #333;text-align:left;">Sales name</th>
+            <th style="padding:6px;border:1px solid #333;">Deals</th>
+            <th style="padding:6px;border:1px solid #333;">Scheduled</th>
+            <th style="padding:6px;border:1px solid #333;">Meetings</th>
+            <th style="padding:6px;border:1px solid #333;">Requests</th>
+            <th style="padding:6px;border:1px solid #333;">Call back</th>
+            <th style="padding:6px;border:1px solid #333;">Active calls</th>
+            <th style="padding:6px;border:1px solid #333;">Calls</th>
+            <th style="padding:6px;border:1px solid #333;">Total %</th>
+          </tr>
+        `;
+        table.appendChild(thead);
+        const tbody = document.createElement("tbody");
+
+        // Day row: numbers for the selected date (but we DON'T show the entire daily conversion panel, only this single row)
+        const dateStr = state.conversion.currentDate || todayISO();
+        const entriesForDay = state.conversion.entries[dateStr] || {};
+        const entryForMember = entriesForDay[member.id] || {};
+        const dayRow = document.createElement("tr");
+        dayRow.style.border = "1px solid #333";
+
+        const nameTd = document.createElement("td");
+        nameTd.style.padding = "6px"; nameTd.style.border = "1px solid #333"; nameTd.style.fontWeight = "600"; nameTd.style.textAlign = "left";
+        nameTd.textContent = member.name;
+        dayRow.appendChild(nameTd);
+
+        let sumPct = 0; let cntPct = 0;
+        CONV_METRICS.forEach(metric => {
+          const td = document.createElement("td");
+          td.style.padding = "6px"; td.style.border = "1px solid #333";
+          const val = entryForMember[metric] || 0;
+          td.textContent = val;
+          dayRow.appendChild(td);
+
+          const dailyTarget = getDailyTargetForPercent(metric, dateStr);
+          if (hasTarget(metric) && dailyTarget > 0) {
+            const pct = (val / dailyTarget) * 100;
+            if (isFinite(pct)) { sumPct += pct; cntPct++; }
+          }
+        });
+
+        const totalTd = document.createElement("td");
+        totalTd.style.padding = "6px"; totalTd.style.border = "1px solid #333";
+        if (cntPct > 0) {
+          const avgPct = sumPct / cntPct;
+          totalTd.textContent = `${avgPct.toFixed(0)}%`;
+        } else {
+          totalTd.textContent = "-";
+        }
+        dayRow.appendChild(totalTd);
+        tbody.appendChild(dayRow);
+
+        // Monthly total row for this member
+        const [y,m] = dateStr.split("-");
+        const monthPrefix = `${y}-${m}`;
+        const monthlyTotals = {};
+        CONV_METRICS.forEach(metric => monthlyTotals[metric] = 0);
+        Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
+          if (!d.startsWith(monthPrefix)) return;
+          const e = perMember[member.id];
+          if (!e) return;
+          CONV_METRICS.forEach(metric => monthlyTotals[metric] += e[metric] || 0);
+        });
+
+        const totalRow = document.createElement("tr");
+        totalRow.style.border = "1px solid #333";
+        const totalNameTd = document.createElement("td");
+        totalNameTd.style.padding = "6px"; totalNameTd.style.border = "1px solid #333"; totalNameTd.style.fontWeight = "600"; totalNameTd.style.textAlign = "left";
+        totalNameTd.textContent = `${member.name} total`;
+        totalRow.appendChild(totalNameTd);
+
+        let monthlySumPct = 0; let monthlyCntPct = 0;
+        CONV_METRICS.forEach(metric => {
+          const td = document.createElement("td");
+          td.style.padding = "6px"; td.style.border = "1px solid #333";
+          const val = monthlyTotals[metric] || 0;
+          td.textContent = val;
+          totalRow.appendChild(td);
+
+          const monthlyTarget = getMonthlyTarget(metric, dateStr);
+          if (hasTarget(metric) && monthlyTarget > 0) {
+            const pct = (val / monthlyTarget) * 100;
+            if (isFinite(pct)) { monthlySumPct += pct; monthlyCntPct++; }
+          }
+        });
+
+        const totalMonthTd = document.createElement("td");
+        totalMonthTd.style.padding = "6px"; totalMonthTd.style.border = "1px solid #333";
+        if (monthlyCntPct > 0) {
+          const avgMonthPct = monthlySumPct / monthlyCntPct;
+          totalMonthTd.textContent = `${avgMonthPct.toFixed(0)}%`;
+        } else {
+          totalMonthTd.textContent = "-";
+        }
+        totalRow.appendChild(totalMonthTd);
+        tbody.appendChild(totalRow);
+
+        table.appendChild(tbody);
+        wrapper.appendChild(table);
+
+        printProjectsListEl.appendChild(wrapper);
+
+        // print
+        window.print();
+        return;
+      }
+
+      // default fallback — print current visible content
       window.print();
     });
 
