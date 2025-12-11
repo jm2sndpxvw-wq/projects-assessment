@@ -170,6 +170,21 @@
       #projectsList { display:none !important; }
       #printProjectsList { display:flex !important; }
       #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important; }
+      
+      /* وضع طباعة خاص لتصدير Conversion: خبّي لوحة الـ conversion العادية،
+   وأظهر مكان العرض المخصّص للطباعة (#printProjectsList) */
+@media print {
+  /* اخفاء الـ conversion layout العادي */
+  #conversionTab .conversion-layout { display: none !important; }
+  /* اخفاء باقي المحتوى غير المطلوب (اضبط لو بدك تغير) */
+  .tabs-row, .main-actions { display: none !important; }
+
+  /* أظهر الـ print area اللي بنبني فيها الجدول */
+  #printProjectsList { display: flex !important; }
+
+  /* لو حابب نكون أدقّ ونظهر فقط الـ print-wrapper */
+  .print-wrapper { display: flex !important; flex-direction: column; }
+  
     }
   </style>
 </head>
