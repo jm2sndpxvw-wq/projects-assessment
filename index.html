@@ -1,9 +1,13 @@
+ضيف الpopup على baseline دة ومش محتاج demo 
+
+احفظ الكود وضيف عليه ال popup  
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Projects Assessment – Real Estate Team</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root {
       --bg: #0b0d10;
@@ -148,16 +152,6 @@
     .trend { font-size:13px; display:flex; align-items:center; gap:6px; color:var(--text-muted); }
     .trend.up { color:var(--success); } .trend.down { color:var(--danger); } .trend.flat { color:var(--text-muted); }
 
-    /* modal popup styles (non-destructive addition) */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999}
-    .modal{width:92%;max-width:640px;background:#0d1017;border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 8px 40px rgba(0,0,0,0.6)}
-    .modal h3{font-size:16px;margin-bottom:8px}
-    .modal .row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-    .modal label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px}
-    .modal select, .modal input[type="checkbox"], .modal input[type="date"]{font-size:13px}
-    .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
-    .small-note{font-size:12px;color:var(--text-muted);margin-top:6px}
-
     /* scrollbar */
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:transparent; }
@@ -167,16 +161,22 @@
       .app { grid-template-columns:1fr; }
       .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
       .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
-      .modal{max-width:92%}
     }
 
     @media print {
       body { background:#05060a !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .app, .sidebar, .main, .panel, .card, .team-item.active, .filters-row, .training-panel { background-color:#111623 !important; color:#f5f7fb !important; }
+      .main-actions, .tabs-row { display:none !important; }
+      #assessmentTab .content-grid { grid-template-columns:1fr !important; }
+      #assessmentTab .content-grid > section:first-child { display:none !important; }
+      .team-item { display:none !important; }
+      .team-item.active { display:flex !important; }
+      .add-team, .hint-mini { display:none !important; }
+      #projectsList { display:none !important; }
+      #printProjectsList { display:flex !important; }
+      #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important; }
     }
   </style>
-
-  <!-- html2pdf bundle (used by export modal) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -358,39 +358,7 @@
     </main>
   </div>
 
-  <!-- Export Modal (non-destructive add) -->
-  <div id="exportModal" class="modal-backdrop hidden" style="display:none">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Export PDF — Choose template</h3>
-      <div id="modalContent">
-        <div class="row">
-          <div style="flex:1">
-            <label>Active tab</label>
-            <div id="modalActiveTab" style="font-weight:600"></div>
-          </div>
-          <div style="width:160px">
-            <label>Open in</label>
-            <select id="pdfOpenMode" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
-              <option value="download">Download (.pdf)</option>
-              <option value="newtab">Open in new tab</option>
-            </select>
-          </div>
-        </div>
-
-        <div id="templatesContainer"></div>
-
-        <div class="small-note">اختيار: "Single member card — current selection" هيسحب السيلز اللي انت مختاره من ال team list.</div>
-
-        <div class="actions">
-          <button id="modalCancel" class="btn">Cancel</button>
-          <button id="modalGenerate" class="btn btn-primary">Generate PDF</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
-    // ---------- existing baseline state & helpers (kept intact) ----------
     const STORAGE_KEY = "br_assessment_v3";
     const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
@@ -429,7 +397,7 @@
     function daysInMonth(dateStr){ const [y,m] = dateStr.split("-").map(n=>parseInt(n,10)); return new Date(y,m,0).getDate(); }
     function monthPrefixFromDateStr(dateStr){ const [y,m] = dateStr.split("-"); return `${y}-${m}`; }
 
-    // Elements (baseline ones)
+    // Elements
     const teamListEl = document.getElementById("teamList");
     const newMemberInput = document.getElementById("newMemberInput");
     const addMemberBtn = document.getElementById("addMemberBtn");
@@ -475,13 +443,13 @@
 
     function getCurrentMember(){
       if (state.selectedMemberId === ALL_TEAM_ID) {
+        // return simplified all-team object (no projects shown in conversion)
         return { id: ALL_TEAM_ID, name: "All team", isAllTeam: true, projects: state.members.flatMap(m => (m.projects||[]).map(p => ({...p, ownerName: m.name}))) };
       }
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // --- baseline logic preserved: computeAssessmentAverage, computeConversionMonthlyScoreForMember, renderTeamList, renderFiltersAndStats, renderProjectsList, renderHeaderForMember, clearForm, add member/project handlers, conversion table, overview rendering
-
+    // Assessment averages
     function computeAssessmentAverage(member){
       const projects = member?.projects || [];
       if (projects.length === 0) return 0;
@@ -495,6 +463,7 @@
       if (!count) return 0; return sum/count;
     }
 
+    // Conversion monthly score (per member)
     function getMonthlyTarget(metric, dateStr){
       if (!hasTarget(metric)) return 0;
       const cfg = state.conversion.targets[metric]; if (!cfg) return 0;
@@ -548,7 +517,7 @@
       return "percent-bad";
     }
 
-    // Render team list (original baseline behavior)
+    // Render team list
     function renderTeamList(){
       teamListEl.innerHTML = "";
       if (state.members.length === 0) {
@@ -565,6 +534,7 @@
       const allMain = document.createElement("div"); allMain.className="team-main";
       const allName = document.createElement("div"); allName.className="team-name"; allName.textContent="All team";
       const allMeta = document.createElement("div"); allMeta.className="team-meta";
+      // show only member count for overview/conversion per your request
       allMeta.textContent = state.members.length + " member(s)";
       allMain.appendChild(allName); allMain.appendChild(allMeta);
       const allPill = document.createElement("div"); allPill.className="team-score-pill";
@@ -620,6 +590,7 @@
       });
     }
 
+    // Filters + stats
     function renderFiltersAndStats(member){
       const projects = member?.projects || [];
       const regions = new Set(); const developers = new Set();
@@ -644,8 +615,10 @@
 
     function tagFromPercent(percent){ if (percent < 60) return { text: "Needs Training", className: "tag-red" }; if (percent < 80) return { text: "Average", className: "tag-yellow" }; return { text: "Confident", className: "tag-green" }; }
 
+    // Edit project load
     function startEditProject(project){ editingProjectId = project.id; formTitleEl.textContent = `Editing: ${project.name || "project"}`; projectNameEl.value = project.name || ""; projectDeveloperEl.value = project.developer || ""; projectRegionEl.value = project.region || ""; projectNotesEl.value = project.notes || ""; const s = project.scores || {}; document.getElementById("scoreDevelopment").value = typeof s.development==="number"?s.development:""; document.getElementById("scoreLocation").value = typeof s.location==="number"?s.location:""; document.getElementById("scoreMasterplan").value = typeof s.masterplan==="number"?s.masterplan:""; document.getElementById("scoreFacilities").value = typeof s.facilities==="number"?s.facilities:""; document.getElementById("scoreType").value = typeof s.type==="number"?s.type:""; document.getElementById("scorePrice").value = typeof s.price==="number"?s.price:""; document.getElementById("scorePayment").value = typeof s.payment==="number"?s.payment:""; document.getElementById("scoreDelivery").value = typeof s.delivery==="number"?s.delivery:""; document.getElementById("scoreFinishing").value = typeof s.finishing==="number"?s.finishing:""; document.getElementById("scoreMaintenance").value = typeof s.maintenance==="number"?s.maintenance:""; document.getElementById("scoreOrientation").value = typeof s.orientation==="number"?s.orientation:""; }
 
+    // Render projects list
     function renderProjectsList(member){
       projectsListEl.innerHTML = "";
       if (!member || !member.projects || member.projects.length === 0) {
@@ -772,7 +745,21 @@
     regionFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
     developerFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
 
-    // Export / backup / restore (baseline printing preserved but replaced exportBtn to use modal)
+    // Export / backup / restore
+    exportBtn.addEventListener("click", ()=>{
+      const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
+      if (state.activeTab === "assessment") {
+        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
+        projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+        const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
+        const limited = lowProjects.slice(0,5);
+        printProjectsListEl.innerHTML = "";
+        if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
+        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
+      }
+      window.print();
+    });
+
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download = `br_assessment_backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -924,15 +911,34 @@
       const val = convDateEl.value || todayISO(); state.conversion.currentDate = val; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member);
     });
 
-    // Overview rendering (baseline)
-    function monthToInputValue(dateStr){ if (!dateStr) return ""; const parts = dateStr.split("-"); return `${parts[0]}-${parts[1]}`; }
+    // ===== Overview tab logic =====
+    // overview month input: default to current month
+    function monthToInputValue(dateStr){
+      // dateStr "YYYY-MM-DD" or "YYYY-MM"
+      if (!dateStr) return "";
+      const parts = dateStr.split("-"); return `${parts[0]}-${parts[1]}`;
+    }
+
     overviewMonthInput.addEventListener("change", ()=> { renderMembersOverview(); });
-    function previousMonthPrefixFromMonthValue(monthValue){ if (!monthValue) return null; const [y,m] = monthValue.split("-").map(n=>parseInt(n,10)); const d = new Date(y, m-1, 1); d.setMonth(d.getMonth() - 1); const py = d.getFullYear(); const pm = String(d.getMonth()+1).padStart(2,"0"); return `${py}-${pm}`; }
+
+    function previousMonthPrefixFromMonthValue(monthValue){
+      // monthValue "YYYY-MM"
+      if (!monthValue) return null;
+      const [y,m] = monthValue.split("-").map(n=>parseInt(n,10));
+      const d = new Date(y, m-1, 1);
+      d.setMonth(d.getMonth() - 1);
+      const py = d.getFullYear(); const pm = String(d.getMonth()+1).padStart(2,"0");
+      return `${py}-${pm}`;
+    }
+
     function computeMemberCombined(member, monthValue){
-      const assessment = computeAssessmentAverage(member);
+      // 50/50 weighting: assessment average (0-100) and conversion monthly % (0-100)
+      // monthValue is "YYYY-MM" or null -> use state.conversion.currentDate month
+      const assessment = computeAssessmentAverage(member); // 0-100
       let monthStr;
       if (monthValue) monthStr = monthValue + "-01"; else monthStr = state.conversion.currentDate || todayISO();
       const conv = computeConversionMonthlyScoreForMember(member.id, monthStr);
+      // if assessment or conv are NaN ensure numbers
       const a = isFinite(assessment) ? assessment : 0;
       const c = isFinite(conv) ? conv : 0;
       const combined = (a * 0.5) + (c * 0.5);
@@ -941,8 +947,10 @@
 
     function renderMembersOverview(){
       overviewGrid.innerHTML = "";
+      // set overview month label
       const monthValue = overviewMonthInput.value || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
       overviewDateLabel.textContent = monthValue;
+      // for each member render card
       state.members.forEach(member=>{
         const { assessment, conversion, combined } = computeMemberCombined(member, monthValue);
         const card = document.createElement("div"); card.className = "member-card";
@@ -952,6 +960,7 @@
         const meta = document.createElement("div"); meta.className="member-meta"; meta.textContent = `${(member.projects?.length||0)} project(s)`;
         left.appendChild(name); left.appendChild(meta);
 
+        // pill color same logic as team list for combined
         const pill = document.createElement("div"); pill.className = "team-score-pill";
         pill.textContent = `${combined.toFixed(0)}%`;
         if (combined < 60) pill.classList.add("pill-red"); else if (combined < 80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
@@ -970,15 +979,17 @@
         const totalRow = document.createElement("div"); totalRow.className="total-performance";
         const leftTotal = document.createElement("div"); leftTotal.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">Total performance (50/50)</div><div style="font-weight:700;font-size:16px">${combined.toFixed(0)}%</div>`;
         const trendEl = document.createElement("div"); trendEl.className="trend";
+        // compute previous month combined and show arrow + diff
         const prevMonthPrefix = previousMonthPrefixFromMonthValue(monthValue);
         let prevCombined = 0;
         if (prevMonthPrefix) {
+          // construct a dateStr like "YYYY-MM-01" to pass into conversion calc
           const prevDateStr = prevMonthPrefix + "-01";
-          const prevAssessment = computeAssessmentAverage(member);
+          const prevAssessment = computeAssessmentAverage(member); // assessment is not time-based here, so same for prev - acceptable unless user wanted different
           const prevConv = computeConversionMonthlyScoreForMember(member.id, prevDateStr);
           prevCombined = (prevAssessment*0.5) + (prevConv*0.5);
         } else {
-          prevCombined = combined;
+          prevCombined = combined; // flat if no prev
         }
         const diff = combined - prevCombined;
         if (diff > 0.5) { trendEl.classList.add("up"); trendEl.innerHTML = `<span>▲</span><span>+${diff.toFixed(1)}%</span>`; }
@@ -992,6 +1003,7 @@
       });
     }
 
+    // Render all conversion targets, table, team, projects, overview
     function renderAll(){
       renderTabs();
       renderTeamList();
@@ -1004,246 +1016,15 @@
       renderConversionTargets();
       renderConversionTable();
 
+      // overview defaults
+      // set overview month input to currently selected conversion month if empty
       if (!overviewMonthInput.value) overviewMonthInput.value = (state.conversion.currentDate || todayISO()).slice(0,7);
       renderMembersOverview();
     }
 
-    // init baseline load
+    // init load
     loadState();
     renderAll();
-
-    // ----------------- Export modal logic (non-destructive addition) -----------------
-    const exportModal = document.getElementById("exportModal");
-    const modalActiveTab = document.getElementById("modalActiveTab");
-    const templatesContainer = document.getElementById("templatesContainer");
-    const modalCancel = document.getElementById("modalCancel");
-    const modalGenerate = document.getElementById("modalGenerate");
-    const pdfOpenMode = document.getElementById("pdfOpenMode");
-
-    function openExportModal(){
-      modalActiveTab.textContent = state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
-      templatesContainer.innerHTML = "";
-
-      if(state.activeTab === "overview"){
-        const tpl = document.createElement("div");
-        tpl.innerHTML = `
-          <div style="margin-bottom:8px"><label>Template</label>
-            <select id="tplSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
-              <option value="single_card">Single member card — current selection</option>
-              <option value="all_cards">All members (grid)</option>
-              <option value="overview_trends">Overview + trends (current selection)</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px">
-            <div style="flex:1">
-              <label>Scope</label>
-              <select id="scopeSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
-                <option value="selected">Selected member</option>
-                <option value="all">All members</option>
-              </select>
-            </div>
-          </div>
-        `;
-        templatesContainer.appendChild(tpl);
-        const scopeSelect = tpl.querySelector("#scopeSelect");
-        if(state.selectedMemberId===ALL_TEAM_ID) scopeSelect.value="all";
-      } else if(state.activeTab === "assessment"){
-        const tpl = document.createElement("div");
-        tpl.innerHTML = `
-          <div style="margin-bottom:8px"><label>Template</label>
-            <select id="tplSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
-              <option value="member_projects">Selected member — Projects summary (all)</option>
-              <option value="filtered_low">Filtered — Low projects (≤60%)</option>
-            </select>
-          </div>
-          <div style="margin-bottom:6px"><label>Include</label>
-            <div style="display:flex;gap:8px;margin-top:6px">
-              <label style="font-size:13px"><input id="includeNotes" type="checkbox" /> Include notes</label>
-              <label style="font-size:13px"><input id="includeDetails" type="checkbox" checked /> Include scores</label>
-            </div>
-          </div>
-        `;
-        templatesContainer.appendChild(tpl);
-      } else if(state.activeTab === "conversion"){
-        const tpl = document.createElement("div");
-        tpl.innerHTML = `
-          <div style="margin-bottom:8px"><label>Template</label>
-            <select id="tplSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
-              <option value="member_conversion">Selected member — Conversion card</option>
-              <option value="team_summary">Team conversion summary</option>
-            </select>
-          </div>
-          <div style="margin-bottom:6px"><label>Date for conversion</label>
-            <input type="date" id="convDateForPdf" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)" />
-          </div>
-        `;
-        templatesContainer.appendChild(tpl);
-        tpl.querySelector("#convDateForPdf").value = state.conversion.currentDate || todayISO();
-      }
-
-      exportModal.style.display = "flex";
-      exportModal.classList.remove("hidden");
-    }
-
-    function closeExportModal(){ exportModal.style.display = "none"; exportModal.classList.add("hidden"); }
-
-    function buildPrintableElementForChoice(choice){
-      const el = document.createElement("div");
-      el.style.background = "#fff";
-      el.style.color = "#000";
-      el.style.padding = "18px";
-      el.style.fontFamily = "Arial, Helvetica, sans-serif";
-      el.style.maxWidth = "900px";
-      el.style.margin = "0 auto";
-      const header = document.createElement("div");
-      header.innerHTML = `<h2 style="margin-bottom:6px">Bold Routes — Export</h2><div style="color:#666;margin-bottom:12px">Generated: ${new Date().toLocaleString()}</div>`;
-      el.appendChild(header);
-
-      if(choice.type === "overview_single"){
-        const m = state.members.find(x=>x.id===state.selectedMemberId) || null;
-        if(!m){ el.appendChild(document.createTextNode("No member selected.")); return el; }
-        const avg = Math.round(((m.projects||[]).reduce((s,p)=>s+(p.overallPercent||0),0) / Math.max(1,(m.projects||[]).length)) || 0);
-        const card = document.createElement("div");
-        card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:18px;font-weight:700">${m.name}</div>
-          <div style="font-size:16px;padding:6px 10px;border-radius:10px;background:#f0f0f0">${avg}%</div>
-        </div>
-        <div style="margin-top:10px;color:#333">${(m.projects||[]).map(p=>`<div style="padding:8px;border-top:1px solid #eee"><strong>${p.name}</strong> — ${p.overallPercent?.toFixed(1)||0}%<div style="font-size:12px;color:#666">${p.developer||""} • ${p.region||""}</div></div>`).join("")}</div>`;
-        el.appendChild(card);
-      } else if(choice.type === "overview_all"){
-        const grid = document.createElement("div");
-        grid.style.display = "grid"; grid.style.gridTemplateColumns = "repeat(2,1fr)"; grid.style.gap = "12px";
-        state.members.forEach(m=>{
-          const avg = Math.round(((m.projects||[]).reduce((s,p)=>s+(p.overallPercent||0),0) / Math.max(1,(m.projects||[]).length)) || 0);
-          const c = document.createElement("div"); c.style.border="1px solid #eee"; c.style.padding="10px"; c.innerHTML = `<div style="font-weight:700">${m.name}</div><div style="color:#666">${(m.projects||[]).length} project(s)</div><div style="margin-top:8px;font-size:18px">${avg}%</div>`;
-          grid.appendChild(c);
-        });
-        el.appendChild(grid);
-      } else if(choice.type === "overview_trends"){
-        const m = state.members.find(x=>x.id===state.selectedMemberId) || null;
-        if(!m){ el.appendChild(document.createTextNode("No member selected.")); return el; }
-        el.appendChild(document.createElement("div")).textContent = `${m.name} — Trend (mock)`;
-        const list = document.createElement("div"); list.style.marginTop="10px";
-        const pts = [Math.round(Math.random()*20+60), Math.round(Math.random()*20+60), Math.round(Math.random()*20+60)];
-        pts.forEach((v,i)=>{ const r = document.createElement("div"); r.textContent = `Month ${i+1}: ${v}%`; list.appendChild(r); });
-        el.appendChild(list);
-      } else if(choice.type === "assessment_member_projects"){
-        const m = state.members.find(x=>x.id===state.selectedMemberId);
-        if(!m){ el.appendChild(document.createTextNode("Select a member first.")); return el; }
-        el.appendChild(document.createElement("h3")).textContent = `${m.name} — Projects`;
-        (m.projects||[]).forEach(p=>{
-          const div = document.createElement("div"); div.style.borderTop="1px solid #eee"; div.style.padding="8px 0";
-          div.innerHTML = `<strong>${p.name}</strong> — ${p.overallPercent?.toFixed(1)||0}%<div style="font-size:12px;color:#666">${p.developer||""} • ${p.region||""}</div>`;
-          el.appendChild(div);
-        });
-      } else if(choice.type === "assessment_filtered_low"){
-        el.appendChild(document.createElement("h3")).textContent = `Low projects (≤60%)`;
-        const low = state.members.flatMap(m=> (m.projects||[]).map(p=>({owner:m.name,...p}))).filter(p=> (p.overallPercent||0) <= 60);
-        if(low.length===0){ el.appendChild(document.createTextNode("No low projects.")); }
-        low.forEach(p=>{
-          const div = document.createElement("div"); div.style.borderTop="1px solid #eee"; div.style.padding="8px 0";
-          div.innerHTML = `<strong>${p.name}</strong> — ${p.overallPercent?.toFixed(1)||0}% <div style="font-size:12px;color:#666">${p.owner} • ${p.developer||""} • ${p.region||""}</div>`;
-          el.appendChild(div);
-        });
-      } else if(choice.type === "conversion_member"){
-        const m = state.members.find(x=>x.id===state.selectedMemberId);
-        el.appendChild(document.createElement("h3")).textContent = `Conversion — ${m ? m.name : "Selected member"}`;
-        const mock = { deals: Math.floor(Math.random()*5), meetings: Math.floor(Math.random()*10), calls: Math.floor(Math.random()*50) };
-        el.appendChild(document.createElement("div")).innerHTML = `Deals: ${mock.deals}<br/>Meetings: ${mock.meetings}<br/>Calls: ${mock.calls}`;
-      } else if(choice.type === "conversion_team"){
-        el.appendChild(document.createElement("h3")).textContent = `Team conversion summary`;
-        state.members.forEach(m=>{
-          const div = document.createElement("div"); div.style.borderTop="1px solid #eee"; div.style.padding="8px 0";
-          div.innerHTML = `<strong>${m.name}</strong> — Score: ${Math.round(Math.random()*50+50)}%`;
-          el.appendChild(div);
-        });
-      } else {
-        el.appendChild(document.createTextNode("Unknown template"));
-      }
-
-      return el;
-    }
-
-    async function generatePdfFromModal(){
-      const tplSelect = templatesContainer.querySelector("#tplSelect");
-      const scopeSelect = templatesContainer.querySelector("#scopeSelect");
-      const convDateInput = templatesContainer.querySelector("#convDateForPdf");
-      const includeNotes = templatesContainer.querySelector("#includeNotes");
-      const includeDetails = templatesContainer.querySelector("#includeDetails");
-
-      let choice = { type: null };
-      if(state.activeTab === "overview"){
-        const tpl = tplSelect ? tplSelect.value : "single_card";
-        if(tpl === "single_card") choice.type = "overview_single";
-        else if(tpl === "all_cards") choice.type = "overview_all";
-        else if(tpl === "overview_trends") choice.type = "overview_trends";
-      } else if(state.activeTab === "assessment"){
-        const tpl = tplSelect ? tplSelect.value : "member_projects";
-        if(tpl === "member_projects") choice.type = "assessment_member_projects";
-        else choice.type = "assessment_filtered_low";
-        choice.includeNotes = includeNotes ? includeNotes.checked : false;
-        choice.includeDetails = includeDetails ? includeDetails.checked : true;
-      } else if(state.activeTab === "conversion"){
-        const tpl = tplSelect ? tplSelect.value : "member_conversion";
-        if(tpl === "member_conversion") choice.type = "conversion_member";
-        else choice.type = "conversion_team";
-        choice.convDate = convDateInput ? convDateInput.value : (state.conversion.currentDate || todayISO());
-      }
-
-      const printable = buildPrintableElementForChoice(choice);
-
-      const opt = {
-        margin: [10,10,10,10],
-        filename: `bold_routes_export_${(new Date()).toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      try {
-        const worker = html2pdf().from(printable).set(opt).toPdf();
-        const blob = await worker.output('blob');
-        const mode = pdfOpenMode.value;
-        if(mode === 'download'){
-          const a = document.createElement('a');
-          const url = URL.createObjectURL(blob);
-          a.href = url;
-          a.download = opt.filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        } else {
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          setTimeout(()=> URL.revokeObjectURL(url), 1000 * 60);
-        }
-      } catch(err){
-        alert("Failed to generate PDF: " + (err.message || err));
-        console.error(err);
-      } finally {
-        closeExportModal();
-      }
-    }
-
-    // wire modal events
-    exportBtn.addEventListener("click", ()=> openExportModal());
-    modalCancel.addEventListener("click", ()=> closeExportModal());
-    modalGenerate.addEventListener("click", ()=> generatePdfFromModal());
-    window.addEventListener("keydown", e=> { if(e.key==="Escape") closeExportModal(); });
-
-    // Keep baseline render state in sync (already called above) - ensure demo data exists if empty (non-destructive)
-    (function ensureDemoData(){
-      if(state.members.length===0){
-        const a = { id: uid(), name: "Ali", projects: [{ id: uid(), name: "HydePark New Cairo", overallPercent: 72, developer:"HydePark", region:"New Cairo", scores:{development:7,location:7.5,masterplan:7,facilities:7,type:7,price:6.5,payment:7,delivery:8,finishing:7,maintenance:6,orientation:6.5} }]};
-        const b = { id: uid(), name: "Mona", projects: [{ id: uid(), name: "SODIC Lakes", overallPercent: 58, developer:"SODIC", region:"New Zayed", scores:{development:5.5,location:6,masterplan:5.8,facilities:5,type:5.5,price:5,payment:6,delivery:5.5,finishing:6,maintenance:5,orientation:5}] } };
-        state.members.push(a,b);
-        state.selectedMemberId = a.id;
-        saveState();
-        renderAll();
-      }
-    })();
-
   </script>
 </body>
 </html>
