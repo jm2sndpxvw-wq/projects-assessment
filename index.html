@@ -1,230 +1,410 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Projects Assessment – Real Estate Team (Export PDF)</title>
-
-  <!-- html2pdf (includes jsPDF + html2canvas) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
+  <title>Projects Assessment – Real Estate Team</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root {
       --bg: #0b0d10;
       --bg-alt: #151921;
       --bg-alt-soft: #1b2029;
       --primary: #4f8cff;
+      --primary-soft: #223455;
       --text: #f5f7fb;
       --text-muted: #9aa4c0;
       --danger: #ff4b5c;
+      --warning: #ffbf47;
       --success: #28c76f;
       --border: #252c3a;
+      --card-radius: 10px;
+      --shadow-soft: 0 8px 20px rgba(0,0,0,0.45);
     }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto; background:radial-gradient(circle at top,#1a2134 0,#05060a 55%); color:var(--text); margin:0; padding:16px; display:flex; justify-content:center;}
-    .app{width:100%; max-width:1280px; background:linear-gradient(135deg,#090b10 0,#111623 45%); border-radius:12px; display:grid; grid-template-columns:260px 1fr; gap:12px; padding:12px; border:1px solid rgba(255,255,255,0.04);}
-    .sidebar{padding:12px; background:radial-gradient(circle at top left,#20263a 0,#070910 55%); border-right:1px solid var(--border); display:flex; flex-direction:column; gap:12px;}
-    .logo{width:34px;height:34px;border-radius:8px;background:radial-gradient(circle at 30% 0,#7c8cff,#3a4bff,#141633);display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-    .team-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding-right:6px}
-    .team-item{background:rgba(16,21,34,0.9);padding:8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid transparent;cursor:pointer}
-    .team-item.active{border-color:var(--primary);box-shadow:0 0 0 1px rgba(79,140,255,0.12)}
-    .main{padding:8px 12px;display:flex;flex-direction:column;gap:10px}
-    .tabs-row{display:flex;gap:8px}
-    .tab-btn{padding:6px 12px;border-radius:999px;background:rgba(8,10,16,0.9);border:1px solid var(--border);cursor:pointer;color:var(--text-muted)}
-    .tab-btn.active{background:var(--primary);color:#fff;border-color:rgba(79,140,255,0.9)}
-    .content-grid{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:12px}
-    .panel{background:var(--bg-alt);padding:10px;border-radius:10px;border:1px solid var(--border)}
-    .cards-list{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow:auto;padding-right:6px}
-    .card{background:var(--bg-alt-soft);padding:8px;border-radius:8px;border:1px solid var(--border)}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .btn{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.08);background:rgba(8,10,16,0.9);color:var(--text);cursor:pointer}
-    .btn.primary{background:var(--primary);color:#fff;border-color:rgba(79,140,255,0.9)}
-    .hint{color:var(--text-muted);font-size:13px}
-    textarea{width:100%;min-height:64px;background:#0d1017;color:var(--text);border-radius:8px;padding:8px;border:1px solid var(--border)}
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text","Segoe UI", sans-serif; }
+    body { background: radial-gradient(circle at top, #1a2134 0, #05060a 55%); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 16px; }
+    .app { width: 100%; max-width: 1280px; background: linear-gradient(135deg, #090b10 0, #111623 45%, #090b10 100%); border-radius: 18px; box-shadow: var(--shadow-soft); display: grid; grid-template-columns: 260px 1fr; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
 
-    /* Modal */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9999}
-    .modal{background:#0f1720;padding:16px;border-radius:10px;width:92%;max-width:720px;border:1px solid rgba(255,255,255,0.04)}
-    .modal h3{margin:0 0 8px 0}
-    .modal .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-    .template-card{background:#0b1220;padding:8px;border-radius:8px;border:1px solid var(--border);flex:1;min-width:160px}
-    .template-card label{display:flex;gap:8px;align-items:center;cursor:pointer}
-    .small{font-size:13px;color:var(--text-muted)}
-    .switch-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px}
+    /* Sidebar */
+    .sidebar { background: radial-gradient(circle at top left, #20263a 0, #070910 55%); border-right: 1px solid var(--border); padding: 18px 16px; display: flex; flex-direction: column; gap: 16px; }
+    .app-title { font-size: 18px; font-weight: 700; display:flex; align-items:center; gap:8px; }
+    .app-title span.logo { width:26px; height:26px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background: radial-gradient(circle at 30% 0, #7c8cff, #3a4bff, #141633); box-shadow:0 0 18px rgba(79,140,255,0.55); font-size:14px; }
+    .app-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
 
-    @media (max-width:900px){ .app{grid-template-columns:1fr} .content-grid{grid-template-columns:1fr} .sidebar{border-bottom:1px solid var(--border)} }
+    .team-header { display:flex; align-items:center; justify-content:space-between; margin-top:6px; margin-bottom:4px; }
+    .team-header span { font-size:12px; color:var(--text-muted); letter-spacing:0.03em; text-transform:uppercase; }
+
+    .team-list { display:flex; flex-direction:column; gap:6px; margin-bottom:6px; max-height:260px; overflow-y:auto; padding-right:4px; }
+    .team-item { border-radius:10px; padding:8px 10px; background:rgba(16,21,34,0.9); border:1px solid transparent; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:0.18s ease; position:relative; }
+    .team-item.active { border-color:var(--primary); background: radial-gradient(circle at 0 0, #27345c 0, #131723 48%); box-shadow:0 0 0 1px rgba(79,140,255,0.4); }
+    .team-item:hover { background:#171c29; }
+    .team-main { display:flex; flex-direction:column; gap:3px; }
+    .team-name { font-size:13px; font-weight:600; }
+    .team-meta { font-size:11px; color:var(--text-muted); }
+    .team-score-pill { padding:3px 8px; border-radius:999px; font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid rgba(255,255,255,0.08); }
+    .pill-red { color:var(--danger); border-color:rgba(255,75,92,0.65); }
+    .pill-yellow { color:var(--warning); border-color:rgba(255,191,71,0.7); }
+    .pill-green { color:var(--success); border-color:rgba(40,199,111,0.7); }
+
+    .add-team { display:flex; gap:6px; margin-top:4px; }
+    .add-team input { flex:1; padding:6px 8px; border-radius:999px; border:1px solid var(--border); background:rgba(8,10,16,0.9); color:var(--text); font-size:12px; outline:none; }
+    .add-team button { border-radius:999px; padding:0 10px; font-size:11px; border:none; background:var(--primary); color:#fff; cursor:pointer; transition:0.18s ease; }
+    .add-team button:hover { background:#3a70ff; }
+    .hint-mini { font-size:10px; color:var(--text-muted); margin-top:2px; }
+    .sidebar-footer { margin-top:auto; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.07); font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; }
+    .sidebar-footer strong { color:var(--text); font-weight:600; }
+
+    /* Main */
+    .main { padding:18px 18px 18px 16px; display:flex; flex-direction:column; gap:10px; }
+    .main-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .main-header-left { display:flex; flex-direction:column; gap:4px; }
+    .main-title { font-size:16px; font-weight:600; }
+    .main-sub { font-size:11px; color:var(--text-muted); }
+
+    .main-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .btn { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); background:rgba(8,10,16,0.9); color:var(--text); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:0.18s ease; }
+    .btn-primary { background:var(--primary); border-color:rgba(79,140,255,0.9); color:#fff; }
+    .btn-primary:hover { background:#3a70ff; } .btn:hover { background:#171c29; }
+    .btn input[type="file"]{ display:none; }
+
+    .tabs-row { display:flex; gap:6px; font-size:11px; }
+    .tab-btn { padding:5px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(8,10,16,0.9); color:var(--text-muted); cursor:pointer; font-size:11px; }
+    .tab-btn.active { background:var(--primary); border-color:rgba(79,140,255,0.9); color:#fff; }
+
+    .hidden { display:none !important; }
+
+    .filters-row { display:flex; gap:8px; align-items:center; font-size:11px; color:var(--text-muted); margin-top:6px; }
+    .filters-row select { background:var(--bg-alt); color:var(--text); border-radius:999px; border:1px solid var(--border); padding:4px 8px; font-size:11px; outline:none; }
+    .chip { padding:2px 8px; border-radius:999px; border:1px solid var(--border); font-size:10px; }
+    .chip-soft { background:rgba(255,255,255,0.02); border-style:dashed; }
+
+    .content-grid { display:grid; grid-template-columns:minmax(0,280px) minmax(0,1fr); gap:12px; margin-top:6px; height:calc(100% - 60px); min-height:0; }
+
+    .panel { background:var(--bg-alt); border-radius:14px; border:1px solid var(--border); padding:10px 10px 12px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+    .panel-header { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+    .panel-title { font-size:12px; font-weight:600; }
+    .panel-sub { font-size:10px; color:var(--text-muted); }
+    .form-grid { display:grid; grid-template-columns:1fr; gap:6px; margin-top:2px; max-height:100%; overflow-y:auto; padding-right:2px; }
+    .field { display:flex; flex-direction:column; gap:2px; }
+    .field label { font-size:10px; color:var(--text-muted); }
+    .field input, .field textarea, .field select { background:#0d1017; border-radius:8px; border:1px solid var(--border); padding:5px 7px; font-size:11px; color:var(--text); outline:none; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color:var(--primary); }
+    .field textarea { min-height:40px; resize:vertical; }
+
+    .scores-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:4px 8px; }
+    .score-input { width:100%; }
+    .score-input::-webkit-outer-spin-button, .score-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+
+    .projects-panel { position:relative; min-height:0; display:flex; flex-direction:column; }
+    .cards-list { margin-top:4px; overflow-y:auto; padding-right:2px; display:flex; flex-direction:column; gap:6px; }
+
+    .card { background:var(--bg-alt-soft); border-radius:12px; border:1px solid var(--border); padding:8px 9px; display:flex; flex-direction:column; gap:6px; cursor:pointer; transition:0.15s ease; }
+    .card:hover { border-color:rgba(255,255,255,0.12); background:#191f2b; }
+    .card.reassessed { box-shadow:0 0 0 1px rgba(40,199,111,0.4); }
+    .card-header { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+    .card-title-block { display:flex; flex-direction:column; gap:2px; }
+    .card-title { font-size:12px; font-weight:600; }
+    .card-subtitle { font-size:10px; color:var(--text-muted); }
+    .card-tag { padding:3px 8px; border-radius:999px; font-size:10px; border:1px solid var(--border); }
+    .tag-red { color:var(--danger); border-color:rgba(255,75,92,0.7); }
+    .tag-yellow { color:var(--warning); border-color:rgba(255,191,71,0.7); }
+    .tag-green { color:var(--success); border-color:rgba(40,199,111,0.7); }
+    .card-footer { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:10px; color:var(--text-muted); flex-wrap:wrap; }
+    .card-footer span.bold { font-weight:600; color:var(--text); font-size:11px; }
+    .details { margin-top:4px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:4px; display:none; font-size:10px; color:var(--text-muted); }
+    .details-row { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:3px 10px; margin-top:2px; }
+    .details-row span { display:flex; justify-content:space-between; }
+    .details-row span strong { font-weight:500; color:var(--text); }
+    .card.open .details { display:block; }
+    .training-panel { font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+    .training-list { font-size:10px; line-height:1.4; max-height:90px; overflow-y:auto; padding-right:2px; }
+    .empty-state { font-size:11px; color:var(--text-muted); padding:12px 4px; text-align:center; }
+    .print-only { display:none; }
+
+    /* Conversion */
+    .conversion-layout { display:grid; grid-template-columns:minmax(0,260px) minmax(0,1fr); gap:12px; margin-top:6px; }
+    .conversion-table { width:100%; border-collapse:collapse; font-size:10px; }
+    .conversion-table th, .conversion-table td { border:1px solid var(--border); padding:4px 5px; text-align:center; }
+    .conversion-table th { font-size:10px; background:#151a25; }
+    .conversion-table td input { width:100%; border-radius:6px; border:1px solid var(--border); background:#05070b; color:var(--text); font-size:10px; padding:3px 4px; text-align:center; }
+    .conversion-table .sales-name-cell { text-align:left; font-weight:600; font-size:11px; }
+    .percent-chip { font-size:9px; margin-top:2px; display:inline-block; }
+    .percent-good { color:var(--success); } .percent-mid { color:var(--warning); } .percent-bad { color:var(--danger); }
+    .conversion-summary { font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.5; }
+    .conversion-summary-line { margin-bottom:2px; }
+    .sales-total-row td { background:#101521; font-weight:600; }
+
+    /* Members overview styles */
+    .overview-panel { padding:10px; }
+    .overview-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:10px; margin-top:8px; }
+    .member-card { background:var(--bg-alt-soft); border:1px solid var(--border); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+    .member-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .member-name { font-weight:700; font-size:14px; }
+    .member-meta { font-size:11px; color:var(--text-muted); }
+    .scores-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .score-block { flex:1; min-width:96px; padding:8px; border-radius:8px; background:rgba(8,10,16,0.6); border:1px solid rgba(255,255,255,0.02); text-align:center; }
+    .score-label { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
+    .score-value { font-weight:700; font-size:16px; }
+    .total-performance { display:flex; align-items:center; gap:8px; justify-content:space-between; padding:8px; border-radius:8px; background:linear-gradient(90deg, rgba(10,12,18,0.6), rgba(15,18,28,0.6)); border:1px solid rgba(255,255,255,0.03); }
+    .trend { font-size:13px; display:flex; align-items:center; gap:6px; color:var(--text-muted); }
+    .trend.up { color:var(--success); } .trend.down { color:var(--danger); } .trend.flat { color:var(--text-muted); }
+
+    /* modal popup styles (non-destructive addition) */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .modal{width:92%;max-width:640px;background:#0d1017;border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 8px 40px rgba(0,0,0,0.6)}
+    .modal h3{font-size:16px;margin-bottom:8px}
+    .modal .row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+    .modal label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px}
+    .modal select, .modal input[type="checkbox"], .modal input[type="date"]{font-size:13px}
+    .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+    .small-note{font-size:12px;color:var(--text-muted);margin-top:6px}
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:#303545; border-radius:999px; }
+
+    @media (max-width:900px) {
+      .app { grid-template-columns:1fr; }
+      .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
+      .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
+      .modal{max-width:92%}
+    }
+
+    @media print {
+      body { background:#05060a !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    }
   </style>
+
+  <!-- html2pdf bundle (used by export modal) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="app">
+    <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div style="display:flex;gap:8px;align-items:center">
-        <div class="logo">BR</div>
-        <div>
-          <div style="font-weight:700">Bold Routes – Projects</div>
-          <div style="font-size:12px;color:var(--text-muted)">Export PDF — Test build</div>
+      <div>
+        <div class="app-title">
+          <span class="logo">BR</span>
+          <div>
+            Bold Routes – Projects Assessment
+            <div class="app-sub">Dark mode • Compact • Team based</div>
+          </div>
         </div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong style="font-size:14px">Team members</strong>
-        <button class="btn" id="populateBtn" title="Fill sample data">Populate sample data</button>
+      <div class="team-header">
+        <span>Team members</span>
       </div>
       <div class="team-list" id="teamList"></div>
 
-      <div style="display:flex;gap:8px">
-        <input id="newMemberInput" placeholder="Add member..." style="flex:1;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)" />
-        <button class="btn" id="addMemberBtn">Add</button>
+      <div class="add-team">
+        <input id="newMemberInput" placeholder="Add new member..." />
+        <button id="addMemberBtn" type="button">Add</button>
       </div>
+      <div class="hint-mini">Long press on member name to delete 🗑️</div>
 
-      <div style="margin-top:auto;font-size:13px;color:var(--text-muted)">
-        <div><strong>Color codes:</strong></div>
-        <div>🟥 &lt; 60% – Needs training</div>
-        <div>🟨 60–79% – Average</div>
-        <div>🟩 ≥ 80% – Confident</div>
+      <div class="sidebar-footer">
+        <div>
+          <strong>Color codes (Project):</strong><br />
+          🟥 &lt; 60% – Needs training<br />
+          🟨 60–79% – Average<br />
+          🟩 ≥ 80% – Confident
+        </div>
       </div>
     </aside>
 
+    <!-- MAIN -->
     <main class="main">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div>
-          <div id="currentMemberTitle" style="font-weight:700">Select team member</div>
-          <div id="currentMemberSub" class="small">Choose a team member from the left</div>
+      <div class="main-header">
+        <div class="main-header-left">
+          <div class="main-title" id="currentMemberTitle">Select team member</div>
+          <div class="main-sub" id="currentMemberSub">Choose a team member from the left to start assessment.</div>
         </div>
-        <div class="controls">
-          <button class="btn" id="exportBtn">Export PDF</button>
-          <button class="btn" id="backupBtn">Backup</button>
-          <button class="btn" id="restoreAutoBtn">Restore auto</button>
+        <div class="main-actions">
+          <button class="btn" id="exportBtn" type="button">Export PDF (Current)</button>
+          <button class="btn" id="backupBtn" type="button">Backup</button>
+          <label class="btn"> Restore file <input type="file" id="restoreFileInput" accept="application/json" /></label>
+          <button class="btn" id="restoreAutoBtn" type="button">Restore auto</button>
         </div>
       </div>
 
+      <!-- Tabs -->
       <div class="tabs-row">
         <button class="tab-btn active" data-tab="assessment">Assessment</button>
         <button class="tab-btn" data-tab="conversion">Conversion</button>
         <button class="tab-btn" data-tab="overview">Members overview</button>
       </div>
 
-      <!-- ASSESSMENT / CONVERSION / OVERVIEW CONTENT -->
-      <div class="content-grid">
-        <!-- LEFT: form -->
-        <section class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><strong id="formTitle">New Project Assessment</strong><div class="small">Rate 0–10</div></div>
-            <div class="small hint">Long press member to delete</div>
-          </div>
+      <!-- ASSESSMENT TAB -->
+      <div id="assessmentTab">
+        <div class="filters-row">
+          <span>Region:</span>
+          <select id="regionFilter"><option value="all">All regions</option></select>
+          <span>Developer:</span>
+          <select id="developerFilter"><option value="all">All developers</option></select>
+          <span class="chip chip-soft" id="regionStats">No projects yet</span>
+        </div>
 
-          <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
-            <input id="projectName" placeholder="Project name" style="padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)" />
-            <input id="projectDeveloper" placeholder="Developer" style="padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)" />
-            <input id="projectRegion" placeholder="Region / Area" style="padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)" />
-
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-              <input id="scoreDevelopment" type="number" placeholder="Development (0–10)" min="0" max="10" step="0.5" />
-              <input id="scoreLocation" type="number" placeholder="Location (0–10)" min="0" max="10" step="0.5" />
-              <input id="scoreMasterplan" type="number" placeholder="Masterplan" min="0" max="10" step="0.5" />
-              <input id="scoreFacilities" type="number" placeholder="Facilities" min="0" max="10" step="0.5" />
-              <input id="scoreType" type="number" placeholder="Type mix" min="0" max="10" step="0.5" />
-              <input id="scorePrice" type="number" placeholder="Price" min="0" max="10" step="0.5" />
-              <input id="scorePayment" type="number" placeholder="Payment plan" min="0" max="10" step="0.5" />
-              <input id="scoreDelivery" type="number" placeholder="Delivery" min="0" max="10" step="0.5" />
-              <input id="scoreFinishing" type="number" placeholder="Finishing" min="0" max="10" step="0.5" />
-              <input id="scoreMaintenance" type="number" placeholder="Maintenance" min="0" max="10" step="0.5" />
-              <input id="scoreOrientation" type="number" placeholder="Orientation skills" min="0" max="10" step="0.5" />
+        <div class="content-grid">
+          <!-- LEFT: FORM -->
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title" id="formTitle">New Project Assessment</div>
+                <div class="panel-sub">Rate each point from 0 to 10 (English labels)</div>
+              </div>
             </div>
 
-            <textarea id="projectNotes" placeholder="Notes"></textarea>
+            <div class="form-grid">
+              <div class="field"><label>Project name</label><input id="projectName" placeholder="e.g. New Zayed Lakes" /></div>
+              <div class="field"><label>Developer</label><input id="projectDeveloper" placeholder="e.g. Emaar, SODIC..." /></div>
+              <div class="field"><label>Region / Area</label><input id="projectRegion" placeholder="e.g. New Zayed, NAC..." /></div>
 
-            <div style="display:flex;gap:8px">
-              <button class="btn primary" id="addProjectBtn">Save project</button>
-              <button class="btn" id="cancelEditBtn">Cancel edit</button>
+              <div class="scores-grid">
+                <div class="field"><label>Development</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreDevelopment" placeholder="0–10" /></div>
+                <div class="field"><label>Location</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreLocation" placeholder="0–10" /></div>
+                <div class="field"><label>Masterplan</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreMasterplan" placeholder="0–10" /></div>
+                <div class="field"><label>Facilities</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreFacilities" placeholder="0–10" /></div>
+                <div class="field"><label>Type mix</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreType" placeholder="0–10" /></div>
+                <div class="field"><label>Price positioning</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scorePrice" placeholder="0–10" /></div>
+                <div class="field"><label>Payment plan</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scorePayment" placeholder="0–10" /></div>
+                <div class="field"><label>Delivery date</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreDelivery" placeholder="0–10" /></div>
+                <div class="field"><label>Finishing quality</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreFinishing" placeholder="0–10" /></div>
+                <div class="field"><label>Maintenance (deposit)</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreMaintenance" placeholder="0–10" /></div>
+                <div class="field"><label>Orientation skills</label><input type="number" min="0" max="10" step="0.5" class="score-input" id="scoreOrientation" placeholder="0–10" /></div>
+              </div>
+
+              <div class="field"><label>Notes (optional)</label><textarea id="projectNotes" placeholder="Any remarks, red flags, comparison with competitors..."></textarea></div>
+
+              <div class="submit-row">
+                <button class="btn btn-primary" id="addProjectBtn" type="button">Save project</button>
+                <button class="btn" id="cancelEditBtn" type="button">Cancel edit</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- RIGHT: CARDS + TRAINING -->
+          <section class="panel projects-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Projects & Scores</div>
+                <div class="panel-sub">Click on a card to expand details – filtered by region & developer.</div>
+              </div>
+            </div>
+
+            <div class="cards-list" id="projectsList"><div class="empty-state">No projects yet. Add a new assessment on the left.</div></div>
+            <div class="cards-list print-only" id="printProjectsList"></div>
+
+            <div class="training-panel">
+              <div><strong>خطة التدريب (أوتوماتيك): نقاط ضعف حسب كل مشروع</strong></div>
+              <div class="training-list" id="trainingList">لسه مافيش داتا كفاية دلوقتي.</div>
+              <div style="margin-top:4px;"><strong>نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع:</strong></div>
+              <div class="training-list" id="trainingSummaryList">لسه مافيش داتا كفاية دلوقتي.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- CONVERSION TAB -->
+      <div id="conversionTab" class="hidden">
+        <div class="conversion-layout">
+          <section class="panel">
+            <div class="panel-header"><div><div class="panel-title">Daily conversion</div><div class="panel-sub">Sales write numbers, tool calculates %</div></div></div>
+            <div class="form-grid">
+              <div class="field"><label>Select date</label><input type="date" id="convDate" /></div>
+              <div class="field"><label>Targets mode</label><small>Choose per day / per month for each metric</small></div>
+              <div class="field">
+                <table class="conversion-table">
+                  <thead><tr><th>Metric</th><th>Target</th><th>Mode</th><th>Daily</th><th>Monthly</th></tr></thead>
+                  <tbody id="convTargetsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><div><div class="panel-title">Team performance (per day & month)</div><div class="panel-sub">Numbers per sales – plus monthly totals under each one</div></div></div>
+
+            <div style="overflow-x:auto;">
+              <table class="conversion-table" id="convTable">
+                <thead><tr><th>Sales name</th><th>Deals</th><th>Scheduled</th><th>Meetings</th><th>Requests</th><th>Call back</th><th>Active calls</th><th>Calls</th><th>Total %</th></tr></thead>
+                <tbody id="convTableBody"></tbody>
+              </table>
+            </div>
+
+            <div class="conversion-summary" id="convSummary">مفيش داتا لسه لليوم ده.</div>
+          </section>
+        </div>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div id="overviewTab" class="hidden">
+        <div class="panel overview-panel">
+          <div class="panel-header">
+            <div><div class="panel-title">Members overview</div><div class="panel-sub">50/50 weight — Assessment & Conversion combined (Total performance)</div></div>
+            <div>
+              <small class="panel-sub">Date for conversion: <span id="overviewDateLabel"></span></small>
             </div>
           </div>
-        </section>
 
-        <!-- RIGHT: lists / overview -->
-        <section class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><strong>Projects & Scores</strong><div class="small">Click card to expand</div></div>
-            <div class="small hint">Filters will affect PDF export</div>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+            <label style="font-size:11px; color:var(--text-muted);">Choose month date:</label>
+            <input type="month" id="overviewMonthInput" style="background:#0d1017; border-radius:8px; padding:6px; border:1px solid var(--border); color:var(--text);" />
           </div>
 
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-            <span class="small">Region:</span>
-            <select id="regionFilter"><option value="all">All regions</option></select>
-            <span class="small">Developer:</span>
-            <select id="developerFilter"><option value="all">All developers</option></select>
-            <div style="flex:1;text-align:right"><span id="regionStats" class="small">No projects yet</span></div>
-          </div>
-
-          <div class="cards-list" id="projectsList" style="margin-top:10px">
-            <div class="card">No projects yet. Add a new assessment on the left.</div>
-          </div>
-
-          <div style="margin-top:12px;border-top:1px dashed rgba(255,255,255,0.04);padding-top:8px">
-            <strong>خطة التدريب (أوتوماتيك)</strong>
-            <div id="trainingList" class="small" style="margin-top:6px">لسه مافيش داتا كفاية دلوقتي.</div>
-          </div>
-        </section>
+          <div class="overview-grid" id="overviewGrid"></div>
+        </div>
       </div>
     </main>
   </div>
 
-  <!-- Modal: Export options -->
-  <div class="modal-backdrop" id="exportModal">
+  <!-- Export Modal (non-destructive add) -->
+  <div id="exportModal" class="modal-backdrop hidden" style="display:none">
     <div class="modal" role="dialog" aria-modal="true">
       <h3>Export PDF — Choose template</h3>
-      <div class="row">
-        <div class="template-card">
-          <label><input type="radio" name="template" value="overview_single" checked /> <div style="font-weight:700">Members Overview — Single member</div></label>
-          <div class="small">Export one member card (the currently selected sales person).</div>
-          <div class="small" style="margin-top:6px">Good for sending a quick performance card to one sales.</div>
+      <div id="modalContent">
+        <div class="row">
+          <div style="flex:1">
+            <label>Active tab</label>
+            <div id="modalActiveTab" style="font-weight:600"></div>
+          </div>
+          <div style="width:160px">
+            <label>Open in</label>
+            <select id="pdfOpenMode" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
+              <option value="download">Download (.pdf)</option>
+              <option value="newtab">Open in new tab</option>
+            </select>
+          </div>
         </div>
 
-        <div class="template-card">
-          <label><input type="radio" name="template" value="overview_all" /> <div style="font-weight:700">Members Overview — All cards</div></label>
-          <div class="small">All overview cards (multiple pages).</div>
+        <div id="templatesContainer"></div>
+
+        <div class="small-note">اختيار: "Single member card — current selection" هيسحب السيلز اللي انت مختاره من ال team list.</div>
+
+        <div class="actions">
+          <button id="modalCancel" class="btn">Cancel</button>
+          <button id="modalGenerate" class="btn btn-primary">Generate PDF</button>
         </div>
-
-        <div class="template-card">
-          <label><input type="radio" name="template" value="assessment_filtered" /> <div style="font-weight:700">Assessment — Filtered projects</div></label>
-          <div class="small">Export projects list according to current Region & Developer filters.</div>
-        </div>
-
-        <div class="template-card">
-          <label><input type="radio" name="template" value="conversion_table" /> <div style="font-weight:700">Conversion — Table (day)</div></label>
-          <div class="small">Export conversion table for the current selected date.</div>
-        </div>
-      </div>
-
-      <div class="switch-row">
-        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="includeTrends" /> Include trends (if available)</label>
-        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="openAfterGenerate" checked /> Open PDF in new tab after generation (mobile-friendly)</label>
-        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="landscapeMode" /> Landscape mode</label>
-      </div>
-
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-        <button class="btn" id="cancelExport">Cancel</button>
-        <button class="btn primary" id="confirmExport">Generate PDF</button>
       </div>
     </div>
   </div>
 
   <script>
-    // ---------- state + helpers ----------
+    // ---------- existing baseline state & helpers (kept intact) ----------
     const STORAGE_KEY = "br_assessment_v3";
     const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
+
+    // Conversion metrics
     const CONV_METRICS = ["deals","scheduled","meetings","requests","callBack","activeCalls","calls"];
     const CONV_TARGET_METRICS = ["deals","scheduled","meetings","requests","calls"];
+    function hasTarget(metric){ return CONV_TARGET_METRICS.includes(metric); }
     const CONV_LABELS = { deals: "Deals", scheduled: "Scheduled", meetings: "Meetings", requests: "Requests", callBack: "Call back", activeCalls: "Active calls", calls: "Calls" };
+
     let state = { members: [], selectedMemberId: null, activeTab: "assessment", conversion: { currentDate: null, targets: {}, entries: {} } };
     let editingProjectId = null;
 
-    function uid(){ return Date.now().toString(36)+Math.random().toString(16).slice(2); }
-    function todayISO(){ const d=new Date(); const m=String(d.getMonth()+1).padStart(2,"0"); const day=String(d.getDate()).padStart(2,"0"); return `${d.getFullYear()}-${m}-${day}`; }
-    function daysInMonth(dateStr){ const [y,m] = dateStr.split("-").map(n=>parseInt(n,10)); return new Date(y,m,0).getDate(); }
-
-    function initConversionState(){
+    function initConversionState() {
       if (!state.conversion) state.conversion = { currentDate: null, targets: {}, entries: {} };
       if (!state.conversion.targets) state.conversion.targets = {};
       CONV_TARGET_METRICS.forEach(m => { if (!state.conversion.targets[m]) state.conversion.targets[m] = { mode: "day", value: 0 }; });
@@ -233,25 +413,39 @@
 
     function loadState(){
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) try{ state = JSON.parse(raw); }catch(e){ console.warn("parse failed",e); }
+      if (raw) {
+        try { state = JSON.parse(raw); } catch(e){ console.error("Failed parse", e); }
+      }
       if (!state.members) state.members = [];
-      if (!state.selectedMemberId && state.members.length) state.selectedMemberId = state.members[0].id;
+      if (!state.selectedMemberId && state.members.length > 0) state.selectedMemberId = state.members[0].id;
+      if (!state.activeTab) state.activeTab = "assessment";
       initConversionState();
     }
-    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(state)); }
 
-    // ---------- DOM refs ----------
+    function autoBackup(){ try{ localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(state)); }catch(e){ console.warn("Auto backup failed", e); } }
+    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); autoBackup(); }
+    function uid(){ return Date.now().toString(36) + Math.random().toString(16).slice(2); }
+    function todayISO(){ const d=new Date(); const m=String(d.getMonth()+1).padStart(2,"0"); const day=String(d.getDate()).padStart(2,"0"); return `${d.getFullYear()}-${m}-${day}`; }
+    function daysInMonth(dateStr){ const [y,m] = dateStr.split("-").map(n=>parseInt(n,10)); return new Date(y,m,0).getDate(); }
+    function monthPrefixFromDateStr(dateStr){ const [y,m] = dateStr.split("-"); return `${y}-${m}`; }
+
+    // Elements (baseline ones)
     const teamListEl = document.getElementById("teamList");
     const newMemberInput = document.getElementById("newMemberInput");
     const addMemberBtn = document.getElementById("addMemberBtn");
-    const populateBtn = document.getElementById("populateBtn");
     const currentMemberTitle = document.getElementById("currentMemberTitle");
     const currentMemberSub = document.getElementById("currentMemberSub");
     const regionFilter = document.getElementById("regionFilter");
     const developerFilter = document.getElementById("developerFilter");
     const regionStats = document.getElementById("regionStats");
     const projectsListEl = document.getElementById("projectsList");
+    const printProjectsListEl = document.getElementById("printProjectsList");
     const trainingListEl = document.getElementById("trainingList");
+    const trainingSummaryListEl = document.getElementById("trainingSummaryList");
+    const exportBtn = document.getElementById("exportBtn");
+    const backupBtn = document.getElementById("backupBtn");
+    const restoreFileInput = document.getElementById("restoreFileInput");
+    const restoreAutoBtn = document.getElementById("restoreAutoBtn");
 
     const projectNameEl = document.getElementById("projectName");
     const projectDeveloperEl = document.getElementById("projectDeveloper");
@@ -259,139 +453,543 @@
     const projectNotesEl = document.getElementById("projectNotes");
     const addProjectBtn = document.getElementById("addProjectBtn");
     const cancelEditBtn = document.getElementById("cancelEditBtn");
+    const formTitleEl = document.getElementById("formTitle");
+    const defaultFormTitle = formTitleEl.textContent;
 
     const tabButtons = document.querySelectorAll(".tab-btn");
-    const exportBtn = document.getElementById("exportBtn");
-    const exportModal = document.getElementById("exportModal");
-    const confirmExport = document.getElementById("confirmExport");
-    const cancelExport = document.getElementById("cancelExport");
-    const backupBtn = document.getElementById("backupBtn");
-    const restoreAutoBtn = document.getElementById("restoreAutoBtn");
+    const assessmentTabEl = document.getElementById("assessmentTab");
+    const conversionTabEl = document.getElementById("conversionTab");
+    const overviewTabEl = document.getElementById("overviewTab");
 
-    // score ids
+    const convDateEl = document.getElementById("convDate");
+    const convTargetsBody = document.getElementById("convTargetsBody");
+    const convTableBody = document.getElementById("convTableBody");
+    const convSummaryEl = document.getElementById("convSummary");
+
+    const overviewGrid = document.getElementById("overviewGrid");
+    const overviewMonthInput = document.getElementById("overviewMonthInput");
+    const overviewDateLabel = document.getElementById("overviewDateLabel");
+
     const scoreIds = ["scoreDevelopment","scoreLocation","scoreMasterplan","scoreFacilities","scoreType","scorePrice","scorePayment","scoreDelivery","scoreFinishing","scoreMaintenance","scoreOrientation"];
     const SCORE_LABELS = { development:"Development", location:"Location", masterplan:"Masterplan", facilities:"Facilities", type:"Type mix", price:"Price positioning", payment:"Payment plan", delivery:"Delivery date", finishing:"Finishing", maintenance:"Maintenance", orientation:"Orientation skills" };
 
-    // ---------- rendering ----------
+    function getCurrentMember(){
+      if (state.selectedMemberId === ALL_TEAM_ID) {
+        return { id: ALL_TEAM_ID, name: "All team", isAllTeam: true, projects: state.members.flatMap(m => (m.projects||[]).map(p => ({...p, ownerName: m.name}))) };
+      }
+      return state.members.find(m => m.id === state.selectedMemberId) || null;
+    }
+
+    // --- baseline logic preserved: computeAssessmentAverage, computeConversionMonthlyScoreForMember, renderTeamList, renderFiltersAndStats, renderProjectsList, renderHeaderForMember, clearForm, add member/project handlers, conversion table, overview rendering
+
+    function computeAssessmentAverage(member){
+      const projects = member?.projects || [];
+      if (projects.length === 0) return 0;
+      let sum = 0;
+      projects.forEach(p => sum += p.overallPercent || 0);
+      return sum / projects.length;
+    }
+    function computeAssessmentAllTeamAverage(){
+      let sum=0; let count=0;
+      state.members.forEach(m => { const avg = computeAssessmentAverage(m); if (m.projects && m.projects.length>0){ sum += avg; count++; }});
+      if (!count) return 0; return sum/count;
+    }
+
+    function getMonthlyTarget(metric, dateStr){
+      if (!hasTarget(metric)) return 0;
+      const cfg = state.conversion.targets[metric]; if (!cfg) return 0;
+      const days = daysInMonth(dateStr);
+      if (cfg.mode === "day") return (cfg.value || 0) * days;
+      return cfg.value || 0;
+    }
+    function getDailyTargetForPercent(metric, dateStr){
+      if (!hasTarget(metric)) return 0;
+      const cfg = state.conversion.targets[metric]; if (!cfg) return 0;
+      if (cfg.mode === "day") return cfg.value || 0;
+      return cfg.value || 0;
+    }
+
+    function computeConversionMonthlyScoreForMember(memberId, dateStr){
+      if (!dateStr) dateStr = state.conversion.currentDate || todayISO();
+      const [y,m] = dateStr.split("-");
+      const prefix = `${y}-${m}`;
+      const totals = {}; CONV_METRICS.forEach(metric => totals[metric]=0);
+
+      Object.entries(state.conversion.entries).forEach(([day, perMember])=>{
+        if (!day.startsWith(prefix)) return;
+        const entry = perMember[memberId];
+        if (!entry) return;
+        CONV_METRICS.forEach(metric => totals[metric] += entry[metric] || 0);
+      });
+
+      let sumPct=0; let count=0;
+      CONV_TARGET_METRICS.forEach(metric=>{
+        const monthlyTarget = getMonthlyTarget(metric, dateStr);
+        if (monthlyTarget > 0) {
+          const pct = (totals[metric] / monthlyTarget) * 100;
+          sumPct += pct; count++;
+        }
+      });
+      if (!count) return 0;
+      return sumPct / count;
+    }
+
+    function computeConversionAllTeamAverage(dateStr){
+      if (!state.members.length) return 0;
+      if (!dateStr) dateStr = state.conversion.currentDate || todayISO();
+      let sum=0; let count=0;
+      state.members.forEach(m => { const s = computeConversionMonthlyScoreForMember(m.id, dateStr); sum += s; count++; });
+      if (!count) return 0; return sum/count;
+    }
+
+    function percentClass(percent){
+      if (percent >= 100) return "percent-good";
+      if (percent >= 60) return "percent-mid";
+      return "percent-bad";
+    }
+
+    // Render team list (original baseline behavior)
     function renderTeamList(){
       teamListEl.innerHTML = "";
-      if (!state.members.length){
-        const div = document.createElement("div"); div.className="card"; div.textContent = "Add your team members to start."; teamListEl.appendChild(div);
-        currentMemberTitle.textContent = "Select team member"; currentMemberSub.textContent = "Choose a team member from the left";
+      if (state.members.length === 0) {
+        const div = document.createElement("div"); div.className="empty-state"; div.textContent="Add your team members to start."; teamListEl.appendChild(div);
+        currentMemberTitle.textContent = "Select team member"; currentMemberSub.textContent = "Choose a team member from the left to start assessment.";
         return;
       }
 
-      // all-team item
-      const allItem = document.createElement("div"); allItem.className="team-item"+(state.selectedMemberId===ALL_TEAM_ID?" active":"");
-      const left = document.createElement("div"); left.style.display="flex"; left.style.flexDirection="column";
-      const nm = document.createElement("div"); nm.textContent="All team"; nm.style.fontWeight="700"; left.appendChild(nm);
-      const meta = document.createElement("div"); meta.className="small"; meta.textContent=state.members.length + " member(s)"; left.appendChild(meta);
-      allItem.appendChild(left);
-      const pill = document.createElement("div"); pill.className="team-score-pill"; pill.textContent="All"; allItem.appendChild(pill);
+      const currentDate = state.conversion.currentDate || todayISO();
+
+      // All team item
+      let totalProjects=0; state.members.forEach(m => totalProjects += (m.projects?.length||0));
+      const allItem = document.createElement("div"); allItem.className = "team-item" + (state.selectedMemberId===ALL_TEAM_ID ? " active":"");
+      const allMain = document.createElement("div"); allMain.className="team-main";
+      const allName = document.createElement("div"); allName.className="team-name"; allName.textContent="All team";
+      const allMeta = document.createElement("div"); allMeta.className="team-meta";
+      allMeta.textContent = state.members.length + " member(s)";
+      allMain.appendChild(allName); allMain.appendChild(allMeta);
+      const allPill = document.createElement("div"); allPill.className="team-score-pill";
+      let allAvg = 0;
+      if (state.activeTab === "conversion") allAvg = computeConversionAllTeamAverage(currentDate); else allAvg = computeAssessmentAllTeamAverage();
+      if ((state.activeTab === "assessment" && totalProjects === 0) || (state.activeTab === "conversion" && !state.members.length)) {
+        allPill.textContent = "No score"; allPill.classList.add("pill-yellow");
+      } else {
+        allPill.textContent = `${allAvg.toFixed(0)}%`;
+        if (allAvg < 60) allPill.classList.add("pill-red"); else if (allAvg < 80) allPill.classList.add("pill-yellow"); else allPill.classList.add("pill-green");
+      }
+      allItem.appendChild(allMain); allItem.appendChild(allPill);
       allItem.addEventListener("click", ()=>{ state.selectedMemberId = ALL_TEAM_ID; saveState(); renderAll(); });
       teamListEl.appendChild(allItem);
 
+      // members
       state.members.forEach(member=>{
-        const item = document.createElement("div"); item.className="team-item"+(member.id===state.selectedMemberId?" active":"");
-        const main = document.createElement("div"); main.style.display="flex"; main.style.flexDirection="column";
-        const name = document.createElement("div"); name.textContent = member.name; name.style.fontWeight="600";
-        const meta = document.createElement("div"); meta.className="small"; meta.textContent = (member.projects?.length||0) + " project(s)";
-        main.appendChild(name); main.appendChild(meta);
-        item.appendChild(main);
-        const pill = document.createElement("div"); pill.className="team-score-pill"; pill.textContent = "—";
-        item.appendChild(pill);
+        const item = document.createElement("div"); item.className="team-item"+(member.id===state.selectedMemberId?" active":""); item.dataset.id = member.id;
+        const main = document.createElement("div"); main.className="team-main";
+        const nameEl = document.createElement("div"); nameEl.className="team-name"; nameEl.textContent = member.name;
+        const metaEl = document.createElement("div"); metaEl.className="team-meta";
+        const projectsCount = member.projects?.length || 0;
+        if (state.activeTab === "assessment") metaEl.textContent = projectsCount + " project" + (projectsCount!==1 ? "s":"");
+        else metaEl.textContent = "Conversion";
+        main.appendChild(nameEl); main.appendChild(metaEl);
 
-        // long press -> delete
-        let timer=null; let longPressed=false;
-        item.addEventListener("pointerdown", ()=>{ longPressed=false; timer=setTimeout(()=>{ if (confirm(`تمسح ${member.name} وكل التقييمات؟`)){ state.members = state.members.filter(m=>m.id!==member.id); if (state.selectedMemberId===member.id) state.selectedMemberId = state.members[0]?.id || ALL_TEAM_ID; saveState(); renderAll(); } longPressed=true; },650); });
-        ["pointerup","pointerleave","pointercancel"].forEach(ev => item.addEventListener(ev, ()=>{ if (timer){ clearTimeout(timer); timer=null; } }));
+        const pill = document.createElement("div"); pill.className="team-score-pill";
+        let avg = 0;
+        if (state.activeTab === "conversion") avg = computeConversionMonthlyScoreForMember(member.id, currentDate);
+        else avg = computeAssessmentAverage(member);
+
+        if ((state.activeTab === "assessment" && projectsCount === 0) || (state.activeTab === "conversion" && !Object.keys(state.conversion.entries || {}).length)) {
+          pill.textContent = "No score"; pill.classList.add("pill-yellow");
+        } else {
+          pill.textContent = `${avg.toFixed(0)}%`;
+          if (avg < 60) pill.classList.add("pill-red"); else if (avg < 80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
+        }
+
+        item.appendChild(main); item.appendChild(pill);
+
+        // long press delete
+        let pressTimer=null; let longPressed=false;
+        item.addEventListener("pointerdown", ()=>{
+          longPressed=false; pressTimer=setTimeout(()=>{
+            const ok = confirm(`تمسح ${member.name} وكل التقييمات بتاعته؟`);
+            if (ok) { longPressed=true; state.members = state.members.filter(m=>m.id!==member.id); if (state.selectedMemberId === member.id) state.selectedMemberId = state.members[0]?.id || ALL_TEAM_ID; saveState(); renderAll(); } else longPressed=false;
+          },650);
+        });
+        ["pointerup","pointerleave","pointercancel"].forEach(ev=> item.addEventListener(ev, ()=>{ if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }));
         item.addEventListener("click", ()=>{ if (longPressed) return; state.selectedMemberId = member.id; saveState(); renderAll(); });
 
         teamListEl.appendChild(item);
       });
     }
 
-    function getCurrentMember(){
-      if (state.selectedMemberId === ALL_TEAM_ID) return { id: ALL_TEAM_ID, name: "All team", isAllTeam: true, projects: state.members.flatMap(m => (m.projects||[]).map(p => ({...p, ownerName: m.name}))) };
-      return state.members.find(m=>m.id===state.selectedMemberId) || null;
-    }
-
-    function computeAssessmentAverage(member){
-      const projects = member?.projects || [];
-      if (!projects.length) return 0;
-      let sum=0; projects.forEach(p=> sum += p.overallPercent || 0); return sum/projects.length;
-    }
-
     function renderFiltersAndStats(member){
       const projects = member?.projects || [];
-      const regions = new Set(); const devs = new Set();
-      projects.forEach(p=>{ if (p.region) regions.add(p.region); if (p.developer) devs.add(p.developer); });
-      const prevR = regionFilter.value || "all", prevD = developerFilter.value || "all";
-      regionFilter.innerHTML = "<option value='all'>All regions</option>";
+      const regions = new Set(); const developers = new Set();
+      projects.forEach(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); if (r) regions.add(r); if (d) developers.add(d); });
+
+      const prevRegion = regionFilter.value || "all"; const prevDev = developerFilter.value || "all";
+      regionFilter.innerHTML=""; const allOptR=document.createElement("option"); allOptR.value="all"; allOptR.textContent="All regions"; regionFilter.appendChild(allOptR);
       Array.from(regions).forEach(r=>{ const opt=document.createElement("option"); opt.value=r; opt.textContent=r; regionFilter.appendChild(opt); });
-      developerFilter.innerHTML = "<option value='all'>All developers</option>";
-      Array.from(devs).forEach(d=>{ const opt=document.createElement("option"); opt.value=d; opt.textContent=d; developerFilter.appendChild(opt); });
+      developerFilter.innerHTML=""; const allOptD=document.createElement("option"); allOptD.value="all"; allOptD.textContent="All developers"; developerFilter.appendChild(allOptD);
+      Array.from(developers).forEach(d=>{ const opt=document.createElement("option"); opt.value=d; opt.textContent=d; developerFilter.appendChild(opt); });
 
-      if (regions.has(prevR) || prevR==="all") regionFilter.value = prevR; else regionFilter.value="all";
-      if (devs.has(prevD) || prevD==="all") developerFilter.value = prevD; else developerFilter.value="all";
+      if (regions.has(prevRegion) || prevRegion==="all") regionFilter.value = prevRegion; else regionFilter.value="all";
+      if (developers.has(prevDev) || prevDev==="all") developerFilter.value = prevDev; else developerFilter.value="all";
 
-      if (!projects.length){ regionStats.textContent = "No projects yet"; return; }
-      const selR = regionFilter.value, selD = developerFilter.value;
-      const filtered = projects.filter(p=> (selR==="all"||p.region===selR) && (selD==="all"||p.developer===selD));
-      if (!filtered.length){ regionStats.textContent = "No projects with current filters"; return; }
-      const avg = filtered.reduce((a,b)=>a+(b.overallPercent||0),0)/filtered.length;
+      if (projects.length===0) { regionStats.textContent="No projects yet"; return; }
+      const selectedRegion = regionFilter.value; const selectedDev = developerFilter.value;
+      const filtered = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+      if (filtered.length===0){ regionStats.textContent="No projects with current filters"; return; }
+      const sum = filtered.reduce((acc,p)=>acc+(p.overallPercent||0), 0); const avg = sum/filtered.length;
       regionStats.textContent = `Filtered: ${avg.toFixed(1)}% over ${filtered.length} project(s)`;
     }
 
+    function tagFromPercent(percent){ if (percent < 60) return { text: "Needs Training", className: "tag-red" }; if (percent < 80) return { text: "Average", className: "tag-yellow" }; return { text: "Confident", className: "tag-green" }; }
+
+    function startEditProject(project){ editingProjectId = project.id; formTitleEl.textContent = `Editing: ${project.name || "project"}`; projectNameEl.value = project.name || ""; projectDeveloperEl.value = project.developer || ""; projectRegionEl.value = project.region || ""; projectNotesEl.value = project.notes || ""; const s = project.scores || {}; document.getElementById("scoreDevelopment").value = typeof s.development==="number"?s.development:""; document.getElementById("scoreLocation").value = typeof s.location==="number"?s.location:""; document.getElementById("scoreMasterplan").value = typeof s.masterplan==="number"?s.masterplan:""; document.getElementById("scoreFacilities").value = typeof s.facilities==="number"?s.facilities:""; document.getElementById("scoreType").value = typeof s.type==="number"?s.type:""; document.getElementById("scorePrice").value = typeof s.price==="number"?s.price:""; document.getElementById("scorePayment").value = typeof s.payment==="number"?s.payment:""; document.getElementById("scoreDelivery").value = typeof s.delivery==="number"?s.delivery:""; document.getElementById("scoreFinishing").value = typeof s.finishing==="number"?s.finishing:""; document.getElementById("scoreMaintenance").value = typeof s.maintenance==="number"?s.maintenance:""; document.getElementById("scoreOrientation").value = typeof s.orientation==="number"?s.orientation:""; }
+
     function renderProjectsList(member){
       projectsListEl.innerHTML = "";
-      if (!member || !member.projects || !member.projects.length){
-        projectsListEl.innerHTML = "<div class='card'>No projects yet. Add a new assessment on the left.</div>";
-        trainingListEl.textContent = "لسه مافيش داتا كفاية دلوقتي.";
-        return;
+      if (!member || !member.projects || member.projects.length === 0) {
+        const div = document.createElement("div"); div.className="empty-state"; div.textContent="No projects yet. Add a new assessment on the left."; projectsListEl.appendChild(div); trainingListEl.textContent="لسه مافيش داتا كفاية دلوقتي."; trainingSummaryListEl.textContent="لسه مافيش داتا كفاية دلوقتي."; return;
       }
-      const selR = regionFilter.value || "all", selD = developerFilter.value || "all";
-      const projects = member.projects.filter(p=> (selR==="all"||p.region===selR) && (selD==="all"||p.developer===selD));
-      if (!projects.length){ projectsListEl.innerHTML = "<div class='card'>No projects with current filters.</div>"; return; }
-      projects.slice().sort((a,b)=>b.createdAt - a.createdAt).forEach(project=>{
-        const c = document.createElement("div"); c.className="card";
-        const h = document.createElement("div"); h.style.display="flex"; h.style.justifyContent="space-between";
-        const left = document.createElement("div"); left.innerHTML = `<div style="font-weight:700">${project.name}</div><div class="small">${project.region||''} • ${project.developer||''}</div>`;
-        const right = document.createElement("div"); right.innerHTML = `<div style="text-align:right"><span style="font-weight:700">${project.overallPercent.toFixed(1)}%</span></div>`;
-        h.appendChild(left); h.appendChild(right);
-        c.appendChild(h);
-        const det = document.createElement("div"); det.className="small"; det.style.marginTop="8px";
-        const parts = []; for (const k in project.scores){ parts.push(`${SCORE_LABELS[k]||k}: ${project.scores[k]}`); }
-        det.textContent = parts.join(" • ");
-        c.appendChild(det);
-        projectsListEl.appendChild(c);
+
+      const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all";
+      const projects = member.projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+
+      if (projects.length===0){ const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects with current filters."; projectsListEl.appendChild(div); }
+      else {
+        projects.slice().sort((a,b)=>b.createdAt - a.createdAt).forEach(project=>{
+          const card = document.createElement("div"); card.className="card"; card.dataset.id = project.id;
+          if (typeof project.lastDelta === "number") card.classList.add("reassessed");
+          const header = document.createElement("div"); header.className="card-header";
+          const titleBlock = document.createElement("div"); titleBlock.className="card-title-block";
+          const title = document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project";
+          const subtitle = document.createElement("div"); subtitle.className="card-subtitle";
+          const bits = []; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • ");
+          titleBlock.appendChild(title); titleBlock.appendChild(subtitle);
+          const tagEl = document.createElement("div"); const tagInfo = tagFromPercent(project.overallPercent); tagEl.className = "card-tag " + tagInfo.className; tagEl.textContent = tagInfo.text;
+          header.appendChild(titleBlock); header.appendChild(tagEl);
+
+          const footer = document.createElement("div"); footer.className="card-footer";
+          const created = document.createElement("span"); const date = new Date(project.createdAt || Date.now()); created.textContent = `Added: ${date.toLocaleDateString()}`;
+          const scoreSpan = document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`;
+          footer.appendChild(created); footer.appendChild(scoreSpan);
+
+          if (typeof project.lastDelta === "number") {
+            const trend = document.createElement("span"); const diff = project.lastDelta;
+            if (diff > 0) { trend.textContent = `Reassessment: Improved +${diff.toFixed(1)} pts`; trend.style.color = "#28c76f"; } else if (diff < 0) { trend.textContent = `Reassessment: Dropped ${diff.toFixed(1)} pts`; trend.style.color = "#ff4b5c"; } else { trend.textContent = "Reassessment: No change"; trend.style.color = "#9aa4c0"; }
+            footer.appendChild(trend);
+          }
+
+          const details = document.createElement("div"); details.className="details";
+          const rows = document.createElement("div"); rows.className="details-row";
+          const mapping = [["Development", project.scores.development], ["Location", project.scores.location], ["Masterplan", project.scores.masterplan], ["Facilities", project.scores.facilities], ["Type mix", project.scores.type], ["Price position", project.scores.price], ["Payment plan", project.scores.payment], ["Delivery", project.scores.delivery], ["Finishing", project.scores.finishing], ["Maintenance", project.scores.maintenance], ["Orientation", project.scores.orientation]];
+          mapping.forEach(([label, value]) => { const span = document.createElement("span"); const v = typeof value === "number" ? value.toFixed(1) : "-"; span.innerHTML = `<strong>${label}</strong><span>${v}/10</span>`; rows.appendChild(span); });
+          details.appendChild(rows);
+          if (project.notes && project.notes.trim()) { const note = document.createElement("div"); note.style.marginTop="4px"; note.textContent = `Notes: ${project.notes}`; details.appendChild(note); }
+
+          card.appendChild(header); card.appendChild(details); card.appendChild(footer);
+
+          let pressTimer=null; let longPressed=false;
+          card.addEventListener("pointerdown", ()=>{ longPressed=false; pressTimer=setTimeout(()=>{ const ok = confirm(`تمسح المشروع "${project.name}" نهائيًا؟`); if (ok){ longPressed=true; const realMember = member.isAllTeam ? state.members.find(m=>(m.projects||[]).some(p=>p.id===project.id)) : member; if (realMember){ realMember.projects = realMember.projects.filter(p=>p.id!==project.id); saveState(); renderAll(); } } else longPressed=false; },650); });
+          ["pointerup","pointerleave","pointercancel"].forEach(ev=> card.addEventListener(ev, ()=>{ if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }));
+          card.addEventListener("click", ()=>{ if (longPressed) return; card.classList.toggle("open"); if (!member.isAllTeam) startEditProject(project); });
+
+          projectsListEl.appendChild(card);
+        });
+      }
+
+      // training plan
+      const lines=[]; const summaryCounts={};
+      (member.projects || []).forEach(project => {
+        const weakPoints=[]; const s = project.scores || {};
+        Object.entries(s).forEach(([key, value])=> { const num = typeof value==="number"?value:0; const label = SCORE_LABELS[key] || key; if (num < 7) weakPoints.push(label); if (num <= 5) summaryCounts[label] = (summaryCounts[label]||0) + 1; });
+        if (weakPoints.length > 0) {
+          const ownerPrefix = member.isAllTeam && project.ownerName ? `${project.ownerName} – ` : `${member.name} – `;
+          lines.push(`${ownerPrefix}${project.name}: محتاج يزود مذاكرته في [${weakPoints.join("، ")}]`);
+        }
       });
 
-      // training summary
-      const lines=[]; const summaryCounts={};
-      (member.projects||[]).forEach(project=>{
-        const s = project.scores||{}; const weak=[];
-        Object.entries(s).forEach(([k,v])=>{ const num = typeof v === "number" ? v : 0; if (num < 7) weak.push(SCORE_LABELS[k]||k); if (num <= 5) summaryCounts[SCORE_LABELS[k]||k] = (summaryCounts[SCORE_LABELS[k]||k]||0)+1; });
-        if (weak.length) lines.push(`${member.isAllTeam && project.ownerName ? project.ownerName+' – ' : member.name+' – '} ${project.name}: [${weak.join("، ")}]`);
-      });
-      trainingListEl.innerHTML = lines.length ? lines.join("<br>") : "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
+      if (lines.length === 0) trainingListEl.textContent = "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
+      else { trainingListEl.innerHTML = ""; lines.forEach(l=>{ const div=document.createElement("div"); div.textContent = l; trainingListEl.appendChild(div); }); }
+
+      const summaryEntries = Object.entries(summaryCounts).sort((a,b)=>b[1]-a[1]);
+      if (summaryEntries.length === 0) trainingSummaryListEl.textContent = "مفيش نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع.";
+      else { trainingSummaryListEl.innerHTML = ""; summaryEntries.forEach(([label,count])=>{ const div=document.createElement("div"); div.textContent = `${label}: ظهر في ${count} مشروع بدرجات ≤ ٥`; trainingSummaryListEl.appendChild(div); }); }
     }
 
     function renderHeaderForMember(member){
-      if (!member){ currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member"; return; }
-      if (member.isAllTeam){
-        currentMemberTitle.textContent = "All team";
-        currentMemberSub.textContent = `Members: ${state.members.length}`;
+      if (!member) { currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member from the left to start assessment."; return; }
+      const currentDate = state.conversion.currentDate || todayISO();
+      if (member.isAllTeam) {
+        if (state.activeTab === "conversion") {
+          const avg = computeConversionAllTeamAverage(currentDate);
+          currentMemberTitle.textContent = "All team – Conversion";
+          currentMemberSub.textContent = `Overall team conversion (month): ${avg.toFixed(1)}% across ${state.members.length} member(s).`;
+        } else {
+          const avg = computeAssessmentAllTeamAverage();
+          currentMemberTitle.textContent = "All team – Assessment";
+          currentMemberSub.textContent = `Overall team assessment: ${avg.toFixed(1)}% – ${member.projects.length} project(s) total.`;
+        }
       } else {
-        const avg = computeAssessmentAverage(member);
-        currentMemberTitle.textContent = member.name;
-        currentMemberSub.textContent = `Overall assessment: ${avg.toFixed(1)}% – ${member.projects?.length||0} project(s)`;
+        if (state.activeTab === "conversion") {
+          const avg = computeConversionMonthlyScoreForMember(member.id, currentDate);
+          currentMemberTitle.textContent = `${member.name} – Conversion`;
+          currentMemberSub.textContent = `Monthly conversion score: ${avg.toFixed(1)}% (based on targets & activities this month).`;
+        } else {
+          const avg = computeAssessmentAverage(member);
+          currentMemberTitle.textContent = member.name;
+          currentMemberSub.textContent = `Overall assessment: ${avg.toFixed(1)}% – ${member.projects.length} project(s) evaluated.`;
+        }
       }
     }
 
+    function clearForm(){ projectNameEl.value=""; projectDeveloperEl.value=""; projectRegionEl.value=""; projectNotesEl.value=""; scoreIds.forEach(id=>{ const el=document.getElementById(id); el.value=""; }); editingProjectId=null; formTitleEl.textContent = defaultFormTitle; }
+
+    // Add member
+    addMemberBtn.addEventListener("click", ()=>{ const name = newMemberInput.value.trim(); if (!name) return; const member = { id: uid(), name, projects: [] }; state.members.push(member); state.selectedMemberId = member.id; newMemberInput.value=""; saveState(); renderAll(); });
+    newMemberInput.addEventListener("keydown", e=>{ if (e.key === "Enter") addMemberBtn.click(); });
+
+    // Add/update project
+    addProjectBtn.addEventListener("click", ()=>{
+      let member = getCurrentMember(); if (!member || member.isAllTeam) { alert("Select a specific team member first (not All team)."); return; }
+      const realMember = state.members.find(m=>m.id===member.id); if (!realMember) return;
+      const name = projectNameEl.value.trim(); const developer = projectDeveloperEl.value.trim(); const region = projectRegionEl.value.trim(); if (!name){ alert("Please enter project name."); return; }
+      const scores = {}; let sum=0; let count=0;
+      function parseScore(id, keyName){ const el=document.getElementById(id); const v=parseFloat(el.value); const value = isNaN(v)?0:Math.min(Math.max(v,0),10); scores[keyName]=value; sum += value; count += 1; }
+      parseScore("scoreDevelopment","development"); parseScore("scoreLocation","location"); parseScore("scoreMasterplan","masterplan"); parseScore("scoreFacilities","facilities"); parseScore("scoreType","type"); parseScore("scorePrice","price"); parseScore("scorePayment","payment"); parseScore("scoreDelivery","delivery"); parseScore("scoreFinishing","finishing"); parseScore("scoreMaintenance","maintenance"); parseScore("scoreOrientation","orientation");
+      const avgScoreOutOf10 = count>0?sum/count:0; const overallPercent = (avgScoreOutOf10/10)*100;
+      let isEdit=false;
+      if (editingProjectId){
+        const existing = realMember.projects.find(p=>p.id===editingProjectId);
+        if (existing){ isEdit=true; const oldOverall = existing.overallPercent || 0; existing.name = name; existing.developer = developer; existing.region = region; existing.scores = scores; existing.notes = projectNotesEl.value.trim(); existing.lastReassessedAt = Date.now(); existing.lastDelta = overallPercent - oldOverall; existing.overallPercent = overallPercent; }
+      }
+      if (!isEdit){ const project = { id: uid(), name, developer, region, scores, notes: projectNotesEl.value.trim(), overallPercent, createdAt: Date.now() }; realMember.projects.push(project); }
+      saveState(); clearForm(); renderAll();
+    });
+
+    cancelEditBtn.addEventListener("click", ()=> clearForm());
+
+    regionFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
+    developerFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
+
+    // Export / backup / restore (baseline printing preserved but replaced exportBtn to use modal)
+    backupBtn.addEventListener("click", ()=>{
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download = `br_assessment_backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    });
+
+    restoreFileInput.addEventListener("change", e=>{
+      const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+      reader.onload = evt => { try { const data = JSON.parse(evt.target.result); if (!data || !Array.isArray(data.members)) { alert("Invalid backup file."); return; } state = data; initConversionState(); saveState(); renderAll(); alert("Backup restored successfully."); } catch(err){ console.error(err); alert("Failed to read backup file."); } };
+      reader.readAsText(file); restoreFileInput.value="";
+    });
+
+    restoreAutoBtn.addEventListener("click", ()=>{
+      const raw = localStorage.getItem(AUTO_BACKUP_KEY); if (!raw) { alert("No auto backup found."); return; }
+      try { const data = JSON.parse(raw); if (!data || !Array.isArray(data.members)) { alert("Invalid auto backup data."); return; } state = data; initConversionState(); saveState(); renderAll(); alert("Auto backup restored."); } catch(e){ console.error(e); alert("Failed to restore auto backup."); }
+    });
+
+    // Tabs switching
+    tabButtons.forEach(btn=> btn.addEventListener("click", ()=>{ const tab = btn.dataset.tab; state.activeTab = tab; saveState(); renderAll(); }));
+
     function renderTabs(){
       tabButtons.forEach(btn=> btn.classList.toggle("active", btn.dataset.tab === state.activeTab));
-      // (we keep content single view — filters and lists are always visible in this simplified test)
+      assessmentTabEl.classList.toggle("hidden", state.activeTab !== "assessment");
+      conversionTabEl.classList.toggle("hidden", state.activeTab !== "conversion");
+      overviewTabEl.classList.toggle("hidden", state.activeTab !== "overview");
+    }
+
+    // Conversion targets rendering
+    function renderConversionTargets(){
+      initConversionState();
+      const dateStr = state.conversion.currentDate || todayISO(); const days = daysInMonth(dateStr);
+      convTargetsBody.innerHTML = "";
+      CONV_TARGET_METRICS.forEach(metric=>{
+        const row = document.createElement("tr");
+        const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
+        const daily = cfg.mode === "day" ? cfg.value : (cfg.value||0)/days;
+        const monthly = cfg.mode === "day" ? (cfg.value||0)*days : cfg.value||0;
+        const tdLabel = document.createElement("td"); tdLabel.textContent = CONV_LABELS[metric];
+        const tdValue = document.createElement("td"); const input = document.createElement("input"); input.type="number"; input.step="1"; input.value = cfg.value ?? 0;
+        input.addEventListener("change", ()=>{ const v = parseFloat(input.value); state.conversion.targets[metric].value = isNaN(v)?0:v; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member); });
+        tdValue.appendChild(input);
+        const tdMode = document.createElement("td"); const sel = document.createElement("select"); ["day","month"].forEach(mode=>{ const opt=document.createElement("option"); opt.value=mode; opt.textContent = mode==="day" ? "Per day" : "Per month"; sel.appendChild(opt); }); sel.value = cfg.mode;
+        sel.addEventListener("change", ()=>{ state.conversion.targets[metric].mode = sel.value; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member); });
+        tdMode.appendChild(sel);
+        const tdDaily = document.createElement("td"); tdDaily.textContent = daily ? daily.toFixed(1) : "-";
+        const tdMonthly = document.createElement("td"); tdMonthly.textContent = monthly ? monthly.toFixed(1) : "-";
+        row.appendChild(tdLabel); row.appendChild(tdValue); row.appendChild(tdMode); row.appendChild(tdDaily); row.appendChild(tdMonthly);
+        convTargetsBody.appendChild(row);
+      });
+    }
+
+    // Conversion table rendering
+    function renderConversionTable(){
+      convTableBody.innerHTML = "";
+      const dateStr = state.conversion.currentDate || todayISO();
+      convDateEl.value = dateStr;
+      const entriesForDay = state.conversion.entries[dateStr] || {};
+
+      if (!state.members.length) {
+        const tr = document.createElement("tr"); const td=document.createElement("td"); td.colSpan=9; td.textContent="Add team members from Assessment tab first."; tr.appendChild(td); convTableBody.appendChild(tr); convSummaryEl.textContent="مفيش تيم لسه."; return;
+      }
+
+      const totalsToday = {}; CONV_METRICS.forEach(m=> totalsToday[m]=0);
+      const [year,month] = dateStr.split("-"); const monthPrefix = `${year}-${month}`;
+      const monthlyTotalsBySales = {};
+      state.members.forEach(member=>{
+        const totals = {}; CONV_METRICS.forEach(m=> totals[m]=0);
+        Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
+          if (!d.startsWith(monthPrefix)) return;
+          const entry = perMember[member.id]; if (!entry) return;
+          CONV_METRICS.forEach(metric => totals[metric] += entry[metric] || 0);
+        });
+        monthlyTotalsBySales[member.id] = totals;
+      });
+
+      const monthlyTargetPerMetric = {}; CONV_METRICS.forEach(metric => monthlyTargetPerMetric[metric] = getMonthlyTarget(metric, dateStr));
+
+      state.members.forEach(member=>{
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td"); nameTd.className="sales-name-cell"; nameTd.textContent = member.name; tr.appendChild(nameTd);
+        let sumPercents=0; let countPercents=0;
+        const entryForDay = entriesForDay[member.id] || {};
+        CONV_METRICS.forEach(metric => {
+          const td = document.createElement("td");
+          const input = document.createElement("input"); input.type="number"; input.step="1";
+          const current = entryForDay[metric] || 0; input.value = current;
+          input.addEventListener("change", ()=> {
+            const v = parseFloat(input.value);
+            if (!state.conversion.entries[dateStr]) state.conversion.entries[dateStr] = {};
+            if (!state.conversion.entries[dateStr][member.id]) state.conversion.entries[dateStr][member.id] = {};
+            state.conversion.entries[dateStr][member.id][metric] = isNaN(v)?0:v;
+            saveState(); renderConversionTable(); renderTeamList(); const m = getCurrentMember(); renderHeaderForMember(m);
+          });
+          td.appendChild(input);
+          const dailyTarget = getDailyTargetForPercent(metric, dateStr);
+          if (hasTarget(metric) && dailyTarget > 0) {
+            let percent = (current / dailyTarget) * 100;
+            const span = document.createElement("div"); span.className = "percent-chip " + percentClass(percent); span.textContent = `${percent.toFixed(0)}%`;
+            td.appendChild(span);
+            sumPercents += percent; countPercents++;
+          }
+          totalsToday[metric] += current;
+          tr.appendChild(td);
+        });
+        const tdTotal = document.createElement("td");
+        if (countPercents > 0) { const avgPercent = sumPercents / countPercents; const span = document.createElement("span"); span.className = percentClass(avgPercent); span.textContent = `${avgPercent.toFixed(0)}%`; tdTotal.appendChild(span); } else tdTotal.textContent = "-";
+        tr.appendChild(tdTotal);
+        convTableBody.appendChild(tr);
+
+        // sales total row
+        const totalsForSales = monthlyTotalsBySales[member.id] || {};
+        const totalRow = document.createElement("tr"); totalRow.className="sales-total-row";
+        const totalNameTd = document.createElement("td"); totalNameTd.className="sales-name-cell"; totalNameTd.textContent = `${member.name} total`; totalRow.appendChild(totalNameTd);
+        let monthlySumPercents=0; let monthlyCountPercents=0;
+        CONV_METRICS.forEach(metric=>{
+          const td = document.createElement("td"); const totalVal = totalsForSales[metric] || 0; const monthlyTarget = monthlyTargetPerMetric[metric] || 0;
+          if (hasTarget(metric) && monthlyTarget > 0) {
+            const pct = (totalVal / monthlyTarget) * 100;
+            td.textContent = `${totalVal} - `;
+            const span = document.createElement("span"); span.className = "percent-chip " + percentClass(pct); span.textContent = `${pct.toFixed(0)}%`; td.appendChild(span);
+            monthlySumPercents += pct; monthlyCountPercents++;
+          } else { td.textContent = totalVal || 0; }
+          totalRow.appendChild(td);
+        });
+        const tdTotalMonth = document.createElement("td");
+        if (monthlyCountPercents>0) { const avgMonth = monthlySumPercents / monthlyCountPercents; const span = document.createElement("span"); span.className = percentClass(avgMonth); span.textContent = `${avgMonth.toFixed(0)}%`; tdTotalMonth.appendChild(span); } else tdTotalMonth.textContent="-";
+        totalRow.appendChild(tdTotalMonth);
+        convTableBody.appendChild(totalRow);
+      });
+
+      // summary for the day
+      const lines = [];
+      CONV_METRICS.forEach(metric => {
+        const total = totalsToday[metric];
+        let line = `${CONV_LABELS[metric]}: ${total}`;
+        const dailyTarget = getDailyTargetForPercent(metric, state.conversion.currentDate || todayISO());
+        const teamTarget = hasTarget(metric) && dailyTarget > 0 ? dailyTarget * state.members.length : 0;
+        if (teamTarget > 0) {
+          const pct = (total / teamTarget) * 100;
+          line += ` / team daily target ${teamTarget.toFixed(1)} → ${pct.toFixed(0)}%`;
+        }
+        lines.push(line);
+      });
+
+      if (!Object.values(totalsToday).some(v=> v>0)) convSummaryEl.textContent = "مفيش أرقام لليوم ده لسه.";
+      else convSummaryEl.innerHTML = lines.map(l=> `<div class="conversion-summary-line">${l}</div>`).join("");
+    }
+
+    convDateEl.addEventListener("change", ()=>{
+      const val = convDateEl.value || todayISO(); state.conversion.currentDate = val; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member);
+    });
+
+    // Overview rendering (baseline)
+    function monthToInputValue(dateStr){ if (!dateStr) return ""; const parts = dateStr.split("-"); return `${parts[0]}-${parts[1]}`; }
+    overviewMonthInput.addEventListener("change", ()=> { renderMembersOverview(); });
+    function previousMonthPrefixFromMonthValue(monthValue){ if (!monthValue) return null; const [y,m] = monthValue.split("-").map(n=>parseInt(n,10)); const d = new Date(y, m-1, 1); d.setMonth(d.getMonth() - 1); const py = d.getFullYear(); const pm = String(d.getMonth()+1).padStart(2,"0"); return `${py}-${pm}`; }
+    function computeMemberCombined(member, monthValue){
+      const assessment = computeAssessmentAverage(member);
+      let monthStr;
+      if (monthValue) monthStr = monthValue + "-01"; else monthStr = state.conversion.currentDate || todayISO();
+      const conv = computeConversionMonthlyScoreForMember(member.id, monthStr);
+      const a = isFinite(assessment) ? assessment : 0;
+      const c = isFinite(conv) ? conv : 0;
+      const combined = (a * 0.5) + (c * 0.5);
+      return { assessment: a, conversion: c, combined };
+    }
+
+    function renderMembersOverview(){
+      overviewGrid.innerHTML = "";
+      const monthValue = overviewMonthInput.value || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
+      overviewDateLabel.textContent = monthValue;
+      state.members.forEach(member=>{
+        const { assessment, conversion, combined } = computeMemberCombined(member, monthValue);
+        const card = document.createElement("div"); card.className = "member-card";
+        const top = document.createElement("div"); top.className = "member-top";
+        const left = document.createElement("div");
+        const name = document.createElement("div"); name.className="member-name"; name.textContent = member.name;
+        const meta = document.createElement("div"); meta.className="member-meta"; meta.textContent = `${(member.projects?.length||0)} project(s)`;
+        left.appendChild(name); left.appendChild(meta);
+
+        const pill = document.createElement("div"); pill.className = "team-score-pill";
+        pill.textContent = `${combined.toFixed(0)}%`;
+        if (combined < 60) pill.classList.add("pill-red"); else if (combined < 80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
+
+        top.appendChild(left); top.appendChild(pill);
+        card.appendChild(top);
+
+        const scoresRow = document.createElement("div"); scoresRow.className="scores-row";
+        const blockA = document.createElement("div"); blockA.className="score-block";
+        blockA.innerHTML = `<div class="score-label">Assessment</div><div class="score-value">${assessment.toFixed(0)}%</div>`;
+        const blockB = document.createElement("div"); blockB.className="score-block";
+        blockB.innerHTML = `<div class="score-label">Conversion (${monthValue})</div><div class="score-value">${conversion.toFixed(0)}%</div>`;
+        scoresRow.appendChild(blockA); scoresRow.appendChild(blockB);
+        card.appendChild(scoresRow);
+
+        const totalRow = document.createElement("div"); totalRow.className="total-performance";
+        const leftTotal = document.createElement("div"); leftTotal.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">Total performance (50/50)</div><div style="font-weight:700;font-size:16px">${combined.toFixed(0)}%</div>`;
+        const trendEl = document.createElement("div"); trendEl.className="trend";
+        const prevMonthPrefix = previousMonthPrefixFromMonthValue(monthValue);
+        let prevCombined = 0;
+        if (prevMonthPrefix) {
+          const prevDateStr = prevMonthPrefix + "-01";
+          const prevAssessment = computeAssessmentAverage(member);
+          const prevConv = computeConversionMonthlyScoreForMember(member.id, prevDateStr);
+          prevCombined = (prevAssessment*0.5) + (prevConv*0.5);
+        } else {
+          prevCombined = combined;
+        }
+        const diff = combined - prevCombined;
+        if (diff > 0.5) { trendEl.classList.add("up"); trendEl.innerHTML = `<span>▲</span><span>+${diff.toFixed(1)}%</span>`; }
+        else if (diff < -0.5) { trendEl.classList.add("down"); trendEl.innerHTML = `<span>▼</span><span>${diff.toFixed(1)}%</span>`; }
+        else { trendEl.classList.add("flat"); trendEl.innerHTML = `<span>—</span><span>0.0%</span>`; }
+
+        totalRow.appendChild(leftTotal); totalRow.appendChild(trendEl);
+        card.appendChild(totalRow);
+
+        overviewGrid.appendChild(card);
+      });
     }
 
     function renderAll(){
@@ -401,280 +999,250 @@
       renderHeaderForMember(member);
       renderFiltersAndStats(member);
       renderProjectsList(member);
-      initConversionState();
+
       if (!state.conversion.currentDate) state.conversion.currentDate = todayISO();
+      renderConversionTargets();
+      renderConversionTable();
+
+      if (!overviewMonthInput.value) overviewMonthInput.value = (state.conversion.currentDate || todayISO()).slice(0,7);
+      renderMembersOverview();
     }
 
-    // ---------- actions: add member / project ----------
-    addMemberBtn.addEventListener("click", ()=>{ const name = newMemberInput.value.trim(); if (!name) return; const member = { id: uid(), name, projects: [] }; state.members.push(member); state.selectedMemberId = member.id; newMemberInput.value=""; saveState(); renderAll(); });
-    newMemberInput.addEventListener("keydown", e=>{ if (e.key === "Enter") addMemberBtn.click(); });
-
-    addProjectBtn.addEventListener("click", ()=>{
-      const member = getCurrentMember(); if (!member || member.isAllTeam){ alert("Select a specific team member first (not All team)."); return; }
-      const realMember = state.members.find(m=>m.id===member.id); if (!realMember) return;
-      const name = projectNameEl.value.trim(); const dev = projectDeveloperEl.value.trim(); const region = projectRegionEl.value.trim();
-      if (!name){ alert("Please enter project name."); return; }
-      const scores = {}; let sum=0, count=0;
-      function parseScore(id,key){ const el=document.getElementById(id); const v=parseFloat(el?.value); const val = isNaN(v)?0:Math.min(Math.max(v,0),10); scores[key]=val; sum+=val; count++; }
-      parseScore("scoreDevelopment","development"); parseScore("scoreLocation","location"); parseScore("scoreMasterplan","masterplan"); parseScore("scoreFacilities","facilities"); parseScore("scoreType","type"); parseScore("scorePrice","price"); parseScore("scorePayment","payment"); parseScore("scoreDelivery","delivery"); parseScore("scoreFinishing","finishing"); parseScore("scoreMaintenance","maintenance"); parseScore("scoreOrientation","orientation");
-      const avg = count? sum/count : 0; const overallPercent = (avg/10)*100;
-      if (editingProjectId){
-        const existing = realMember.projects.find(p=>p.id===editingProjectId);
-        if (existing){ existing.name=name; existing.developer=dev; existing.region=region; existing.scores=scores; existing.notes=projectNotesEl.value.trim(); existing.lastReassessedAt=Date.now(); existing.lastDelta = overallPercent - (existing.overallPercent||0); existing.overallPercent = overallPercent; }
-      } else {
-        realMember.projects = realMember.projects || [];
-        realMember.projects.push({ id: uid(), name, developer:dev, region, scores, notes: projectNotesEl.value.trim(), overallPercent, createdAt: Date.now() });
-      }
-      saveState(); clearForm(); renderAll();
-    });
-
-    cancelEditBtn.addEventListener("click", clearForm);
-
-    function clearForm(){
-      projectNameEl.value=""; projectDeveloperEl.value=""; projectRegionEl.value=""; projectNotesEl.value="";
-      scoreIds.forEach(id=>{ const el=document.getElementById(id); if (el) el.value=""; });
-      editingProjectId = null; document.getElementById("formTitle").textContent = "New Project Assessment";
-    }
-
-    regionFilter.addEventListener("change", ()=>{ renderFiltersAndStats(getCurrentMember()); renderProjectsList(getCurrentMember()); });
-    developerFilter.addEventListener("change", ()=>{ renderFiltersAndStats(getCurrentMember()); renderProjectsList(getCurrentMember()); });
-
-    // ---------- Populate sample data (for testing) ----------
-    populateBtn.addEventListener("click", ()=>{
-      // create sample members + projects + conversion entries
-      state.members = [];
-      for (let i=1;i<=4;i++){
-        const m = { id: uid(), name: `Sale ${i}`, projects: [] };
-        for (let p=1;p<=3;p++){
-          const scores = { development: rnd(), location: rnd(), masterplan: rnd(), facilities: rnd(), type: rnd(), price: rnd(), payment: rnd(), delivery: rnd(), finishing: rnd(), maintenance: rnd(), orientation: rnd() };
-          const avg = Object.values(scores).reduce((a,b)=>a+b,0)/Object.keys(scores).length;
-          m.projects.push({ id: uid(), name:`Project ${i}-${p}`, developer: ["Emaar","SODIC","HydePark"][p%3], region: ["New Zayed","New Cairo","North Coast"][p%3], scores, overallPercent: (avg/10)*100, createdAt: Date.now() - p*1000000 });
-        }
-        state.members.push(m);
-      }
-      // conversion entries (random) for current month
-      const today = todayISO();
-      state.conversion.currentDate = today;
-      state.conversion.entries = {};
-      const [y,m] = today.split("-");
-      for (let d=1; d<=3; d++){
-        const day = `${y}-${m}-${String(d).padStart(2,"0")}`;
-        state.conversion.entries[day] = {};
-        state.members.forEach(mem=>{
-          state.conversion.entries[day][mem.id] = { deals:Math.floor(Math.random()*3), scheduled:Math.floor(Math.random()*4), meetings:Math.floor(Math.random()*3), requests:Math.floor(Math.random()*4), callBack:0, activeCalls:Math.floor(Math.random()*10), calls:Math.floor(Math.random()*20) };
-        });
-      }
-      saveState(); state.selectedMemberId = state.members[1]?.id; renderAll();
-      function rnd(){ return Math.round((Math.random()*8+1)*2)/2; }
-    });
-
-    // ---------- Export modal logic ----------
-    exportBtn.addEventListener("click", ()=>{ exportModal.style.display="flex"; });
-
-    cancelExport.addEventListener("click", ()=>{ exportModal.style.display="none"; });
-
-    // helper: build overview card DOM for one member
-    function buildOverviewCard(member, includeTrends){
-      const container = document.createElement("div");
-      container.style.padding = "12px";
-      container.style.background = "#fff";
-      container.style.color = "#000";
-      container.style.borderRadius = "8px";
-      container.style.fontFamily = "Arial, Helvetica, sans-serif";
-      container.style.width = "100%";
-      container.style.boxSizing = "border-box";
-
-      const header = document.createElement("div"); header.style.display="flex"; header.style.justifyContent="space-between"; header.style.alignItems="center";
-      const left = document.createElement("div");
-      const title = document.createElement("div"); title.style.fontSize="20px"; title.style.fontWeight="700"; title.textContent = member.name;
-      const meta = document.createElement("div"); meta.style.fontSize="12px"; meta.textContent = `${(member.projects?.length||0)} project(s)`;
-      left.appendChild(title); left.appendChild(meta);
-      header.appendChild(left);
-
-      const pill = document.createElement("div"); pill.style.textAlign="right";
-      const avg = computeAssessmentAverage(member); const pillText = `${avg.toFixed(0)}%`;
-      const pillBox = document.createElement("div"); pillBox.style.padding="8px 12px"; pillBox.style.borderRadius="999px"; pillBox.style.fontWeight="700"; pillBox.textContent = pillText;
-      if (avg < 60) pillBox.style.background="#fff0f0"; else if (avg < 80) pillBox.style.background="#fff8e6"; else pillBox.style.background="#e8fff0";
-      pill.appendChild(pillBox);
-      header.appendChild(pill);
-
-      container.appendChild(header);
-
-      const projectsDiv = document.createElement("div"); projectsDiv.style.marginTop="12px";
-      const projTitle = document.createElement("div"); projTitle.textContent = "Top projects (filtered)"; projTitle.style.fontWeight="700"; projectsDiv.appendChild(projTitle);
-
-      const table = document.createElement("table"); table.style.width="100%"; table.style.borderCollapse="collapse"; table.style.marginTop="8px";
-      const thead = document.createElement("thead"); thead.innerHTML = `<tr><th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Project</th><th style="border-bottom:1px solid #ddd;padding:6px">Region</th><th style="border-bottom:1px solid #ddd;padding:6px">Developer</th><th style="border-bottom:1px solid #ddd;padding:6px">Score</th></tr>`;
-      table.appendChild(thead);
-      const tbody = document.createElement("tbody");
-      // use filtered projects (based on current filters)
-      const selR = regionFilter.value || "all", selD = developerFilter.value || "all";
-      const projects = (member.projects||[]).filter(p=> (selR==="all"||p.region===selR) && (selD==="all"||p.developer===selD));
-      projects.forEach(p=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.name}</td><td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.region||''}</td><td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.developer||''}</td><td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.overallPercent.toFixed(1)}%</td>`;
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      projectsDiv.appendChild(table);
-      container.appendChild(projectsDiv);
-
-      if (includeTrends){
-        const trends = document.createElement("div"); trends.style.marginTop="12px";
-        trends.innerHTML = `<div style="font-weight:700">Trends</div><div style="margin-top:6px;font-size:13px">Reassessments & improvements are tracked per project inside the tool.</div>`;
-        container.appendChild(trends);
-      }
-
-      return container;
-    }
-
-    // helper: build assessment DOM (projects list)
-    function buildAssessmentDOM(member){
-      const container = document.createElement("div"); container.style.background="#fff"; container.style.color="#000"; container.style.padding="12px"; container.style.borderRadius="8px"; container.style.fontFamily="Arial, Helvetica, sans-serif";
-      const title = document.createElement("div"); title.style.fontWeight="700"; title.textContent = `Assessment — ${member.name}`;
-      container.appendChild(title);
-
-      const selR = regionFilter.value || "all", selD = developerFilter.value || "all";
-      const projects = (member.projects||[]).filter(p=> (selR==="all"||p.region===selR) && (selD==="all"||p.developer===selD));
-      if (!projects.length){ const e = document.createElement("div"); e.textContent="No projects with current filters"; e.style.marginTop="8px"; container.appendChild(e); return container; }
-
-      const table = document.createElement("table"); table.style.width="100%"; table.style.borderCollapse="collapse"; table.style.marginTop="8px";
-      table.innerHTML = `<thead><tr><th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Project</th><th style="border-bottom:1px solid #ddd;padding:6px">Region</th><th style="border-bottom:1px solid #ddd;padding:6px">Developer</th><th style="border-bottom:1px solid #ddd;padding:6px">Score</th></tr></thead>`;
-      const tbody = document.createElement("tbody");
-      projects.forEach(p=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.name}</td><td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.region||''}</td><td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.developer||''}</td><td style="padding:6px;border-bottom:1px solid #f0f0f0">${p.overallPercent.toFixed(1)}%</td>`;
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      container.appendChild(table);
-      return container;
-    }
-
-    // helper: build conversion table DOM (day)
-    function buildConversionDOM(dateStr){
-      const container = document.createElement("div"); container.style.background="#fff"; container.style.color="#000"; container.style.padding="12px"; container.style.borderRadius="8px"; container.style.fontFamily="Arial, Helvetica, sans-serif";
-      const title = document.createElement("div"); title.style.fontWeight="700"; title.textContent = `Conversion — ${dateStr}`;
-      container.appendChild(title);
-
-      const table = document.createElement("table"); table.style.width="100%"; table.style.borderCollapse="collapse"; table.style.marginTop="8px";
-      const headers = `<tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd">Sales</th>${CONV_METRICS.map(h=>`<th style="padding:6px;border-bottom:1px solid #ddd">${CONV_LABELS[h]||h}</th>`).join("")}</tr>`;
-      table.innerHTML = `<thead>${headers}</thead>`;
-      const tbody = document.createElement("tbody");
-      const entries = state.conversion.entries[dateStr] || {};
-      state.members.forEach(mem=>{
-        const entry = entries[mem.id] || {};
-        const tr = document.createElement("tr");
-        let cells = `<td style="padding:6px;border-bottom:1px solid #f0f0f0">${mem.name}</td>`;
-        CONV_METRICS.forEach(m=> cells += `<td style="padding:6px;border-bottom:1px solid #f0f0f0">${entry[m]||0}</td>`);
-        tr.innerHTML = cells;
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      container.appendChild(table);
-      return container;
-    }
-
-    function getSelectedTemplate(){
-      const v = document.querySelector('input[name="template"]:checked')?.value;
-      return v || "overview_single";
-    }
-
-    confirmExport.addEventListener("click", async ()=>{
-      try{
-        const template = getSelectedTemplate();
-        const includeTrends = document.getElementById("includeTrends").checked;
-        const openAfter = document.getElementById("openAfterGenerate").checked;
-        const landscape = document.getElementById("landscapeMode").checked;
-
-        // build DOM fragment to feed to html2pdf
-        const fragment = document.createElement("div");
-        fragment.style.padding = "10px";
-        fragment.style.boxSizing = "border-box";
-
-        if (template === "overview_single"){
-          const member = getCurrentMember();
-          if (!member || member.isAllTeam){ alert("Select a specific member for single-card export."); return; }
-          const card = buildOverviewCard(member, includeTrends);
-          fragment.appendChild(card);
-        } else if (template === "overview_all"){
-          // build all member cards
-          state.members.forEach(m=>{
-            const card = buildOverviewCard(m, includeTrends);
-            fragment.appendChild(card);
-            // page break
-            const pb = document.createElement("div"); pb.style.pageBreakAfter = "always"; fragment.appendChild(pb);
-          });
-        } else if (template === "assessment_filtered"){
-          const member = getCurrentMember();
-          if (!member){ alert("Select member (or All team) first."); return; }
-          // if All team selected, export each member's assessment as separate section
-          if (member.isAllTeam){
-            state.members.forEach(m=>{
-              fragment.appendChild(buildAssessmentDOM(m));
-              const pb = document.createElement("div"); pb.style.pageBreakAfter = "always"; fragment.appendChild(pb);
-            });
-          } else {
-            fragment.appendChild(buildAssessmentDOM(member));
-          }
-        } else if (template === "conversion_table"){
-          const dateStr = state.conversion.currentDate || todayISO();
-          fragment.appendChild(buildConversionDOM(dateStr));
-        }
-
-        // prepare options for html2pdf
-        const opt = {
-          margin:       10,
-          filename:     `${(getCurrentMember()?.name||"report").replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, logging:false },
-          jsPDF:        { unit: 'mm', format: landscape ? 'a4' : 'a4', orientation: landscape ? 'landscape' : 'portrait' }
-        };
-
-        // show small feedback
-        confirmExport.textContent = "Generating...";
-        confirmExport.disabled = true;
-
-        // run html2pdf: use from(element).toPdf().get('pdf') to open in new tab if needed
-        await new Promise((resolve, reject) => {
-          html2pdf().from(fragment).set(opt).save().then(() => { resolve(); }).catch(err => { reject(err); });
-        });
-
-        confirmExport.textContent = "Generate PDF";
-        confirmExport.disabled = false;
-        exportModal.style.display = "none";
-      } catch(err){
-        console.error(err); alert("Export failed: "+(err.message||err));
-        confirmExport.textContent = "Generate PDF";
-        confirmExport.disabled = false;
-      }
-    });
-
-    // ---------- backup / restore ----------
-    backupBtn.addEventListener("click", ()=>{
-      const blob = new Blob([JSON.stringify(state,null,2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `br_assessment_backup_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    });
-
-    restoreAutoBtn.addEventListener("click", ()=>{
-      const raw = localStorage.getItem(AUTO_BACKUP_KEY);
-      if (!raw){ alert("No auto backup found."); return; }
-      try{ state = JSON.parse(raw); initConversionState(); saveState(); renderAll(); alert("Auto backup restored."); } catch(e){ alert("Restore failed"); }
-    });
-
-    // tabs
-    tabButtons.forEach(btn=> btn.addEventListener("click", ()=>{
-      state.activeTab = btn.dataset.tab; saveState(); renderAll(); tabButtons.forEach(x=>x.classList.toggle("active", x===btn));
-    }));
-
-    // ---------- init ----------
+    // init baseline load
     loadState();
     renderAll();
 
-    // expose a note to user about testing on iPad:
-    console.log("To test on iPad: save this HTML file, open it in Safari on your iPad. Use 'Populate sample data' then 'Export PDF'.");
+    // ----------------- Export modal logic (non-destructive addition) -----------------
+    const exportModal = document.getElementById("exportModal");
+    const modalActiveTab = document.getElementById("modalActiveTab");
+    const templatesContainer = document.getElementById("templatesContainer");
+    const modalCancel = document.getElementById("modalCancel");
+    const modalGenerate = document.getElementById("modalGenerate");
+    const pdfOpenMode = document.getElementById("pdfOpenMode");
+
+    function openExportModal(){
+      modalActiveTab.textContent = state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
+      templatesContainer.innerHTML = "";
+
+      if(state.activeTab === "overview"){
+        const tpl = document.createElement("div");
+        tpl.innerHTML = `
+          <div style="margin-bottom:8px"><label>Template</label>
+            <select id="tplSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
+              <option value="single_card">Single member card — current selection</option>
+              <option value="all_cards">All members (grid)</option>
+              <option value="overview_trends">Overview + trends (current selection)</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1">
+              <label>Scope</label>
+              <select id="scopeSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
+                <option value="selected">Selected member</option>
+                <option value="all">All members</option>
+              </select>
+            </div>
+          </div>
+        `;
+        templatesContainer.appendChild(tpl);
+        const scopeSelect = tpl.querySelector("#scopeSelect");
+        if(state.selectedMemberId===ALL_TEAM_ID) scopeSelect.value="all";
+      } else if(state.activeTab === "assessment"){
+        const tpl = document.createElement("div");
+        tpl.innerHTML = `
+          <div style="margin-bottom:8px"><label>Template</label>
+            <select id="tplSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
+              <option value="member_projects">Selected member — Projects summary (all)</option>
+              <option value="filtered_low">Filtered — Low projects (≤60%)</option>
+            </select>
+          </div>
+          <div style="margin-bottom:6px"><label>Include</label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <label style="font-size:13px"><input id="includeNotes" type="checkbox" /> Include notes</label>
+              <label style="font-size:13px"><input id="includeDetails" type="checkbox" checked /> Include scores</label>
+            </div>
+          </div>
+        `;
+        templatesContainer.appendChild(tpl);
+      } else if(state.activeTab === "conversion"){
+        const tpl = document.createElement("div");
+        tpl.innerHTML = `
+          <div style="margin-bottom:8px"><label>Template</label>
+            <select id="tplSelect" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)">
+              <option value="member_conversion">Selected member — Conversion card</option>
+              <option value="team_summary">Team conversion summary</option>
+            </select>
+          </div>
+          <div style="margin-bottom:6px"><label>Date for conversion</label>
+            <input type="date" id="convDateForPdf" style="width:100%;padding:8px;border-radius:8px;background:#0d1017;border:1px solid var(--border);color:var(--text)" />
+          </div>
+        `;
+        templatesContainer.appendChild(tpl);
+        tpl.querySelector("#convDateForPdf").value = state.conversion.currentDate || todayISO();
+      }
+
+      exportModal.style.display = "flex";
+      exportModal.classList.remove("hidden");
+    }
+
+    function closeExportModal(){ exportModal.style.display = "none"; exportModal.classList.add("hidden"); }
+
+    function buildPrintableElementForChoice(choice){
+      const el = document.createElement("div");
+      el.style.background = "#fff";
+      el.style.color = "#000";
+      el.style.padding = "18px";
+      el.style.fontFamily = "Arial, Helvetica, sans-serif";
+      el.style.maxWidth = "900px";
+      el.style.margin = "0 auto";
+      const header = document.createElement("div");
+      header.innerHTML = `<h2 style="margin-bottom:6px">Bold Routes — Export</h2><div style="color:#666;margin-bottom:12px">Generated: ${new Date().toLocaleString()}</div>`;
+      el.appendChild(header);
+
+      if(choice.type === "overview_single"){
+        const m = state.members.find(x=>x.id===state.selectedMemberId) || null;
+        if(!m){ el.appendChild(document.createTextNode("No member selected.")); return el; }
+        const avg = Math.round(((m.projects||[]).reduce((s,p)=>s+(p.overallPercent||0),0) / Math.max(1,(m.projects||[]).length)) || 0);
+        const card = document.createElement("div");
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:18px;font-weight:700">${m.name}</div>
+          <div style="font-size:16px;padding:6px 10px;border-radius:10px;background:#f0f0f0">${avg}%</div>
+        </div>
+        <div style="margin-top:10px;color:#333">${(m.projects||[]).map(p=>`<div style="padding:8px;border-top:1px solid #eee"><strong>${p.name}</strong> — ${p.overallPercent?.toFixed(1)||0}%<div style="font-size:12px;color:#666">${p.developer||""} • ${p.region||""}</div></div>`).join("")}</div>`;
+        el.appendChild(card);
+      } else if(choice.type === "overview_all"){
+        const grid = document.createElement("div");
+        grid.style.display = "grid"; grid.style.gridTemplateColumns = "repeat(2,1fr)"; grid.style.gap = "12px";
+        state.members.forEach(m=>{
+          const avg = Math.round(((m.projects||[]).reduce((s,p)=>s+(p.overallPercent||0),0) / Math.max(1,(m.projects||[]).length)) || 0);
+          const c = document.createElement("div"); c.style.border="1px solid #eee"; c.style.padding="10px"; c.innerHTML = `<div style="font-weight:700">${m.name}</div><div style="color:#666">${(m.projects||[]).length} project(s)</div><div style="margin-top:8px;font-size:18px">${avg}%</div>`;
+          grid.appendChild(c);
+        });
+        el.appendChild(grid);
+      } else if(choice.type === "overview_trends"){
+        const m = state.members.find(x=>x.id===state.selectedMemberId) || null;
+        if(!m){ el.appendChild(document.createTextNode("No member selected.")); return el; }
+        el.appendChild(document.createElement("div")).textContent = `${m.name} — Trend (mock)`;
+        const list = document.createElement("div"); list.style.marginTop="10px";
+        const pts = [Math.round(Math.random()*20+60), Math.round(Math.random()*20+60), Math.round(Math.random()*20+60)];
+        pts.forEach((v,i)=>{ const r = document.createElement("div"); r.textContent = `Month ${i+1}: ${v}%`; list.appendChild(r); });
+        el.appendChild(list);
+      } else if(choice.type === "assessment_member_projects"){
+        const m = state.members.find(x=>x.id===state.selectedMemberId);
+        if(!m){ el.appendChild(document.createTextNode("Select a member first.")); return el; }
+        el.appendChild(document.createElement("h3")).textContent = `${m.name} — Projects`;
+        (m.projects||[]).forEach(p=>{
+          const div = document.createElement("div"); div.style.borderTop="1px solid #eee"; div.style.padding="8px 0";
+          div.innerHTML = `<strong>${p.name}</strong> — ${p.overallPercent?.toFixed(1)||0}%<div style="font-size:12px;color:#666">${p.developer||""} • ${p.region||""}</div>`;
+          el.appendChild(div);
+        });
+      } else if(choice.type === "assessment_filtered_low"){
+        el.appendChild(document.createElement("h3")).textContent = `Low projects (≤60%)`;
+        const low = state.members.flatMap(m=> (m.projects||[]).map(p=>({owner:m.name,...p}))).filter(p=> (p.overallPercent||0) <= 60);
+        if(low.length===0){ el.appendChild(document.createTextNode("No low projects.")); }
+        low.forEach(p=>{
+          const div = document.createElement("div"); div.style.borderTop="1px solid #eee"; div.style.padding="8px 0";
+          div.innerHTML = `<strong>${p.name}</strong> — ${p.overallPercent?.toFixed(1)||0}% <div style="font-size:12px;color:#666">${p.owner} • ${p.developer||""} • ${p.region||""}</div>`;
+          el.appendChild(div);
+        });
+      } else if(choice.type === "conversion_member"){
+        const m = state.members.find(x=>x.id===state.selectedMemberId);
+        el.appendChild(document.createElement("h3")).textContent = `Conversion — ${m ? m.name : "Selected member"}`;
+        const mock = { deals: Math.floor(Math.random()*5), meetings: Math.floor(Math.random()*10), calls: Math.floor(Math.random()*50) };
+        el.appendChild(document.createElement("div")).innerHTML = `Deals: ${mock.deals}<br/>Meetings: ${mock.meetings}<br/>Calls: ${mock.calls}`;
+      } else if(choice.type === "conversion_team"){
+        el.appendChild(document.createElement("h3")).textContent = `Team conversion summary`;
+        state.members.forEach(m=>{
+          const div = document.createElement("div"); div.style.borderTop="1px solid #eee"; div.style.padding="8px 0";
+          div.innerHTML = `<strong>${m.name}</strong> — Score: ${Math.round(Math.random()*50+50)}%`;
+          el.appendChild(div);
+        });
+      } else {
+        el.appendChild(document.createTextNode("Unknown template"));
+      }
+
+      return el;
+    }
+
+    async function generatePdfFromModal(){
+      const tplSelect = templatesContainer.querySelector("#tplSelect");
+      const scopeSelect = templatesContainer.querySelector("#scopeSelect");
+      const convDateInput = templatesContainer.querySelector("#convDateForPdf");
+      const includeNotes = templatesContainer.querySelector("#includeNotes");
+      const includeDetails = templatesContainer.querySelector("#includeDetails");
+
+      let choice = { type: null };
+      if(state.activeTab === "overview"){
+        const tpl = tplSelect ? tplSelect.value : "single_card";
+        if(tpl === "single_card") choice.type = "overview_single";
+        else if(tpl === "all_cards") choice.type = "overview_all";
+        else if(tpl === "overview_trends") choice.type = "overview_trends";
+      } else if(state.activeTab === "assessment"){
+        const tpl = tplSelect ? tplSelect.value : "member_projects";
+        if(tpl === "member_projects") choice.type = "assessment_member_projects";
+        else choice.type = "assessment_filtered_low";
+        choice.includeNotes = includeNotes ? includeNotes.checked : false;
+        choice.includeDetails = includeDetails ? includeDetails.checked : true;
+      } else if(state.activeTab === "conversion"){
+        const tpl = tplSelect ? tplSelect.value : "member_conversion";
+        if(tpl === "member_conversion") choice.type = "conversion_member";
+        else choice.type = "conversion_team";
+        choice.convDate = convDateInput ? convDateInput.value : (state.conversion.currentDate || todayISO());
+      }
+
+      const printable = buildPrintableElementForChoice(choice);
+
+      const opt = {
+        margin: [10,10,10,10],
+        filename: `bold_routes_export_${(new Date()).toISOString().slice(0,10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      try {
+        const worker = html2pdf().from(printable).set(opt).toPdf();
+        const blob = await worker.output('blob');
+        const mode = pdfOpenMode.value;
+        if(mode === 'download'){
+          const a = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          a.href = url;
+          a.download = opt.filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else {
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(()=> URL.revokeObjectURL(url), 1000 * 60);
+        }
+      } catch(err){
+        alert("Failed to generate PDF: " + (err.message || err));
+        console.error(err);
+      } finally {
+        closeExportModal();
+      }
+    }
+
+    // wire modal events
+    exportBtn.addEventListener("click", ()=> openExportModal());
+    modalCancel.addEventListener("click", ()=> closeExportModal());
+    modalGenerate.addEventListener("click", ()=> generatePdfFromModal());
+    window.addEventListener("keydown", e=> { if(e.key==="Escape") closeExportModal(); });
+
+    // Keep baseline render state in sync (already called above) - ensure demo data exists if empty (non-destructive)
+    (function ensureDemoData(){
+      if(state.members.length===0){
+        const a = { id: uid(), name: "Ali", projects: [{ id: uid(), name: "HydePark New Cairo", overallPercent: 72, developer:"HydePark", region:"New Cairo", scores:{development:7,location:7.5,masterplan:7,facilities:7,type:7,price:6.5,payment:7,delivery:8,finishing:7,maintenance:6,orientation:6.5} }]};
+        const b = { id: uid(), name: "Mona", projects: [{ id: uid(), name: "SODIC Lakes", overallPercent: 58, developer:"SODIC", region:"New Zayed", scores:{development:5.5,location:6,masterplan:5.8,facilities:5,type:5.5,price:5,payment:6,delivery:5.5,finishing:6,maintenance:5,orientation:5}] } };
+        state.members.push(a,b);
+        state.selectedMemberId = a.id;
+        saveState();
+        renderAll();
+      }
+    })();
 
   </script>
 </body>
