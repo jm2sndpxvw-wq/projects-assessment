@@ -1402,9 +1402,9 @@
       allName.textContent = "All team";
 
       const allMeta = document.createElement("div");
-      allMeta.className = "team-meta";
-      allMeta.textContent =
-        state.members.length + " member(s) • " + totalProjects + " project(s)";
+allMeta.className = "team-meta";
+// Show only team count for "All team" (no total projects)
+allMeta.textContent = `${state.members.length} member(s)`;
 
       allMain.appendChild(allName);
       allMain.appendChild(allMeta);
@@ -1464,8 +1464,13 @@
   metaEl.textContent = "Conversion";
 } else {
   const projectsCount = member.projects?.length || 0;
+if (state.activeTab === "assessment") {
   metaEl.textContent =
     projectsCount + " project" + (projectsCount !== 1 ? "s" : "");
+} else {
+  // في تاب الـ conversion ما نعرضش عدد المشاريع — بس نعرض كلمة "Conversion" لو عايز
+  metaEl.textContent = "Conversion";
+}
 }
 
         main.appendChild(nameEl);
