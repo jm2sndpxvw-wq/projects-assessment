@@ -44,6 +44,9 @@
     .pill-yellow { color:var(--warning); border-color:rgba(255,191,71,0.7); }
     .pill-green { color:var(--success); border-color:rgba(40,199,111,0.7); }
 
+    /* <-- ADDED: hide score pills inside the sidebar only (removes the % shown next to names in the left menu) --> */
+    .sidebar .team-score-pill { display: none !important; }
+
     .add-team { display:flex; gap:6px; margin-top:4px; }
     .add-team input { flex:1; padding:6px 8px; border-radius:999px; border:1px solid var(--border); background:rgba(8,10,16,0.9); color:var(--text); font-size:12px; outline:none; }
     .add-team button { border-radius:999px; padding:0 10px; font-size:11px; border:none; background:var(--primary); color:#fff; cursor:pointer; transition:0.18s ease; }
