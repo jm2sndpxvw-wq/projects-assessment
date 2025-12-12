@@ -1287,62 +1287,86 @@
 
     // ===== Export filtered Projects to PDF =====
     function exportFilteredProjectsToPDF(){
-      const member = getCurrentMember();
-      if (!member) return alert("Select a member first.");
-      // apply current filters & search (reuse logic)
-      const selRegion = regionFilter.value || "all";
-      const selDev = developerFilter.value || "all";
-      const searchTerm = (quickSearchProj?.value||"").trim().toLowerCase();
-      let projects = (member.projects || []).map(p => ({...p, ownerName: member.isAllTeam ? p.ownerName || "" : member.name}));
-      projects = projects.filter(p=>{
-        const r=(p.region||"").trim(); const d=(p.developer||"").trim();
-        const regionMatch = selRegion==="all"?true:r===selRegion;
-        const devMatch = selDev==="all"?true:d===selDev;
-        const textMatch = !searchTerm ? true : ((p.name||"").toLowerCase().includes(searchTerm) || (p.developer||"").toLowerCase().includes(searchTerm));
-        return regionMatch && devMatch && textMatch;
-      });
+  const member = getCurrentMember();
+  if (!member) return alert("Select a member first.");
 
-      if (!projects.length) return alert("No projects to export with current filters.");
+  // ===== apply SAME filters as UI =====
+  const selRegion = regionFilter.value || "all";
+  const selDev = developerFilter.value || "all";
+  const searchTerm = (quickSearchProj?.value || "").trim().toLowerCase();
 
-      // build HTML table for PDF
-      let rowsHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;">`;
-      rowsHtml += `<thead><tr>
-        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Project</th>
-        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Developer</th>
-        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Region</th>
-        <th style="text-align:center;border-bottom:1px solid #ddd;padding:6px">Overall %</th>
-        <th style="text-align:center;border-bottom:1px solid #ddd;padding:6px">Orientation</th>
-        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Notes</th>
-      </tr></thead><tbody>`;
-      projects.forEach(p=>{
-        const orient = (p.scores && typeof p.scores.orientation==="number") ? p.scores.orientation.toFixed(1) : "";
-        rowsHtml += `<tr>
-          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(p.name||"")}</td>
-          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(p.developer||"")}</td>
-          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(p.region||"")}</td>
-          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${((p.overallPercent||0)).toFixed(1)}%</td>
-          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${orient}</td>
-          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml((p.notes||""))}</td>
-        </tr>`;
-      });
-      rowsHtml += `</tbody></table>`;
+  let projects = (member.projects || []).map(p => ({
+    ...p,
+    ownerName: member.isAllTeam ? p.ownerName || "" : member.name
+  }));
 
-      const title = `${member.name} – Projects export`;
-      const printable = makePrintableContainer(title, rowsHtml);
+  projects = projects.filter(p=>{
+    const r = (p.region||"").trim();
+    const d = (p.developer||"").trim();
 
-      // pdf options
-      const opt = {
-        margin:       [10,10,10,10],
-        filename:     `${(member.name||'projects').replace(/\s+/g,'_')}_projects_${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.95 },
-        html2canvas:  { scale: 2, useCORS: true, logging:false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+    const regionMatch = selRegion==="all" ? true : r===selRegion;
+    const devMatch = selDev==="all" ? true : d===selDev;
+    const textMatch = !searchTerm
+      ? true
+      : ((p.name||"").toLowerCase().includes(searchTerm)
+        || (p.developer||"").toLowerCase().includes(searchTerm));
 
-      // call html2pdf
-      html2pdf().set(opt).from(printable).save();
-    }
+    return regionMatch && devMatch && textMatch;
+  });
 
+  // ===== score filter + sort + limit =====
+  projects = projects
+    .filter(p => (p.overallPercent||0) <= 60)
+    .sort((a,b)=> (a.overallPercent||0) - (b.overallPercent||0))
+    .slice(0, 5);
+
+  if (!projects.length){
+    alert("No projects ≤ 60% with current filters.");
+    return;
+  }
+
+  // ===== build CARDS html =====
+  let bodyHtml = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px;">
+  `;
+
+  projects.forEach(p=>{
+    const tag =
+      p.overallPercent < 60 ? "Needs training" :
+      p.overallPercent < 80 ? "Average" : "Confident";
+
+    bodyHtml += `
+      <div style="border:1px solid #e5e5e5;border-radius:10px;padding:10px;">
+        <div style="font-weight:700;margin-bottom:4px">${escapeHtml(p.name||"")}</div>
+        <div style="font-size:11px;color:#555;margin-bottom:6px">
+          ${escapeHtml(p.region||"")} • ${escapeHtml(p.developer||"")}
+        </div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">
+          ${(p.overallPercent||0).toFixed(1)}%
+        </div>
+        <div style="font-size:11px;margin-bottom:6px">
+          Orientation: ${p.scores?.orientation ?? "-"} / 10
+        </div>
+        <div style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:999px;border:1px solid #999">
+          ${tag}
+        </div>
+      </div>
+    `;
+  });
+
+  bodyHtml += `</div>`;
+
+  const title = `${member.name} – Weak projects (≤ 60%)`;
+  const printable = makePrintableContainer(title, bodyHtml);
+
+  html2pdf().set({
+    margin: [10,10,10,10],
+    filename: `${member.name.replace(/\s+/g,"_")}_projects_cards.pdf`,
+    image: { type:'jpeg', quality:0.95 },
+    html2canvas: { scale:2, useCORS:true },
+    jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
+  }).from(printable).save();
+}
     // ===== Export Conversion summary for selected month to PDF =====
     function exportConversionToPDF(monthValue){
       const month = monthValue || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
