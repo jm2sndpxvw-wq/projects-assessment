@@ -1,10 +1,9 @@
-<!DOCTYPE html>
+‏<!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Projects Assessment – Real Estate Team</title>
   <style>
-    /* (نفس الـ CSS اللي انت بعتها بالظبط) */
     :root {
       --bg: #0b0d10;
       --bg-alt: #151921;
@@ -355,11 +354,6 @@
   </div>
 
   <script>
-    /* =========================
-       Original baseline JS (unchanged)...
-       (أزلت الحشو هنا في الشرح لكن فعليًا هذا الجزء هو نفس كودك اللي بعتته — loadState, renderAll, event listeners... )
-       ========================= */
-
     const STORAGE_KEY = "br_assessment_v3";
     const AUTO_BACKUP_KEY = "br_assessment_autobackup_v1";
     const ALL_TEAM_ID = "__ALL_TEAM__";
@@ -450,294 +444,582 @@
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // (باقي كود الـ baseline كما هو — لا تعديله)
-    // -----------------------------------------------------------------
-    // [الجزء الكبير من الدوال والـ renderAll و event listeners — نسخته كاملة كما أرسلتها أنت]
-    // -----------------------------------------------------------------
+    // Assessment averages
+    function computeAssessmentAverage(member){
+      const projects = member?.projects || [];
+      if (projects.length === 0) return 0;
+      let sum = 0;
+      projects.forEach(p => sum += p.overallPercent || 0);
+      return sum / projects.length;
+    }
+    function computeAssessmentAllTeamAverage(){
+      let sum=0; let count=0;
+      state.members.forEach(m => { const avg = computeAssessmentAverage(m); if (m.projects && m.projects.length>0){ sum += avg; count++; }});
+      if (!count) return 0; return sum/count;
+    }
+
+    // Conversion monthly score (per member)
+    function getMonthlyTarget(metric, dateStr){
+      if (!hasTarget(metric)) return 0;
+      const cfg = state.conversion.targets[metric]; if (!cfg) return 0;
+      const days = daysInMonth(dateStr);
+      if (cfg.mode === "day") return (cfg.value || 0) * days;
+      return cfg.value || 0;
+    }
+    function getDailyTargetForPercent(metric, dateStr){
+      if (!hasTarget(metric)) return 0;
+      const cfg = state.conversion.targets[metric]; if (!cfg) return 0;
+      if (cfg.mode === "day") return cfg.value || 0;
+      return cfg.value || 0;
+    }
+
+    function computeConversionMonthlyScoreForMember(memberId, dateStr){
+      if (!dateStr) dateStr = state.conversion.currentDate || todayISO();
+      const [y,m] = dateStr.split("-");
+      const prefix = `${y}-${m}`;
+      const totals = {}; CONV_METRICS.forEach(metric => totals[metric]=0);
+
+      Object.entries(state.conversion.entries).forEach(([day, perMember])=>{
+        if (!day.startsWith(prefix)) return;
+        const entry = perMember[memberId];
+        if (!entry) return;
+        CONV_METRICS.forEach(metric => totals[metric] += entry[metric] || 0);
+      });
+
+      let sumPct=0; let count=0;
+      CONV_TARGET_METRICS.forEach(metric=>{
+        const monthlyTarget = getMonthlyTarget(metric, dateStr);
+        if (monthlyTarget > 0) {
+          const pct = (totals[metric] / monthlyTarget) * 100;
+          sumPct += pct; count++;
+        }
+      });
+      if (!count) return 0;
+      return sumPct / count;
+    }
+
+    function computeConversionAllTeamAverage(dateStr){
+      if (!state.members.length) return 0;
+      if (!dateStr) dateStr = state.conversion.currentDate || todayISO();
+      let sum=0; let count=0;
+      state.members.forEach(m => { const s = computeConversionMonthlyScoreForMember(m.id, dateStr); sum += s; count++; });
+      if (!count) return 0; return sum/count;
+    }
+
+    function percentClass(percent){
+      if (percent >= 100) return "percent-good";
+      if (percent >= 60) return "percent-mid";
+      return "percent-bad";
+    }
+
+    // Render team list
+    function renderTeamList(){
+      teamListEl.innerHTML = "";
+      if (state.members.length === 0) {
+        const div = document.createElement("div"); div.className="empty-state"; div.textContent="Add your team members to start."; teamListEl.appendChild(div);
+        currentMemberTitle.textContent = "Select team member"; currentMemberSub.textContent = "Choose a team member from the left to start assessment.";
+        return;
+      }
+
+      const currentDate = state.conversion.currentDate || todayISO();
+
+      // All team item
+      let totalProjects=0; state.members.forEach(m => totalProjects += (m.projects?.length||0));
+      const allItem = document.createElement("div"); allItem.className = "team-item" + (state.selectedMemberId===ALL_TEAM_ID ? " active":"");
+      const allMain = document.createElement("div"); allMain.className="team-main";
+      const allName = document.createElement("div"); allName.className="team-name"; allName.textContent="All team";
+      const allMeta = document.createElement("div"); allMeta.className="team-meta";
+      // show only member count for overview/conversion per your request
+      allMeta.textContent = state.members.length + " member(s)";
+      allMain.appendChild(allName); allMain.appendChild(allMeta);
+      const allPill = document.createElement("div"); allPill.className="team-score-pill";
+      let allAvg = 0;
+      if (state.activeTab === "conversion") allAvg = computeConversionAllTeamAverage(currentDate); else allAvg = computeAssessmentAllTeamAverage();
+      if ((state.activeTab === "assessment" && totalProjects === 0) || (state.activeTab === "conversion" && !state.members.length)) {
+        allPill.textContent = "No score"; allPill.classList.add("pill-yellow");
+      } else {
+        allPill.textContent = `${allAvg.toFixed(0)}%`;
+        if (allAvg < 60) allPill.classList.add("pill-red"); else if (allAvg < 80) allPill.classList.add("pill-yellow"); else allPill.classList.add("pill-green");
+      }
+      allItem.appendChild(allMain); allItem.appendChild(allPill);
+      allItem.addEventListener("click", ()=>{ state.selectedMemberId = ALL_TEAM_ID; saveState(); renderAll(); });
+      teamListEl.appendChild(allItem);
+
+      // members
+      state.members.forEach(member=>{
+        const item = document.createElement("div"); item.className="team-item"+(member.id===state.selectedMemberId?" active":""); item.dataset.id = member.id;
+        const main = document.createElement("div"); main.className="team-main";
+        const nameEl = document.createElement("div"); nameEl.className="team-name"; nameEl.textContent = member.name;
+        const metaEl = document.createElement("div"); metaEl.className="team-meta";
+        const projectsCount = member.projects?.length || 0;
+        if (state.activeTab === "assessment") metaEl.textContent = projectsCount + " project" + (projectsCount!==1 ? "s":"");
+        else metaEl.textContent = "Conversion";
+        main.appendChild(nameEl); main.appendChild(metaEl);
+
+        const pill = document.createElement("div"); pill.className="team-score-pill";
+        let avg = 0;
+        if (state.activeTab === "conversion") avg = computeConversionMonthlyScoreForMember(member.id, currentDate);
+        else avg = computeAssessmentAverage(member);
+
+        if ((state.activeTab === "assessment" && projectsCount === 0) || (state.activeTab === "conversion" && !Object.keys(state.conversion.entries || {}).length)) {
+          pill.textContent = "No score"; pill.classList.add("pill-yellow");
+        } else {
+          pill.textContent = `${avg.toFixed(0)}%`;
+          if (avg < 60) pill.classList.add("pill-red"); else if (avg < 80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
+        }
+
+        item.appendChild(main); item.appendChild(pill);
+
+        // long press delete
+        let pressTimer=null; let longPressed=false;
+        item.addEventListener("pointerdown", ()=>{
+          longPressed=false; pressTimer=setTimeout(()=>{
+            const ok = confirm(`تمسح ${member.name} وكل التقييمات بتاعته؟`);
+            if (ok) { longPressed=true; state.members = state.members.filter(m=>m.id!==member.id); if (state.selectedMemberId === member.id) state.selectedMemberId = state.members[0]?.id || ALL_TEAM_ID; saveState(); renderAll(); } else longPressed=false;
+          },650);
+        });
+        ["pointerup","pointerleave","pointercancel"].forEach(ev=> item.addEventListener(ev, ()=>{ if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }));
+        item.addEventListener("click", ()=>{ if (longPressed) return; state.selectedMemberId = member.id; saveState(); renderAll(); });
+
+        teamListEl.appendChild(item);
+      });
+    }
+
+    // Filters + stats
+    function renderFiltersAndStats(member){
+      const projects = member?.projects || [];
+      const regions = new Set(); const developers = new Set();
+      projects.forEach(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); if (r) regions.add(r); if (d) developers.add(d); });
+
+      const prevRegion = regionFilter.value || "all"; const prevDev = developerFilter.value || "all";
+      regionFilter.innerHTML=""; const allOptR=document.createElement("option"); allOptR.value="all"; allOptR.textContent="All regions"; regionFilter.appendChild(allOptR);
+      Array.from(regions).forEach(r=>{ const opt=document.createElement("option"); opt.value=r; opt.textContent=r; regionFilter.appendChild(opt); });
+      developerFilter.innerHTML=""; const allOptD=document.createElement("option"); allOptD.value="all"; allOptD.textContent="All developers"; developerFilter.appendChild(allOptD);
+      Array.from(developers).forEach(d=>{ const opt=document.createElement("option"); opt.value=d; opt.textContent=d; developerFilter.appendChild(opt); });
+
+      if (regions.has(prevRegion) || prevRegion==="all") regionFilter.value = prevRegion; else regionFilter.value="all";
+      if (developers.has(prevDev) || prevDev==="all") developerFilter.value = prevDev; else developerFilter.value="all";
+
+      if (projects.length===0) { regionStats.textContent="No projects yet"; return; }
+      const selectedRegion = regionFilter.value; const selectedDev = developerFilter.value;
+      const filtered = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+      if (filtered.length===0){ regionStats.textContent="No projects with current filters"; return; }
+      const sum = filtered.reduce((acc,p)=>acc+(p.overallPercent||0), 0); const avg = sum/filtered.length;
+      regionStats.textContent = `Filtered: ${avg.toFixed(1)}% over ${filtered.length} project(s)`;
+    }
+
+    function tagFromPercent(percent){ if (percent < 60) return { text: "Needs Training", className: "tag-red" }; if (percent < 80) return { text: "Average", className: "tag-yellow" }; return { text: "Confident", className: "tag-green" }; }
+
+    // Edit project load
+    function startEditProject(project){ editingProjectId = project.id; formTitleEl.textContent = `Editing: ${project.name || "project"}`; projectNameEl.value = project.name || ""; projectDeveloperEl.value = project.developer || ""; projectRegionEl.value = project.region || ""; projectNotesEl.value = project.notes || ""; const s = project.scores || {}; document.getElementById("scoreDevelopment").value = typeof s.development==="number"?s.development:""; document.getElementById("scoreLocation").value = typeof s.location==="number"?s.location:""; document.getElementById("scoreMasterplan").value = typeof s.masterplan==="number"?s.masterplan:""; document.getElementById("scoreFacilities").value = typeof s.facilities==="number"?s.facilities:""; document.getElementById("scoreType").value = typeof s.type==="number"?s.type:""; document.getElementById("scorePrice").value = typeof s.price==="number"?s.price:""; document.getElementById("scorePayment").value = typeof s.payment==="number"?s.payment:""; document.getElementById("scoreDelivery").value = typeof s.delivery==="number"?s.delivery:""; document.getElementById("scoreFinishing").value = typeof s.finishing==="number"?s.finishing:""; document.getElementById("scoreMaintenance").value = typeof s.maintenance==="number"?s.maintenance:""; document.getElementById("scoreOrientation").value = typeof s.orientation==="number"?s.orientation:""; }
+
+    // Render projects list
+    function renderProjectsList(member){
+      projectsListEl.innerHTML = "";
+      if (!member || !member.projects || member.projects.length === 0) {
+        const div = document.createElement("div"); div.className="empty-state"; div.textContent="No projects yet. Add a new assessment on the left."; projectsListEl.appendChild(div); trainingListEl.textContent="لسه مافيش داتا كفاية دلوقتي."; trainingSummaryListEl.textContent="لسه مافيش داتا كفاية دلوقتي."; return;
+      }
+
+      const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all";
+      const projects = member.projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+
+      if (projects.length===0){ const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects with current filters."; projectsListEl.appendChild(div); }
+      else {
+        projects.slice().sort((a,b)=>b.createdAt - a.createdAt).forEach(project=>{
+          const card = document.createElement("div"); card.className="card"; card.dataset.id = project.id;
+          if (typeof project.lastDelta === "number") card.classList.add("reassessed");
+          const header = document.createElement("div"); header.className="card-header";
+          const titleBlock = document.createElement("div"); titleBlock.className="card-title-block";
+          const title = document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project";
+          const subtitle = document.createElement("div"); subtitle.className="card-subtitle";
+          const bits = []; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • ");
+          titleBlock.appendChild(title); titleBlock.appendChild(subtitle);
+          const tagEl = document.createElement("div"); const tagInfo = tagFromPercent(project.overallPercent); tagEl.className = "card-tag " + tagInfo.className; tagEl.textContent = tagInfo.text;
+          header.appendChild(titleBlock); header.appendChild(tagEl);
+
+          const footer = document.createElement("div"); footer.className="card-footer";
+          const created = document.createElement("span"); const date = new Date(project.createdAt || Date.now()); created.textContent = `Added: ${date.toLocaleDateString()}`;
+          const scoreSpan = document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`;
+          footer.appendChild(created); footer.appendChild(scoreSpan);
+
+          if (typeof project.lastDelta === "number") {
+            const trend = document.createElement("span"); const diff = project.lastDelta;
+            if (diff > 0) { trend.textContent = `Reassessment: Improved +${diff.toFixed(1)} pts`; trend.style.color = "#28c76f"; } else if (diff < 0) { trend.textContent = `Reassessment: Dropped ${diff.toFixed(1)} pts`; trend.style.color = "#ff4b5c"; } else { trend.textContent = "Reassessment: No change"; trend.style.color = "#9aa4c0"; }
+            footer.appendChild(trend);
+          }
+
+          const details = document.createElement("div"); details.className="details";
+          const rows = document.createElement("div"); rows.className="details-row";
+          const mapping = [["Development", project.scores.development], ["Location", project.scores.location], ["Masterplan", project.scores.masterplan], ["Facilities", project.scores.facilities], ["Type mix", project.scores.type], ["Price position", project.scores.price], ["Payment plan", project.scores.payment], ["Delivery", project.scores.delivery], ["Finishing", project.scores.finishing], ["Maintenance", project.scores.maintenance], ["Orientation", project.scores.orientation]];
+          mapping.forEach(([label, value]) => { const span = document.createElement("span"); const v = typeof value === "number" ? value.toFixed(1) : "-"; span.innerHTML = `<strong>${label}</strong><span>${v}/10</span>`; rows.appendChild(span); });
+          details.appendChild(rows);
+          if (project.notes && project.notes.trim()) { const note = document.createElement("div"); note.style.marginTop="4px"; note.textContent = `Notes: ${project.notes}`; details.appendChild(note); }
+
+          card.appendChild(header); card.appendChild(details); card.appendChild(footer);
+
+          let pressTimer=null; let longPressed=false;
+          card.addEventListener("pointerdown", ()=>{ longPressed=false; pressTimer=setTimeout(()=>{ const ok = confirm(`تمسح المشروع "${project.name}" نهائيًا؟`); if (ok){ longPressed=true; const realMember = member.isAllTeam ? state.members.find(m=>(m.projects||[]).some(p=>p.id===project.id)) : member; if (realMember){ realMember.projects = realMember.projects.filter(p=>p.id!==project.id); saveState(); renderAll(); } } else longPressed=false; },650); });
+          ["pointerup","pointerleave","pointercancel"].forEach(ev=> card.addEventListener(ev, ()=>{ if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }));
+          card.addEventListener("click", ()=>{ if (longPressed) return; card.classList.toggle("open"); if (!member.isAllTeam) startEditProject(project); });
+
+          projectsListEl.appendChild(card);
+        });
+      }
+
+      // training plan
+      const lines=[]; const summaryCounts={};
+      (member.projects || []).forEach(project => {
+        const weakPoints=[]; const s = project.scores || {};
+        Object.entries(s).forEach(([key, value])=> { const num = typeof value==="number"?value:0; const label = SCORE_LABELS[key] || key; if (num < 7) weakPoints.push(label); if (num <= 5) summaryCounts[label] = (summaryCounts[label]||0) + 1; });
+        if (weakPoints.length > 0) {
+          const ownerPrefix = member.isAllTeam && project.ownerName ? `${project.ownerName} – ` : `${member.name} – `;
+          lines.push(`${ownerPrefix}${project.name}: محتاج يزود مذاكرته في [${weakPoints.join("، ")}]`);
+        }
+      });
+
+      if (lines.length === 0) trainingListEl.textContent = "مفيش نقاط ضعف واضحة دلوقتي، شغل كويس 👌";
+      else { trainingListEl.innerHTML = ""; lines.forEach(l=>{ const div=document.createElement("div"); div.textContent = l; trainingListEl.appendChild(div); }); }
+
+      const summaryEntries = Object.entries(summaryCounts).sort((a,b)=>b[1]-a[1]);
+      if (summaryEntries.length === 0) trainingSummaryListEl.textContent = "مفيش نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع.";
+      else { trainingSummaryListEl.innerHTML = ""; summaryEntries.forEach(([label,count])=>{ const div=document.createElement("div"); div.textContent = `${label}: ظهر في ${count} مشروع بدرجات ≤ ٥`; trainingSummaryListEl.appendChild(div); }); }
+    }
+
+    function renderHeaderForMember(member){
+      if (!member) { currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member from the left to start assessment."; return; }
+      const currentDate = state.conversion.currentDate || todayISO();
+      if (member.isAllTeam) {
+        if (state.activeTab === "conversion") {
+          const avg = computeConversionAllTeamAverage(currentDate);
+          currentMemberTitle.textContent = "All team – Conversion";
+          currentMemberSub.textContent = `Overall team conversion (month): ${avg.toFixed(1)}% across ${state.members.length} member(s).`;
+        } else {
+          const avg = computeAssessmentAllTeamAverage();
+          currentMemberTitle.textContent = "All team – Assessment";
+          currentMemberSub.textContent = `Overall team assessment: ${avg.toFixed(1)}% – ${member.projects.length} project(s) total.`;
+        }
+      } else {
+        if (state.activeTab === "conversion") {
+          const avg = computeConversionMonthlyScoreForMember(member.id, currentDate);
+          currentMemberTitle.textContent = `${member.name} – Conversion`;
+          currentMemberSub.textContent = `Monthly conversion score: ${avg.toFixed(1)}% (based on targets & activities this month).`;
+        } else {
+          const avg = computeAssessmentAverage(member);
+          currentMemberTitle.textContent = member.name;
+          currentMemberSub.textContent = `Overall assessment: ${avg.toFixed(1)}% – ${member.projects.length} project(s) evaluated.`;
+        }
+      }
+    }
+
+    function clearForm(){ projectNameEl.value=""; projectDeveloperEl.value=""; projectRegionEl.value=""; projectNotesEl.value=""; scoreIds.forEach(id=>{ const el=document.getElementById(id); el.value=""; }); editingProjectId=null; formTitleEl.textContent = defaultFormTitle; }
+
+    // Add member
+    addMemberBtn.addEventListener("click", ()=>{ const name = newMemberInput.value.trim(); if (!name) return; const member = { id: uid(), name, projects: [] }; state.members.push(member); state.selectedMemberId = member.id; newMemberInput.value=""; saveState(); renderAll(); });
+    newMemberInput.addEventListener("keydown", e=>{ if (e.key === "Enter") addMemberBtn.click(); });
+
+    // Add/update project
+    addProjectBtn.addEventListener("click", ()=>{
+      let member = getCurrentMember(); if (!member || member.isAllTeam) { alert("Select a specific team member first (not All team)."); return; }
+      const realMember = state.members.find(m=>m.id===member.id); if (!realMember) return;
+      const name = projectNameEl.value.trim(); const developer = projectDeveloperEl.value.trim(); const region = projectRegionEl.value.trim(); if (!name){ alert("Please enter project name."); return; }
+      const scores = {}; let sum=0; let count=0;
+      function parseScore(id, keyName){ const el=document.getElementById(id); const v=parseFloat(el.value); const value = isNaN(v)?0:Math.min(Math.max(v,0),10); scores[keyName]=value; sum += value; count += 1; }
+      parseScore("scoreDevelopment","development"); parseScore("scoreLocation","location"); parseScore("scoreMasterplan","masterplan"); parseScore("scoreFacilities","facilities"); parseScore("scoreType","type"); parseScore("scorePrice","price"); parseScore("scorePayment","payment"); parseScore("scoreDelivery","delivery"); parseScore("scoreFinishing","finishing"); parseScore("scoreMaintenance","maintenance"); parseScore("scoreOrientation","orientation");
+      const avgScoreOutOf10 = count>0?sum/count:0; const overallPercent = (avgScoreOutOf10/10)*100;
+      let isEdit=false;
+      if (editingProjectId){
+        const existing = realMember.projects.find(p=>p.id===editingProjectId);
+        if (existing){ isEdit=true; const oldOverall = existing.overallPercent || 0; existing.name = name; existing.developer = developer; existing.region = region; existing.scores = scores; existing.notes = projectNotesEl.value.trim(); existing.lastReassessedAt = Date.now(); existing.lastDelta = overallPercent - oldOverall; existing.overallPercent = overallPercent; }
+      }
+      if (!isEdit){ const project = { id: uid(), name, developer, region, scores, notes: projectNotesEl.value.trim(), overallPercent, createdAt: Date.now() }; realMember.projects.push(project); }
+      saveState(); clearForm(); renderAll();
+    });
+
+    cancelEditBtn.addEventListener("click", ()=> clearForm());
+
+    regionFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
+    developerFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
+
+    // Export / backup / restore
+    exportBtn.addEventListener("click", ()=>{
+      const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
+      if (state.activeTab === "assessment") {
+        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
+        projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+        const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
+        const limited = lowProjects.slice(0,5);
+        printProjectsListEl.innerHTML = "";
+        if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
+        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
+      }
+      window.print();
+    });
+
+    backupBtn.addEventListener("click", ()=>{
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download = `br_assessment_backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    });
+
+    restoreFileInput.addEventListener("change", e=>{
+      const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+      reader.onload = evt => { try { const data = JSON.parse(evt.target.result); if (!data || !Array.isArray(data.members)) { alert("Invalid backup file."); return; } state = data; initConversionState(); saveState(); renderAll(); alert("Backup restored successfully."); } catch(err){ console.error(err); alert("Failed to read backup file."); } };
+      reader.readAsText(file); restoreFileInput.value="";
+    });
+
+    restoreAutoBtn.addEventListener("click", ()=>{
+      const raw = localStorage.getItem(AUTO_BACKUP_KEY); if (!raw) { alert("No auto backup found."); return; }
+      try { const data = JSON.parse(raw); if (!data || !Array.isArray(data.members)) { alert("Invalid auto backup data."); return; } state = data; initConversionState(); saveState(); renderAll(); alert("Auto backup restored."); } catch(e){ console.error(e); alert("Failed to restore auto backup."); }
+    });
+
+    // Tabs switching
+    tabButtons.forEach(btn=> btn.addEventListener("click", ()=>{ const tab = btn.dataset.tab; state.activeTab = tab; saveState(); renderAll(); }));
+
+    function renderTabs(){
+      tabButtons.forEach(btn=> btn.classList.toggle("active", btn.dataset.tab === state.activeTab));
+      assessmentTabEl.classList.toggle("hidden", state.activeTab !== "assessment");
+      conversionTabEl.classList.toggle("hidden", state.activeTab !== "conversion");
+      overviewTabEl.classList.toggle("hidden", state.activeTab !== "overview");
+    }
+
+    // Conversion targets rendering
+    function renderConversionTargets(){
+      initConversionState();
+      const dateStr = state.conversion.currentDate || todayISO(); const days = daysInMonth(dateStr);
+      convTargetsBody.innerHTML = "";
+      CONV_TARGET_METRICS.forEach(metric=>{
+        const row = document.createElement("tr");
+        const cfg = state.conversion.targets[metric] || { mode:"day", value:0 };
+        const daily = cfg.mode === "day" ? cfg.value : (cfg.value||0)/days;
+        const monthly = cfg.mode === "day" ? (cfg.value||0)*days : cfg.value||0;
+        const tdLabel = document.createElement("td"); tdLabel.textContent = CONV_LABELS[metric];
+        const tdValue = document.createElement("td"); const input = document.createElement("input"); input.type="number"; input.step="1"; input.value = cfg.value ?? 0;
+        input.addEventListener("change", ()=>{ const v = parseFloat(input.value); state.conversion.targets[metric].value = isNaN(v)?0:v; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member); });
+        tdValue.appendChild(input);
+        const tdMode = document.createElement("td"); const sel = document.createElement("select"); ["day","month"].forEach(mode=>{ const opt=document.createElement("option"); opt.value=mode; opt.textContent = mode==="day" ? "Per day" : "Per month"; sel.appendChild(opt); }); sel.value = cfg.mode;
+        sel.addEventListener("change", ()=>{ state.conversion.targets[metric].mode = sel.value; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member); });
+        tdMode.appendChild(sel);
+        const tdDaily = document.createElement("td"); tdDaily.textContent = daily ? daily.toFixed(1) : "-";
+        const tdMonthly = document.createElement("td"); tdMonthly.textContent = monthly ? monthly.toFixed(1) : "-";
+        row.appendChild(tdLabel); row.appendChild(tdValue); row.appendChild(tdMode); row.appendChild(tdDaily); row.appendChild(tdMonthly);
+        convTargetsBody.appendChild(row);
+      });
+    }
+
+    // Conversion table rendering
+    function renderConversionTable(){
+      convTableBody.innerHTML = "";
+      const dateStr = state.conversion.currentDate || todayISO();
+      convDateEl.value = dateStr;
+      const entriesForDay = state.conversion.entries[dateStr] || {};
+
+      if (!state.members.length) {
+        const tr = document.createElement("tr"); const td=document.createElement("td"); td.colSpan=9; td.textContent="Add team members from Assessment tab first."; tr.appendChild(td); convTableBody.appendChild(tr); convSummaryEl.textContent="مفيش تيم لسه."; return;
+      }
+
+      const totalsToday = {}; CONV_METRICS.forEach(m=> totalsToday[m]=0);
+      const [year,month] = dateStr.split("-"); const monthPrefix = `${year}-${month}`;
+      const monthlyTotalsBySales = {};
+      state.members.forEach(member=>{
+        const totals = {}; CONV_METRICS.forEach(m=> totals[m]=0);
+        Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
+          if (!d.startsWith(monthPrefix)) return;
+          const entry = perMember[member.id]; if (!entry) return;
+          CONV_METRICS.forEach(metric => totals[metric] += entry[metric] || 0);
+        });
+        monthlyTotalsBySales[member.id] = totals;
+      });
+
+      const monthlyTargetPerMetric = {}; CONV_METRICS.forEach(metric => monthlyTargetPerMetric[metric] = getMonthlyTarget(metric, dateStr));
+
+      state.members.forEach(member=>{
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td"); nameTd.className="sales-name-cell"; nameTd.textContent = member.name; tr.appendChild(nameTd);
+        let sumPercents=0; let countPercents=0;
+        const entryForDay = entriesForDay[member.id] || {};
+        CONV_METRICS.forEach(metric => {
+          const td = document.createElement("td");
+          const input = document.createElement("input"); input.type="number"; input.step="1";
+          const current = entryForDay[metric] || 0; input.value = current;
+          input.addEventListener("change", ()=> {
+            const v = parseFloat(input.value);
+            if (!state.conversion.entries[dateStr]) state.conversion.entries[dateStr] = {};
+            if (!state.conversion.entries[dateStr][member.id]) state.conversion.entries[dateStr][member.id] = {};
+            state.conversion.entries[dateStr][member.id][metric] = isNaN(v)?0:v;
+            saveState(); renderConversionTable(); renderTeamList(); const m = getCurrentMember(); renderHeaderForMember(m);
+          });
+          td.appendChild(input);
+          const dailyTarget = getDailyTargetForPercent(metric, dateStr);
+          if (hasTarget(metric) && dailyTarget > 0) {
+            let percent = (current / dailyTarget) * 100;
+            const span = document.createElement("div"); span.className = "percent-chip " + percentClass(percent); span.textContent = `${percent.toFixed(0)}%`;
+            td.appendChild(span);
+            sumPercents += percent; countPercents++;
+          }
+          totalsToday[metric] += current;
+          tr.appendChild(td);
+        });
+        const tdTotal = document.createElement("td");
+        if (countPercents > 0) { const avgPercent = sumPercents / countPercents; const span = document.createElement("span"); span.className = percentClass(avgPercent); span.textContent = `${avgPercent.toFixed(0)}%`; tdTotal.appendChild(span); } else tdTotal.textContent = "-";
+        tr.appendChild(tdTotal);
+        convTableBody.appendChild(tr);
+
+        // sales total row
+        const totalsForSales = monthlyTotalsBySales[member.id] || {};
+        const totalRow = document.createElement("tr"); totalRow.className="sales-total-row";
+        const totalNameTd = document.createElement("td"); totalNameTd.className="sales-name-cell"; totalNameTd.textContent = `${member.name} total`; totalRow.appendChild(totalNameTd);
+        let monthlySumPercents=0; let monthlyCountPercents=0;
+        CONV_METRICS.forEach(metric=>{
+          const td = document.createElement("td"); const totalVal = totalsForSales[metric] || 0; const monthlyTarget = monthlyTargetPerMetric[metric] || 0;
+          if (hasTarget(metric) && monthlyTarget > 0) {
+            const pct = (totalVal / monthlyTarget) * 100;
+            td.textContent = `${totalVal} - `;
+            const span = document.createElement("span"); span.className = "percent-chip " + percentClass(pct); span.textContent = `${pct.toFixed(0)}%`; td.appendChild(span);
+            monthlySumPercents += pct; monthlyCountPercents++;
+          } else { td.textContent = totalVal || 0; }
+          totalRow.appendChild(td);
+        });
+        const tdTotalMonth = document.createElement("td");
+        if (monthlyCountPercents>0) { const avgMonth = monthlySumPercents / monthlyCountPercents; const span = document.createElement("span"); span.className = percentClass(avgMonth); span.textContent = `${avgMonth.toFixed(0)}%`; tdTotalMonth.appendChild(span); } else tdTotalMonth.textContent="-";
+        totalRow.appendChild(tdTotalMonth);
+        convTableBody.appendChild(totalRow);
+      });
+
+      // summary for the day
+      const lines = [];
+      CONV_METRICS.forEach(metric => {
+        const total = totalsToday[metric];
+        let line = `${CONV_LABELS[metric]}: ${total}`;
+        const dailyTarget = getDailyTargetForPercent(metric, state.conversion.currentDate || todayISO());
+        const teamTarget = hasTarget(metric) && dailyTarget > 0 ? dailyTarget * state.members.length : 0;
+        if (teamTarget > 0) {
+          const pct = (total / teamTarget) * 100;
+          line += ` / team daily target ${teamTarget.toFixed(1)} → ${pct.toFixed(0)}%`;
+        }
+        lines.push(line);
+      });
+
+      if (!Object.values(totalsToday).some(v=> v>0)) convSummaryEl.textContent = "مفيش أرقام لليوم ده لسه.";
+      else convSummaryEl.innerHTML = lines.map(l=> `<div class="conversion-summary-line">${l}</div>`).join("");
+    }
+
+    convDateEl.addEventListener("change", ()=>{
+      const val = convDateEl.value || todayISO(); state.conversion.currentDate = val; saveState(); renderConversionTargets(); renderConversionTable(); renderTeamList(); const member = getCurrentMember(); renderHeaderForMember(member);
+    });
+
+    // ===== Overview tab logic =====
+    // overview month input: default to current month
+    function monthToInputValue(dateStr){
+      // dateStr "YYYY-MM-DD" or "YYYY-MM"
+      if (!dateStr) return "";
+      const parts = dateStr.split("-"); return `${parts[0]}-${parts[1]}`;
+    }
+
+    overviewMonthInput.addEventListener("change", ()=> { renderMembersOverview(); });
+
+    function previousMonthPrefixFromMonthValue(monthValue){
+      // monthValue "YYYY-MM"
+      if (!monthValue) return null;
+      const [y,m] = monthValue.split("-").map(n=>parseInt(n,10));
+      const d = new Date(y, m-1, 1);
+      d.setMonth(d.getMonth() - 1);
+      const py = d.getFullYear(); const pm = String(d.getMonth()+1).padStart(2,"0");
+      return `${py}-${pm}`;
+    }
+
+    function computeMemberCombined(member, monthValue){
+      // 50/50 weighting: assessment average (0-100) and conversion monthly % (0-100)
+      // monthValue is "YYYY-MM" or null -> use state.conversion.currentDate month
+      const assessment = computeAssessmentAverage(member); // 0-100
+      let monthStr;
+      if (monthValue) monthStr = monthValue + "-01"; else monthStr = state.conversion.currentDate || todayISO();
+      const conv = computeConversionMonthlyScoreForMember(member.id, monthStr);
+      // if assessment or conv are NaN ensure numbers
+      const a = isFinite(assessment) ? assessment : 0;
+      const c = isFinite(conv) ? conv : 0;
+      const combined = (a * 0.5) + (c * 0.5);
+      return { assessment: a, conversion: c, combined };
+    }
+
+    function renderMembersOverview(){
+      overviewGrid.innerHTML = "";
+      // set overview month label
+      const monthValue = overviewMonthInput.value || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
+      overviewDateLabel.textContent = monthValue;
+      // for each member render card
+      state.members.forEach(member=>{
+        const { assessment, conversion, combined } = computeMemberCombined(member, monthValue);
+        const card = document.createElement("div"); card.className = "member-card";
+        const top = document.createElement("div"); top.className = "member-top";
+        const left = document.createElement("div");
+        const name = document.createElement("div"); name.className="member-name"; name.textContent = member.name;
+        const meta = document.createElement("div"); meta.className="member-meta"; meta.textContent = `${(member.projects?.length||0)} project(s)`;
+        left.appendChild(name); left.appendChild(meta);
+
+        // pill color same logic as team list for combined
+        const pill = document.createElement("div"); pill.className = "team-score-pill";
+        pill.textContent = `${combined.toFixed(0)}%`;
+        if (combined < 60) pill.classList.add("pill-red"); else if (combined < 80) pill.classList.add("pill-yellow"); else pill.classList.add("pill-green");
+
+        top.appendChild(left); top.appendChild(pill);
+        card.appendChild(top);
+
+        const scoresRow = document.createElement("div"); scoresRow.className="scores-row";
+        const blockA = document.createElement("div"); blockA.className="score-block";
+        blockA.innerHTML = `<div class="score-label">Assessment</div><div class="score-value">${assessment.toFixed(0)}%</div>`;
+        const blockB = document.createElement("div"); blockB.className="score-block";
+        blockB.innerHTML = `<div class="score-label">Conversion (${monthValue})</div><div class="score-value">${conversion.toFixed(0)}%</div>`;
+        scoresRow.appendChild(blockA); scoresRow.appendChild(blockB);
+        card.appendChild(scoresRow);
+
+        const totalRow = document.createElement("div"); totalRow.className="total-performance";
+        const leftTotal = document.createElement("div"); leftTotal.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">Total performance (50/50)</div><div style="font-weight:700;font-size:16px">${combined.toFixed(0)}%</div>`;
+        const trendEl = document.createElement("div"); trendEl.className="trend";
+        // compute previous month combined and show arrow + diff
+        const prevMonthPrefix = previousMonthPrefixFromMonthValue(monthValue);
+        let prevCombined = 0;
+        if (prevMonthPrefix) {
+          // construct a dateStr like "YYYY-MM-01" to pass into conversion calc
+          const prevDateStr = prevMonthPrefix + "-01";
+          const prevAssessment = computeAssessmentAverage(member); // assessment is not time-based here, so same for prev - acceptable unless user wanted different
+          const prevConv = computeConversionMonthlyScoreForMember(member.id, prevDateStr);
+          prevCombined = (prevAssessment*0.5) + (prevConv*0.5);
+        } else {
+          prevCombined = combined; // flat if no prev
+        }
+        const diff = combined - prevCombined;
+        if (diff > 0.5) { trendEl.classList.add("up"); trendEl.innerHTML = `<span>▲</span><span>+${diff.toFixed(1)}%</span>`; }
+        else if (diff < -0.5) { trendEl.classList.add("down"); trendEl.innerHTML = `<span>▼</span><span>${diff.toFixed(1)}%</span>`; }
+        else { trendEl.classList.add("flat"); trendEl.innerHTML = `<span>—</span><span>0.0%</span>`; }
+
+        totalRow.appendChild(leftTotal); totalRow.appendChild(trendEl);
+        card.appendChild(totalRow);
+
+        overviewGrid.appendChild(card);
+      });
+    }
+
+    // Render all conversion targets, table, team, projects, overview
+    function renderAll(){
+      renderTabs();
+      renderTeamList();
+      const member = getCurrentMember();
+      renderHeaderForMember(member);
+      renderFiltersAndStats(member);
+      renderProjectsList(member);
+
+      if (!state.conversion.currentDate) state.conversion.currentDate = todayISO();
+      renderConversionTargets();
+      renderConversionTable();
+
+      // overview defaults
+      // set overview month input to currently selected conversion month if empty
+      if (!overviewMonthInput.value) overviewMonthInput.value = (state.conversion.currentDate || todayISO()).slice(0,7);
+      renderMembersOverview();
+    }
 
     // init load
     loadState();
     renderAll();
-
-    /* =========================
-       Cloud Sync Module (Gist) — integrated with STORAGE_KEY
-       - Auto-sync every 60s (can change from settings)
-       - Prompt for token first time
-       - Default gistId set to your Gist (changeable via UI)
-       ========================= */
-
-    (function BRCloudSync(){
-      const DEFAULT_GIST_ID = '46451b1db133cb423ed7dc856f957c24';
-      const GIST_FILENAME = 'br_assessment_cloud.json';
-      const LS_TOKEN_KEY = 'br_assessment_gist_token';
-      const LS_GIST_KEY  = 'br_assessment_gist_id';
-      // we will use the app STORAGE_KEY as source-of-truth snapshot
-      const APP_STORAGE_KEY = STORAGE_KEY; // "br_assessment_v3"
-      const DEFAULT_INTERVAL_MS = 60 * 1000; // every minute
-
-      let token = localStorage.getItem(LS_TOKEN_KEY) || null;
-      let gistId = localStorage.getItem(LS_GIST_KEY) || DEFAULT_GIST_ID;
-      let autoIntervalMs = DEFAULT_INTERVAL_MS;
-      let autoTimer = null;
-      let isSyncing = false;
-
-      function headers(){
-        return {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': token ? ('token ' + token) : '',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type': 'application/json'
-        };
-      }
-
-      async function getGist(){
-        const url = `https://api.github.com/gists/${gistId}`;
-        const res = await fetch(url, { headers: headers() });
-        if (!res.ok) throw new Error('Gist GET failed: ' + res.status);
-        return res.json();
-      }
-
-      async function patchGist(contentString, message='Update from BR Assessment'){
-        const url = `https://api.github.com/gists/${gistId}`;
-        const body = JSON.stringify({
-          files: { [GIST_FILENAME]: { content: contentString } },
-          description: message
-        });
-        const res = await fetch(url, { method: 'PATCH', headers: headers(), body });
-        if (!res.ok) throw new Error('Gist PATCH failed: ' + res.status);
-        return res.json();
-      }
-
-      async function downloadCloud(){
-        const gist = await getGist();
-        const file = gist.files && gist.files[GIST_FILENAME];
-        if (!file) return null;
-        try { return JSON.parse(file.content || '{}'); } catch(e){ console.warn('cloud parse', e); return null; }
-      }
-
-      async function uploadCloud(obj){
-        const payload = { metadata: { ts: new Date().toISOString(), origin: location.hostname }, data: obj };
-        const content = JSON.stringify(payload, null, 2);
-        return await patchGist(content);
-      }
-
-      function readLocalAppState(){
-        try { const raw = localStorage.getItem(APP_STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch(e){ return null; }
-      }
-      function writeLocalAppState(obj){
-        try { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(obj)); } catch(e){ console.warn('write local failed', e); }
-      }
-
-      function smartMerge(localObj, cloudObj){
-        function merge(a,b){
-          if (a === undefined) return b;
-          if (b === undefined) return a;
-          if (Array.isArray(a) && Array.isArray(b)) return b.length ? b : a;
-          if (typeof a === 'object' && typeof b === 'object') {
-            const out = {...a};
-            Object.keys(b).forEach(k=>{ out[k] = merge(a[k], b[k]); });
-            return out;
-          }
-          return b;
-        }
-        return merge(localObj, cloudObj);
-      }
-
-      // UI
-      function createUI(){
-        if (document.getElementById('br-cloudsync-ui')) return;
-        const C = document.createElement('div'); C.id = 'br-cloudsync-ui';
-        C.style.position = 'fixed'; C.style.bottom = '18px'; C.style.right = '18px'; C.style.zIndex = '99999'; C.style.fontFamily = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto';
-        C.style.display = 'flex'; C.style.flexDirection = 'column'; C.style.gap = '8px';
-
-        const box = document.createElement('div');
-        box.style.background = 'rgba(20,20,25,0.95)'; box.style.color = '#fff'; box.style.padding = '10px'; box.style.borderRadius = '12px'; box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.45)'; box.style.minWidth = '200px';
-
-        const title = document.createElement('div'); title.textContent = 'Cloud Sync'; title.style.fontWeight='700'; title.style.marginBottom='8px'; box.appendChild(title);
-
-        const status = document.createElement('div'); status.id='br-cloud-status'; status.textContent='Idle'; status.style.fontSize='12px'; status.style.opacity='0.9'; status.style.marginBottom='8px'; box.appendChild(status);
-
-        const row = document.createElement('div'); row.style.display='flex'; row.style.gap='6px';
-        const btnSync = document.createElement('button'); btnSync.textContent='Sync Now'; btnSync.style.flex='1'; btnSync.style.padding='6px'; btnSync.style.borderRadius='8px'; btnSync.style.border='none'; btnSync.style.cursor='pointer'; btnSync.style.background='#2563eb'; btnSync.style.color='#fff';
-        btnSync.onclick = ()=> autoSyncNow();
-        const btnRestore = document.createElement('button'); btnRestore.textContent='Restore'; btnRestore.style.flex='1'; btnRestore.style.padding='6px'; btnRestore.style.borderRadius='8px'; btnRestore.style.border='none'; btnRestore.style.cursor='pointer'; btnRestore.style.background='#10b981'; btnRestore.style.color='#fff';
-        btnRestore.onclick = async ()=>{
-          try {
-            if (!token) { alert('No token set. Open Settings.'); return; }
-            const cloud = await downloadCloud();
-            if (!cloud || !cloud.data) { alert('No cloud data found'); setStatus('No cloud data'); return; }
-            writeLocalAppState(cloud.data);
-            // force app reload of state
-            state = cloud.data;
-            initConversionState();
-            saveState();
-            renderAll();
-            alert('Restored latest cloud snapshot.');
-            setStatus('Restored from cloud');
-          } catch(e) { console.warn(e); alert('Restore failed'); setStatus('Restore failed'); }
-        };
-        row.appendChild(btnSync); row.appendChild(btnRestore);
-        box.appendChild(row);
-
-        const srow = document.createElement('div'); srow.style.display='flex'; srow.style.gap='6px'; srow.style.marginTop='8px';
-        const btnSettings = document.createElement('button'); btnSettings.textContent='Settings'; btnSettings.style.flex='1'; btnSettings.style.padding='6px'; btnSettings.style.borderRadius='8px'; btnSettings.style.border='1px solid rgba(255,255,255,0.06)'; btnSettings.style.background='transparent'; btnSettings.style.color='#fff';
-        const btnHist = document.createElement('button'); btnHist.textContent='History'; btnHist.style.flex='1'; btnHist.style.padding='6px'; btnHist.style.borderRadius='8px'; btnHist.style.border='1px solid rgba(255,255,255,0.06)'; btnHist.style.background='transparent'; btnHist.style.color='#fff';
-        srow.appendChild(btnSettings); srow.appendChild(btnHist);
-        box.appendChild(srow);
-
-        C.appendChild(box);
-        document.body.appendChild(C);
-
-        // Settings modal
-        const modal = document.createElement('div'); modal.id='br-cloud-modal'; modal.style.position='fixed'; modal.style.left='50%'; modal.style.top='50%'; modal.style.transform='translate(-50%,-50%)'; modal.style.background='#0b0b0f'; modal.style.color='#fff'; modal.style.padding='18px'; modal.style.borderRadius='12px'; modal.style.boxShadow='0 12px 40px rgba(0,0,0,0.6)'; modal.style.zIndex='100000'; modal.style.minWidth='320px'; modal.style.display='none';
-        modal.innerHTML = `
-          <div style="font-weight:700;margin-bottom:8px;">Cloud Sync Settings</div>
-          <div style="font-size:13px;margin-bottom:8px;">Gist ID</div>
-          <input id="br_gist_input" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0f1113;color:#fff;margin-bottom:8px;">
-          <div style="font-size:13px;margin-bottom:8px;">Personal Token (stored locally)</div>
-          <input id="br_token_input" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0f1113;color:#fff;margin-bottom:8px;">
-          <div style="margin-top:10px;font-size:12px;color:#bbb;">Auto-sync interval (seconds)</div>
-          <input id="br_interval_input" type="number" min="10" step="10" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0f1113;color:#fff;margin-top:6px;">
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button id="br_save_settings" style="flex:1;padding:8px;background:#2563eb;border:none;color:#fff;border-radius:8px;cursor:pointer;">Save</button>
-            <button id="br_close_settings" style="flex:1;padding:8px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff;border-radius:8px;cursor:pointer;">Close</button>
-          </div>
-        `;
-        document.body.appendChild(modal);
-
-        btnSettings.onclick = ()=>{
-          modal.style.display='block';
-          (document.getElementById('br_gist_input')).value = gistId || '';
-          (document.getElementById('br_token_input')).value = token ? token.replace(/.(?=.{4})/g, '*') : '';
-          (document.getElementById('br_interval_input')).value = (autoIntervalMs/1000).toString();
-        };
-        document.getElementById('br_close_settings').onclick = ()=> modal.style.display='none';
-        document.getElementById('br_save_settings').onclick = ()=>{
-          const newGist = (document.getElementById('br_gist_input')).value.trim();
-          const newToken = (document.getElementById('br_token_input')).value.trim();
-          const newInterval = parseInt((document.getElementById('br_interval_input')).value || '60', 10);
-          if (newGist) { gistId = newGist; localStorage.setItem(LS_GIST_KEY, gistId); }
-          if (newToken) { token = newToken; localStorage.setItem(LS_TOKEN_KEY, token); }
-          autoIntervalMs = (isFinite(newInterval) && newInterval >= 10) ? (newInterval*1000) : DEFAULT_INTERVAL_MS;
-          if (autoTimer) { clearInterval(autoTimer); autoTimer = setInterval(autoSyncNow, autoIntervalMs); }
-          modal.style.display='none';
-          setStatus('Settings saved');
-        };
-
-        // history button: fetch gist commits and show simple list
-        btnHist.onclick = async ()=>{
-          if (!token) { alert('Set token in Settings first'); return; }
-          try {
-            const commitsUrl = `https://api.github.com/gists/${gistId}/commits`;
-            const res = await fetch(commitsUrl, { headers: headers() });
-            if (!res.ok) throw new Error('Commits fetch failed: ' + res.status);
-            const commits = await res.json();
-            const list = commits.map(c => `${new Date(c.version ? Date.parse(c.committed_at) : c.committed_at).toLocaleString()} — ${c.version || c.url}`).join('\n');
-            alert('Gist history (recent):\n\n' + list);
-          } catch(e) { console.warn(e); alert('Failed to fetch history'); }
-        };
-      }
-
-      function setStatus(text){
-        const s = document.getElementById('br-cloud-status'); if (s) s.textContent = text;
-      }
-
-      async function downloadAndMerge(){
-        setStatus('Sync: pulling...');
-        try {
-          const cloud = await downloadCloud();
-          const local = readLocalAppState();
-          if (!cloud && !local) { setStatus('No data found'); return null; }
-          if (!cloud && local) {
-            await uploadCloud(local);
-            setStatus('Bootstrapped cloud from local');
-            return local;
-          }
-          if (cloud && !local) {
-            writeLocalAppState(cloud.data);
-            // apply to app
-            state = cloud.data;
-            initConversionState();
-            saveState();
-            renderAll();
-            setStatus('Restored local from cloud');
-            return cloud.data;
-          }
-          // both exist -> merge
-          const merged = smartMerge(local, cloud.data);
-          writeLocalAppState(merged);
-          await uploadCloud(merged);
-          state = merged;
-          initConversionState();
-          saveState();
-          renderAll();
-          setStatus('Merged local & cloud');
-          return merged;
-        } catch(e) {
-          console.warn(e);
-          setStatus('Sync failed');
-          throw e;
-        }
-      }
-
-      async function autoSyncNow(){
-        if (!token) { setStatus('No token - open Settings'); return; }
-        if (isSyncing) return;
-        isSyncing = true; setStatus('Syncing...');
-        try {
-          // capture snapshot from STORAGE_KEY (app state)
-          const snapshot = readLocalAppState();
-          if (!snapshot) { setStatus('No local state to upload'); isSyncing=false; return; }
-          // upload
-          await uploadCloud(snapshot);
-          setStatus('Synced: ' + new Date().toLocaleTimeString());
-        } catch(e) {
-          console.warn(e); setStatus('Sync error');
-        } finally { isSyncing = false; }
-      }
-
-      function startAuto(){
-        if (autoTimer) clearInterval(autoTimer);
-        autoTimer = setInterval(autoSyncNow, autoIntervalMs);
-        setStatus('Auto-sync every ' + (autoIntervalMs/1000) + 's');
-      }
-      function stopAuto(){ if (autoTimer) { clearInterval(autoTimer); autoTimer = null; setStatus('Auto-sync stopped'); } }
-
-      // init sequence
-      (function init(){
-        createUI();
-        // ensure gistId saved locally
-        localStorage.setItem(LS_GIST_KEY, gistId);
-        // prompt for token if not set
-        if (!token) {
-          // prompt but wrapped so iOS accepts it inside user gesture? we still prompt on load
-          try {
-            const t = prompt('Enter your GitHub Personal Access Token (gist scope). Will be stored locally on this device only.');
-            if (t) { token = t; localStorage.setItem(LS_TOKEN_KEY, token); }
-          } catch(e){}
-        }
-        // try initial download & merge if token present
-        if (token) {
-          downloadAndMerge().catch(e=> console.warn('initial sync failed', e));
-        } else {
-          setStatus('Token not set');
-        }
-        // start auto
-        startAuto();
-      })();
-
-      // expose for debugging (optional)
-      window.brCloudSync = {
-        downloadAndMerge,
-        autoSyncNow,
-        startAuto,
-        stopAuto,
-        setToken: (t)=>{ token = t; localStorage.setItem(LS_TOKEN_KEY, t); },
-        setGistId: (g)=>{ gistId = g; localStorage.setItem(LS_GIST_KEY, g); },
-      };
-
-    })();
-
   </script>
 </body>
-</html>‏</html>
+</html>
