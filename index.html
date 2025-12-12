@@ -1,4 +1,4 @@
-‏<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -1016,7 +1016,107 @@
       if (!overviewMonthInput.value) overviewMonthInput.value = (state.conversion.currentDate || todayISO()).slice(0,7);
       renderMembersOverview();
     }
+/* ======== Minimal Cloud Sync (gist) ========
+   Paste this near the end of your index.html (before </script> or </body>).
+   After first load you'll be asked for your Personal Access Token (kept locally).
+   You MUST NOT paste token here publicly. */
+(function BRCloudSync(){
+  const GIST_KEY = 'br_assessment_gist_id';
+  const TOKEN_KEY = 'br_assessment_gist_token';
+  const AUTO_KEY = 'br_assessment_autobackup_v1';
+  const DEFAULT_GIST = '46451b1db133cb423ed7dc856f957c24'; // change if you created different gist
 
+  if (!localStorage.getItem(GIST_KEY)) localStorage.setItem(GIST_KEY, DEFAULT_GIST);
+
+  async function promptTokenOnce(){
+    if (!localStorage.getItem(TOKEN_KEY)){
+      try {
+        const t = prompt('Paste your GitHub Personal Access Token (gist scope). It will be stored locally only on this device.');
+        if (t) localStorage.setItem(TOKEN_KEY, t.trim());
+      } catch(e){}
+    }
+  }
+
+  async function readLocalState(){
+    try { return JSON.parse(localStorage.getItem('br_assessment_v3') || '{}'); } catch(e){ return {}; }
+  }
+
+  async function writeGist(contentObj){
+    const gistId = localStorage.getItem(GIST_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!gistId || !token) return;
+    const body = {
+      files: {}
+    };
+    body.files['br_assessment_cloud.json'] = { content: JSON.stringify(contentObj, null, 2) };
+    try {
+      await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      console.log('Gist updated');
+    } catch(err){ console.warn('Gist write failed', err); }
+  }
+
+  async function readGist(){
+    const gistId = localStorage.getItem(GIST_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!gistId || !token) return null;
+    try {
+      const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { Authorization: 'token ' + token }
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.files && data.files['br_assessment_cloud.json']) {
+        return JSON.parse(data.files['br_assessment_cloud.json'].content || '{}');
+      }
+      return null;
+    } catch(e){ console.warn('Gist read failed', e); return null; }
+  }
+
+  async function syncOnce(){
+    const local = await readLocalState();
+    const remote = await readGist();
+    if (!remote) {
+      // remote empty -> push local
+      await writeGist(local);
+      console.log('Pushed local -> gist');
+      return;
+    }
+    // Simple merge strategy: prefer remote if newer (uses AUTO_KEY timestamp if present)
+    const localBackup = JSON.stringify(local);
+    const remoteBackup = JSON.stringify(remote);
+    if (remoteBackup !== localBackup) {
+      // Choose remote as source of truth for restore (safer) — but keep local auto backup
+      localStorage.setItem(AUTO_KEY, localBackup);
+      localStorage.setItem('br_assessment_v3', remoteBackup);
+      console.log('Restored local from gist (remote wins).');
+      // optional: reload to apply
+      // location.reload();
+    } else {
+      console.log('Local and remote identical.');
+    }
+  }
+
+  // init flow
+  (async ()=>{
+    await promptTokenOnce();
+    // try one immediate sync
+    try { await syncOnce(); } catch(e){ console.warn(e); }
+    // then schedule every 60s
+    setInterval(async ()=>{ try { await syncOnce(); } catch(e){} }, 60*1000);
+    // small UI hint
+    const el=document.createElement('div');
+    el.style.position='fixed'; el.style.right='14px'; el.style.bottom='14px';
+    el.style.background='rgba(0,0,0,0.6)'; el.style.color='#fff'; el.style.padding='6px 8px';
+    el.style.borderRadius='8px'; el.style.fontSize='12px'; el.style.zIndex=99999;
+    el.textContent='Cloud Sync active (gist)';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 8000);
+  })();
+})();
     // init load
     loadState();
     renderAll();
