@@ -1,8 +1,12 @@
-‏<!DOCTYPE html><!DOCTYPE html><!DOCTYPE html>
+‏<!DOCTYPE html><!DOCTYPE html><!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Projects Assessment – Real Estate Team</title>
+
+  <!-- html2pdf via CDN (for PDF export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
   <style>
     :root {
       --bg: #0b0d10;
@@ -632,7 +636,26 @@
     function tagFromPercent(percent){ if (percent < 60) return { text: "Needs Training", className: "tag-red" }; if (percent < 80) return { text: "Average", className: "tag-yellow" }; return { text: "Confident", className: "tag-green" }; }
 
     // Edit project load
-    function startEditProject(project){ editingProjectId = project.id; formTitleEl.textContent = `Editing: ${project.name || "project"}`; projectNameEl.value = project.name || ""; projectDeveloperEl.value = project.developer || ""; projectRegionEl.value = project.region || ""; projectNotesEl.value = project.notes || ""; const s = project.scores || {}; document.getElementById("scoreDevelopment").value = typeof s.development==="number"?s.development:""; document.getElementById("scoreLocation").value = typeof s.location==="number"?s.location:""; document.getElementById("scoreMasterplan").value = typeof s.masterplan==="number"?s.masterplan:""; document.getElementById("scoreFacilities").value = typeof s.facilities==="number"?s.facilities:""; document.getElementById("scoreType").value = typeof s.type==="number"?s.type:""; document.getElementById("scorePrice").value = typeof s.price==="number"?s.price:""; document.getElementById("scorePayment").value = typeof s.payment==="number"?s.payment:""; document.getElementById("scoreDelivery").value = typeof s.delivery==="number"?s.delivery:""; document.getElementById("scoreFinishing").value = typeof s.finishing==="number"?s.finishing:""; document.getElementById("scoreMaintenance").value = typeof s.maintenance==="number"?s.maintenance:""; document.getElementById("scoreOrientation").value = typeof s.orientation==="number"?s.orientation:""; }
+    function startEditProject(project){
+      editingProjectId = project.id;
+      formTitleEl.textContent = `Editing: ${project.name || "project"}`;
+      projectNameEl.value = project.name || "";
+      projectDeveloperEl.value = project.developer || "";
+      projectRegionEl.value = project.region || "";
+      projectNotesEl.value = project.notes || "";
+      const s = project.scores || {};
+      document.getElementById("scoreDevelopment").value = typeof s.development==="number"?s.development:"";
+      document.getElementById("scoreLocation").value = typeof s.location==="number"?s.location:"";
+      document.getElementById("scoreMasterplan").value = typeof s.masterplan==="number"?s.masterplan:"";
+      document.getElementById("scoreFacilities").value = typeof s.facilities==="number"?s.facilities:"";
+      document.getElementById("scoreType").value = typeof s.type==="number"?s.type:"";
+      document.getElementById("scorePrice").value = typeof s.price==="number"?s.price:"";
+      document.getElementById("scorePayment").value = typeof s.payment==="number"?s.payment:"";
+      document.getElementById("scoreDelivery").value = typeof s.delivery==="number"?s.delivery:"";
+      document.getElementById("scoreFinishing").value = typeof s.finishing==="number"?s.finishing:"";
+      document.getElementById("scoreMaintenance").value = typeof s.maintenance==="number"?s.maintenance:"";
+      document.getElementById("scoreOrientation").value = typeof s.orientation==="number"?s.orientation:"";
+    }
 
     // Render projects list
     function renderProjectsList(member){
@@ -661,14 +684,14 @@
           const titleBlock = document.createElement("div"); titleBlock.className="card-title-block";
           const title = document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project";
           const subtitle = document.createElement("div"); subtitle.className="card-subtitle";
-          const bits = []; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • ");
+          const bits = []; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${(project.overallPercent||0).toFixed(1)}%`); subtitle.textContent = bits.join(" • ");
           titleBlock.appendChild(title); titleBlock.appendChild(subtitle);
-          const tagEl = document.createElement("div"); const tagInfo = tagFromPercent(project.overallPercent); tagEl.className = "card-tag " + tagInfo.className; tagEl.textContent = tagInfo.text;
+          const tagEl = document.createElement("div"); const tagInfo = tagFromPercent(project.overallPercent || 0); tagEl.className = "card-tag " + tagInfo.className; tagEl.textContent = tagInfo.text;
           header.appendChild(titleBlock); header.appendChild(tagEl);
 
           const footer = document.createElement("div"); footer.className="card-footer";
           const created = document.createElement("span"); const date = new Date(project.createdAt || Date.now()); created.textContent = `Added: ${date.toLocaleDateString()}`;
-          const scoreSpan = document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`;
+          const scoreSpan = document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${(project.overallPercent||0).toFixed(1)}%</span> avg (0–10 scale)`;
           footer.appendChild(created); footer.appendChild(scoreSpan);
 
           if (typeof project.lastDelta === "number") {
@@ -679,7 +702,8 @@
 
           const details = document.createElement("div"); details.className="details";
           const rows = document.createElement("div"); rows.className="details-row";
-          const mapping = [["Development", project.scores.development], ["Location", project.scores.location], ["Masterplan", project.scores.masterplan], ["Facilities", project.scores.facilities], ["Type mix", project.scores.type], ["Price position", project.scores.price], ["Payment plan", project.scores.payment], ["Delivery", project.scores.delivery], ["Finishing", project.scores.finishing], ["Maintenance", project.scores.maintenance], ["Orientation", project.scores.orientation]];
+          const s = project.scores || {};
+          const mapping = [["Development", s.development], ["Location", s.location], ["Masterplan", s.masterplan], ["Facilities", s.facilities], ["Type mix", s.type], ["Price position", s.price], ["Payment plan", s.payment], ["Delivery", s.delivery], ["Finishing", s.finishing], ["Maintenance", s.maintenance], ["Orientation", s.orientation]];
           mapping.forEach(([label, value]) => { const span = document.createElement("span"); const v = typeof value === "number" ? value.toFixed(1) : "-"; span.innerHTML = `<strong>${label}</strong><span>${v}/10</span>`; rows.appendChild(span); });
           details.appendChild(rows);
           if (project.notes && project.notes.trim()) { const note = document.createElement("div"); note.style.marginTop="4px"; note.textContent = `Notes: ${project.notes}`; details.appendChild(note); }
@@ -781,12 +805,105 @@
         const limited = lowProjects.slice(0,5);
         printProjectsListEl.innerHTML = "";
         if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
-        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${project.overallPercent.toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${project.overallPercent.toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
+        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${(project.overallPercent||0).toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent || 0); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${(project.overallPercent||0).toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
       }
       window.print();
     });
 
-    // ===== new: export CSV button (for current member projects) will be injected below =====
+    // ===== enhanced projects CSV export =====
+    function exportProjectsCSVEnhanced(){
+      const member = getCurrentMember();
+      if (!member) return alert("Select a member or All team first.");
+      // apply current filters (region/dev/search)
+      const selRegion = regionFilter.value || "all";
+      const selDev = developerFilter.value || "all";
+      const searchTerm = (quickSearchProj?.value||"").trim().toLowerCase();
+
+      let projects = (member.projects || []).map(p => ({...p, ownerName: member.isAllTeam ? p.ownerName || "" : member.name}));
+      projects = projects.filter(p=>{
+        const r=(p.region||"").trim(); const d=(p.developer||"").trim();
+        const regionMatch = selRegion==="all"?true:r===selRegion;
+        const devMatch = selDev==="all"?true:d===selDev;
+        const textMatch = !searchTerm ? true : ((p.name||"").toLowerCase().includes(searchTerm) || (p.developer||"").toLowerCase().includes(searchTerm));
+        return regionMatch && devMatch && textMatch;
+      });
+
+      if (!projects.length) return alert("No projects to export with current filters.");
+
+      // header
+      const rows = [["Project","Developer","Region","Owner","Overall %","Orientation (0-10)","Created At (iso)","Tag","Notes"]];
+
+      projects.forEach(p=>{
+        const orientation = (p.scores && typeof p.scores.orientation === "number") ? p.scores.orientation.toFixed(1) : "";
+        const tag = (p.overallPercent||0) < 60 ? "Needs Training" : ((p.overallPercent||0) < 80 ? "Average" : "Confident");
+        rows.push([p.name||"", p.developer||"", p.region||"", p.ownerName||"", (p.overallPercent||0).toFixed(1), orientation, new Date(p.createdAt||Date.now()).toISOString(), tag, p.notes ? p.notes.replace(/\n/g," \\n ") : ""]);
+      });
+
+      // summary row: averages
+      const avgOverall = projects.reduce((a,b)=>a+(b.overallPercent||0),0)/projects.length;
+      const avgOrientation = projects.reduce((a,b)=>a+((b.scores && typeof b.scores.orientation === "number") ? b.scores.orientation : 0),0)/projects.length;
+      rows.push([]); // blank
+      rows.push(["SUMMARY", "", "", `${projects.length} project(s)`, avgOverall.toFixed(1), avgOrientation.toFixed(2), "", "", ""]);
+
+      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      const filename = `projects_${(member.name||'all').replace(/\s+/g,'_')}_${(regionFilter.value||'all')}_${(developerFilter.value||'all')}_${new Date().toISOString().slice(0,10)}.csv`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    // ===== export conversion monthly CSV =====
+    function exportConversionMonthlyCSV(monthValue){
+      // monthValue format "YYYY-MM" optional; default to state.conversion.currentDate month
+      const month = monthValue || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
+      const prefix = month;
+      // header
+      const header = ["Sales Name", ...CONV_METRICS.map(m => `${CONV_LABELS[m]} (total)`), ...CONV_METRICS.filter(m=>hasTarget(m)).map(m=>`${CONV_LABELS[m]} (% of target)`)];
+      const rows = [header];
+
+      // compute monthly totals per sales
+      state.members.forEach(member=>{
+        const totals = {}; CONV_METRICS.forEach(m=>totals[m]=0);
+        Object.entries(state.conversion.entries || {}).forEach(([day, perMember])=>{
+          if (!day.startsWith(prefix)) return;
+          const e = perMember[member.id];
+          if (!e) return;
+          CONV_METRICS.forEach(m=> totals[m] += (e[m] || 0));
+        });
+        const line = [member.name];
+        CONV_METRICS.forEach(m=> line.push(totals[m] || 0));
+        // percentages relative to monthly target
+        CONV_METRICS.filter(m=>hasTarget(m)).forEach(m=>{
+          const monthlyTarget = getMonthlyTarget(m, month + "-01");
+          const pct = monthlyTarget > 0 ? ((totals[m] / monthlyTarget) * 100).toFixed(1) : "";
+          line.push(pct ? `${pct}%` : "");
+        });
+        rows.push(line);
+      });
+
+      // totals row
+      const totalsAll = {}; CONV_METRICS.forEach(m=>totalsAll[m]=0);
+      Object.entries(state.conversion.entries || {}).forEach(([day, perMember])=>{
+        if (!day.startsWith(prefix)) return;
+        Object.entries(perMember).forEach(([memberId, entry])=>{
+          CONV_METRICS.forEach(m=> totalsAll[m] += (entry[m]||0));
+        });
+      });
+      const totalLine = ["Team total"];
+      CONV_METRICS.forEach(m=> totalLine.push(totalsAll[m] || 0));
+      CONV_METRICS.filter(m=>hasTarget(m)).forEach(m=>{
+        const monthlyTarget = getMonthlyTarget(m, month + "-01");
+        const pct = monthlyTarget > 0 ? ((totalsAll[m] / monthlyTarget) * 100).toFixed(1) : "";
+        totalLine.push(pct ? `${pct}%` : "");
+      });
+      rows.push([]); rows.push(totalLine);
+
+      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      const filename = `conversion_${month}.csv`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
 
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -1070,7 +1187,7 @@
     // init load
     loadState();
 
-    // ===== inject UI buttons and features (toggle %, export CSV, seed demo) =====
+    // ===== inject UI buttons and features (single place) =====
     (function injectSidebarButtons(){
       const footer = document.querySelector(".sidebar-footer");
 
@@ -1091,19 +1208,20 @@
       // export CSV
       const exportCsvBtn = document.createElement("button");
       exportCsvBtn.className = "btn";
-      exportCsvBtn.textContent = "Export CSV";
-      exportCsvBtn.addEventListener("click", ()=>{
-        const member = getCurrentMember();
-        if (!member || !member.projects || member.projects.length === 0){ alert("No projects to export."); return; }
-        const rows = [["Project","Developer","Region","Overall%","Created At","Notes"]];
-        member.projects.forEach(p=>{
-          rows.push([p.name||"", p.developer||"", p.region||"", (p.overallPercent||0).toFixed(1), new Date(p.createdAt||Date.now()).toISOString(), (p.notes||"")]);
-        });
-        const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
-        const blob = new Blob([csv], {type:"text/csv"});
-        const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download = `projects_${(member.name||'export').replace(/\s+/g,'_')}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-      });
+      exportCsvBtn.textContent = "Export Projects (CSV)";
+      exportCsvBtn.addEventListener("click", exportProjectsCSVEnhanced);
       footer.appendChild(exportCsvBtn);
+
+      // export conversion CSV
+      const btnExportConv = document.createElement("button");
+      btnExportConv.className = "btn";
+      btnExportConv.textContent = "Export Conversion (CSV)";
+      btnExportConv.addEventListener("click", ()=> {
+        const month = prompt("Enter month to export in format YYYY-MM (leave empty for current):", (state.conversion.currentDate||todayISO()).slice(0,7));
+        if (month === null) return;
+        exportConversionMonthlyCSV(month || null);
+      });
+      footer.appendChild(btnExportConv);
 
       // seed demo data
       const quickSeedBtn = document.createElement("button");
@@ -1122,10 +1240,183 @@
         saveState(); renderAll();
       });
       footer.appendChild(quickSeedBtn);
+
+      // PDF exports (Projects / Conversion / Overview)
+      const btnP = document.createElement("button"); btnP.className="btn"; btnP.textContent="Export Projects (PDF)";
+      btnP.addEventListener("click", ()=> exportFilteredProjectsToPDF());
+      footer.appendChild(btnP);
+
+      const btnC = document.createElement("button"); btnC.className="btn"; btnC.textContent="Export Conversion (PDF)";
+      btnC.addEventListener("click", ()=> {
+        const month = prompt("Enter month YYYY-MM (leave empty for current):", (state.conversion.currentDate||todayISO()).slice(0,7));
+        if (month === null) return;
+        exportConversionToPDF(month || null);
+      });
+      footer.appendChild(btnC);
+
+      const btnO = document.createElement("button"); btnO.className="btn"; btnO.textContent="Export Overview (PDF)";
+      btnO.addEventListener("click", ()=> exportOverviewToPDF());
+      footer.appendChild(btnO);
     })();
+
+    // ===== PDF Export helpers (using html2pdf) =====
+
+    // utility: create printable container with styles
+    function makePrintableContainer(titleHtml, bodyHtml){
+      const wrap = document.createElement("div");
+      wrap.style.padding = "18px";
+      wrap.style.background = "#fff";
+      wrap.style.color = "#000";
+      wrap.style.fontFamily = "Arial, Helvetica, sans-serif";
+      wrap.style.lineHeight = "1.25";
+      // header
+      const header = document.createElement("div");
+      header.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:16px;font-weight:700;">${titleHtml}</div>
+          <div style="font-size:12px;color:#666;">Generated: ${new Date().toLocaleString()}</div>
+        </div>
+        <hr style="border:none;border-top:1px solid #ddd;margin:6px 0 12px 0;">
+      `;
+      wrap.appendChild(header);
+      const body = document.createElement("div");
+      body.innerHTML = bodyHtml;
+      wrap.appendChild(body);
+      return wrap;
+    }
+
+    // ===== Export filtered Projects to PDF =====
+    function exportFilteredProjectsToPDF(){
+      const member = getCurrentMember();
+      if (!member) return alert("Select a member first.");
+      // apply current filters & search (reuse logic)
+      const selRegion = regionFilter.value || "all";
+      const selDev = developerFilter.value || "all";
+      const searchTerm = (quickSearchProj?.value||"").trim().toLowerCase();
+      let projects = (member.projects || []).map(p => ({...p, ownerName: member.isAllTeam ? p.ownerName || "" : member.name}));
+      projects = projects.filter(p=>{
+        const r=(p.region||"").trim(); const d=(p.developer||"").trim();
+        const regionMatch = selRegion==="all"?true:r===selRegion;
+        const devMatch = selDev==="all"?true:d===selDev;
+        const textMatch = !searchTerm ? true : ((p.name||"").toLowerCase().includes(searchTerm) || (p.developer||"").toLowerCase().includes(searchTerm));
+        return regionMatch && devMatch && textMatch;
+      });
+
+      if (!projects.length) return alert("No projects to export with current filters.");
+
+      // build HTML table for PDF
+      let rowsHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;">`;
+      rowsHtml += `<thead><tr>
+        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Project</th>
+        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Developer</th>
+        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Region</th>
+        <th style="text-align:center;border-bottom:1px solid #ddd;padding:6px">Overall %</th>
+        <th style="text-align:center;border-bottom:1px solid #ddd;padding:6px">Orientation</th>
+        <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px">Notes</th>
+      </tr></thead><tbody>`;
+      projects.forEach(p=>{
+        const orient = (p.scores && typeof p.scores.orientation==="number") ? p.scores.orientation.toFixed(1) : "";
+        rowsHtml += `<tr>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(p.name||"")}</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(p.developer||"")}</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(p.region||"")}</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${((p.overallPercent||0)).toFixed(1)}%</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${orient}</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml((p.notes||""))}</td>
+        </tr>`;
+      });
+      rowsHtml += `</tbody></table>`;
+
+      const title = `${member.name} – Projects export`;
+      const printable = makePrintableContainer(title, rowsHtml);
+
+      // pdf options
+      const opt = {
+        margin:       [10,10,10,10],
+        filename:     `${(member.name||'projects').replace(/\s+/g,'_')}_projects_${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.95 },
+        html2canvas:  { scale: 2, useCORS: true, logging:false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // call html2pdf
+      html2pdf().set(opt).from(printable).save();
+    }
+
+    // ===== Export Conversion summary for selected month to PDF =====
+    function exportConversionToPDF(monthValue){
+      const month = monthValue || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
+      // build table
+      let rowsHtml = `<div style="margin-bottom:8px;font-size:13px;"><strong>Month:</strong> ${month}</div>`;
+      rowsHtml += `<table style="width:100%;border-collapse:collapse;font-size:12px;">`;
+      // header
+      rowsHtml += `<thead><tr><th style="padding:6px;border-bottom:1px solid #ddd;text-align:left">Sales</th>`;
+      CONV_METRICS.forEach(m => { rowsHtml += `<th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${escapeHtml(CONV_LABELS[m])}</th>`; });
+      rowsHtml += `</tr></thead><tbody>`;
+      // compute totals per sales (same logic as earlier)
+      const prefix = month;
+      state.members.forEach(mem=>{
+        const totals = {}; CONV_METRICS.forEach(m=> totals[m]=0);
+        Object.entries(state.conversion.entries || {}).forEach(([day, perMember])=>{
+          if (!day.startsWith(prefix)) return;
+          const e = perMember[mem.id];
+          if (!e) return;
+          CONV_METRICS.forEach(m=> totals[m] += (e[m]||0));
+        });
+        rowsHtml += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(mem.name)}</td>`;
+        CONV_METRICS.forEach(m=> rowsHtml += `<td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${totals[m]||0}</td>`);
+        rowsHtml += `</tr>`;
+      });
+      rowsHtml += `</tbody></table>`;
+
+      const title = `Conversion – ${month}`;
+      const printable = makePrintableContainer(title, rowsHtml);
+
+      const opt = {
+        margin:       [10,10,10,10],
+        filename:     `conversion_${month}.pdf`,
+        image:        { type: 'jpeg', quality: 0.95 },
+        html2canvas:  { scale: 2, useCORS: true, logging:false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+      html2pdf().set(opt).from(printable).save();
+    }
+
+    // ===== Export Overview (members cards) to PDF =====
+    function exportOverviewToPDF(monthValue){
+      const month = monthValue || (overviewMonthInput.value || (state.conversion.currentDate||todayISO()).slice(0,7));
+      let rowsHtml = `<div style="margin-bottom:8px;font-size:13px;"><strong>Overview month:</strong> ${month}</div>`;
+      rowsHtml += `<table style="width:100%;border-collapse:collapse;font-size:12px;">`;
+      rowsHtml += `<thead><tr><th style="padding:6px;border-bottom:1px solid #ddd;text-align:left">Member</th><th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">Assessment</th><th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">Conversion</th><th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">Combined</th></tr></thead><tbody>`;
+      state.members.forEach(mem=>{
+        const { assessment, conversion, combined } = computeMemberCombined(mem, month);
+        rowsHtml += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(mem.name)}</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${assessment.toFixed(1)}%</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${conversion.toFixed(1)}%</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${combined.toFixed(1)}%</td>
+        </tr>`;
+      });
+      rowsHtml += `</tbody></table>`;
+
+      const printable = makePrintableContainer(`Members overview – ${month}`, rowsHtml);
+      const opt = {
+        margin:       [10,10,10,10],
+        filename:     `overview_${month}.pdf`,
+        image:        { type: 'jpeg', quality: 0.95 },
+        html2canvas:  { scale: 2, useCORS: true, logging:false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(printable).save();
+    }
+
+    // small helper to escape HTML in table cells
+    function escapeHtml(s){
+      if (!s) return "";
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g," ");
+    }
 
     // render initial
     renderAll();
   </script>
 </body>
-</html></html>
+</html></html></html>
