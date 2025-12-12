@@ -1,4 +1,4 @@
-‏<!DOCTYPE html><!DOCTYPE html>
+‏<!DOCTYPE html><!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -49,7 +49,7 @@
     .add-team button { border-radius:999px; padding:0 10px; font-size:11px; border:none; background:var(--primary); color:#fff; cursor:pointer; transition:0.18s ease; }
     .add-team button:hover { background:#3a70ff; }
     .hint-mini { font-size:10px; color:var(--text-muted); margin-top:2px; }
-    .sidebar-footer { margin-top:auto; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.07); font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; }
+    .sidebar-footer { margin-top:auto; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.07); font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:6px; }
     .sidebar-footer strong { color:var(--text); font-weight:600; }
 
     /* Main */
@@ -205,6 +205,7 @@
           🟨 60–79% – Average<br />
           🟩 ≥ 80% – Confident
         </div>
+        <!-- buttons added dynamically by JS -->
       </div>
     </aside>
 
@@ -285,6 +286,11 @@
                 <div class="panel-title">Projects & Scores</div>
                 <div class="panel-sub">Click on a card to expand details – filtered by region & developer.</div>
               </div>
+            </div>
+
+            <!-- QUICK SEARCH -->
+            <div style="margin-bottom:6px;">
+              <input id="quickSearchProj" placeholder="Search projects or developer..." style="width:100%; padding:6px; border-radius:8px; border:1px solid var(--border); background:#0d1017; color:var(--text);" />
             </div>
 
             <div class="cards-list" id="projectsList"><div class="empty-state">No projects yet. Add a new assessment on the left.</div></div>
@@ -436,6 +442,8 @@
     const scoreIds = ["scoreDevelopment","scoreLocation","scoreMasterplan","scoreFacilities","scoreType","scorePrice","scorePayment","scoreDelivery","scoreFinishing","scoreMaintenance","scoreOrientation"];
     const SCORE_LABELS = { development:"Development", location:"Location", masterplan:"Masterplan", facilities:"Facilities", type:"Type mix", price:"Price positioning", payment:"Payment plan", delivery:"Delivery date", finishing:"Finishing", maintenance:"Maintenance", orientation:"Orientation skills" };
 
+    const quickSearchProj = document.getElementById("quickSearchProj");
+
     function getCurrentMember(){
       if (state.selectedMemberId === ALL_TEAM_ID) {
         // return simplified all-team object (no projects shown in conversion)
@@ -444,7 +452,20 @@
       return state.members.find(m => m.id === state.selectedMemberId) || null;
     }
 
-    // Assessment averages
+    // NEW: compute assessment average for a given monthPrefix "YYYY-MM"
+    function computeAssessmentAverageForMonth(member, monthPrefix){
+      const projects = (member.projects || []).filter(p => {
+        if (!p.createdAt) return false;
+        const d = new Date(p.createdAt);
+        const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,"0");
+        return `${y}-${m}` === monthPrefix;
+      });
+      if (projects.length === 0) return 0;
+      const sum = projects.reduce((acc,p)=>acc + (p.overallPercent||0), 0);
+      return sum / projects.length;
+    }
+
+    // Assessment averages (existing)
     function computeAssessmentAverage(member){
       const projects = member?.projects || [];
       if (projects.length === 0) return 0;
@@ -598,7 +619,7 @@
       Array.from(developers).forEach(d=>{ const opt=document.createElement("option"); opt.value=d; opt.textContent=d; developerFilter.appendChild(opt); });
 
       if (regions.has(prevRegion) || prevRegion==="all") regionFilter.value = prevRegion; else regionFilter.value="all";
-      if (developers.has(prevDev) || prevDev==="all") developerFilter.value = prevDev; else developerFilter.value="all";
+      if (developers.has(prevDev) || prevDev==="all") developerFilter.value = prevDev; else developerFilter.value = "all";
 
       if (projects.length===0) { regionStats.textContent="No projects yet"; return; }
       const selectedRegion = regionFilter.value; const selectedDev = developerFilter.value;
@@ -621,7 +642,15 @@
       }
 
       const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all";
-      const projects = member.projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
+      const searchTerm = (quickSearchProj?.value||"").trim().toLowerCase();
+
+      const projects = member.projects.filter(p=>{
+        const r=(p.region||"").trim(); const d=(p.developer||"").trim();
+        const regionMatch = selectedRegion==="all"?true:r===selectedRegion;
+        const devMatch = selectedDev==="all"?true:d===selectedDev;
+        const textMatch = !searchTerm ? true : ( (p.name||"").toLowerCase().includes(searchTerm) || (p.developer||"").toLowerCase().includes(searchTerm) );
+        return regionMatch && devMatch && textMatch;
+      });
 
       if (projects.length===0){ const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects with current filters."; projectsListEl.appendChild(div); }
       else {
@@ -740,6 +769,8 @@
     regionFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
     developerFilter.addEventListener("change", ()=>{ const member = getCurrentMember(); renderFiltersAndStats(member); renderProjectsList(member); });
 
+    quickSearchProj.addEventListener("input", ()=>{ renderProjectsList(getCurrentMember()); });
+
     // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
       const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
@@ -754,6 +785,8 @@
       }
       window.print();
     });
+
+    // ===== new: export CSV button (for current member projects) will be injected below =====
 
     backupBtn.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -926,14 +959,19 @@
       return `${py}-${pm}`;
     }
 
+    // Modified: computeMemberCombined now uses month-specific assessment when monthValue provided
     function computeMemberCombined(member, monthValue){
       // 50/50 weighting: assessment average (0-100) and conversion monthly % (0-100)
       // monthValue is "YYYY-MM" or null -> use state.conversion.currentDate month
-      const assessment = computeAssessmentAverage(member); // 0-100
+      let assessment = 0;
+      const monthPrefix = monthValue || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
+      // try month-specific assessment first; fallback to overall if no projects in month
+      const monthAssessment = computeAssessmentAverageForMonth(member, monthPrefix);
+      if (monthAssessment > 0) assessment = monthAssessment;
+      else assessment = computeAssessmentAverage(member);
       let monthStr;
       if (monthValue) monthStr = monthValue + "-01"; else monthStr = state.conversion.currentDate || todayISO();
       const conv = computeConversionMonthlyScoreForMember(member.id, monthStr);
-      // if assessment or conv are NaN ensure numbers
       const a = isFinite(assessment) ? assessment : 0;
       const c = isFinite(conv) ? conv : 0;
       const combined = (a * 0.5) + (c * 0.5);
@@ -974,22 +1012,34 @@
         const totalRow = document.createElement("div"); totalRow.className="total-performance";
         const leftTotal = document.createElement("div"); leftTotal.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">Total performance (50/50)</div><div style="font-weight:700;font-size:16px">${combined.toFixed(0)}%</div>`;
         const trendEl = document.createElement("div"); trendEl.className="trend";
-        // compute previous month combined and show arrow + diff
+        // compute previous month combined and show arrow + diff; show "No previous data" if none
         const prevMonthPrefix = previousMonthPrefixFromMonthValue(monthValue);
-        let prevCombined = 0;
+        let prevCombined = null;
         if (prevMonthPrefix) {
-          // construct a dateStr like "YYYY-MM-01" to pass into conversion calc
+          // use month-specific assessment for previous month too
+          const prevAssessment = computeAssessmentAverageForMonth(member, prevMonthPrefix);
+          const fallbackPrevAssessment = computeAssessmentAverage(member);
+          const prevA = prevAssessment > 0 ? prevAssessment : (fallbackPrevAssessment > 0 ? fallbackPrevAssessment : null);
           const prevDateStr = prevMonthPrefix + "-01";
-          const prevAssessment = computeAssessmentAverage(member); // assessment is not time-based here, so same for prev - acceptable unless user wanted different
           const prevConv = computeConversionMonthlyScoreForMember(member.id, prevDateStr);
-          prevCombined = (prevAssessment*0.5) + (prevConv*0.5);
+          if (prevA === null && !prevConv) {
+            prevCombined = null; // no previous data
+          } else {
+            const pa = prevA === null ? 0 : prevA;
+            prevCombined = (pa*0.5) + (prevConv*0.5);
+          }
         } else {
-          prevCombined = combined; // flat if no prev
+          prevCombined = null;
         }
-        const diff = combined - prevCombined;
-        if (diff > 0.5) { trendEl.classList.add("up"); trendEl.innerHTML = `<span>▲</span><span>+${diff.toFixed(1)}%</span>`; }
-        else if (diff < -0.5) { trendEl.classList.add("down"); trendEl.innerHTML = `<span>▼</span><span>${diff.toFixed(1)}%</span>`; }
-        else { trendEl.classList.add("flat"); trendEl.innerHTML = `<span>—</span><span>0.0%</span>`; }
+        if (prevCombined === null) {
+          trendEl.classList.add("flat");
+          trendEl.innerHTML = `<span>—</span><span>No previous data</span>`;
+        } else {
+          const diff = combined - prevCombined;
+          if (diff > 0.5) { trendEl.classList.add("up"); trendEl.innerHTML = `<span>▲</span><span>+${diff.toFixed(1)}%</span>`; }
+          else if (diff < -0.5) { trendEl.classList.add("down"); trendEl.innerHTML = `<span>▼</span><span>${diff.toFixed(1)}%</span>`; }
+          else { trendEl.classList.add("flat"); trendEl.innerHTML = `<span>—</span><span>0.0%</span>`; }
+        }
 
         totalRow.appendChild(leftTotal); totalRow.appendChild(trendEl);
         card.appendChild(totalRow);
@@ -1019,7 +1069,63 @@
 
     // init load
     loadState();
+
+    // ===== inject UI buttons and features (toggle %, export CSV, seed demo) =====
+    (function injectSidebarButtons(){
+      const footer = document.querySelector(".sidebar-footer");
+
+      // toggle percent visibility
+      const togglePercentBtn = document.createElement("button");
+      togglePercentBtn.className = "btn";
+      togglePercentBtn.textContent = "Hide % in sidebar";
+      togglePercentBtn.dataset.hidden = "0";
+      togglePercentBtn.addEventListener("click", ()=>{
+        const items = document.querySelectorAll(".team-score-pill");
+        const hidden = togglePercentBtn.dataset.hidden === "1";
+        items.forEach(it => { it.style.visibility = hidden ? "visible" : "hidden"; });
+        togglePercentBtn.dataset.hidden = hidden ? "0" : "1";
+        togglePercentBtn.textContent = hidden ? "Hide % in sidebar" : "Show % in sidebar";
+      });
+      footer.appendChild(togglePercentBtn);
+
+      // export CSV
+      const exportCsvBtn = document.createElement("button");
+      exportCsvBtn.className = "btn";
+      exportCsvBtn.textContent = "Export CSV";
+      exportCsvBtn.addEventListener("click", ()=>{
+        const member = getCurrentMember();
+        if (!member || !member.projects || member.projects.length === 0){ alert("No projects to export."); return; }
+        const rows = [["Project","Developer","Region","Overall%","Created At","Notes"]];
+        member.projects.forEach(p=>{
+          rows.push([p.name||"", p.developer||"", p.region||"", (p.overallPercent||0).toFixed(1), new Date(p.createdAt||Date.now()).toISOString(), (p.notes||"")]);
+        });
+        const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], {type:"text/csv"});
+        const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download = `projects_${(member.name||'export').replace(/\s+/g,'_')}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      });
+      footer.appendChild(exportCsvBtn);
+
+      // seed demo data
+      const quickSeedBtn = document.createElement("button");
+      quickSeedBtn.className = "btn";
+      quickSeedBtn.textContent = "Seed demo data";
+      quickSeedBtn.addEventListener("click", ()=>{
+        if (!confirm("Add demo sample data?")) return;
+        state.members = [
+          { id: uid(), name: "Dina", projects: [
+            { id: uid(), name:"HydePark New Cairo", developer:"HydePark", region:"New Cairo", scores:{development:8,location:7,masterplan:7.5,facilities:8,type:7,price:6,payment:7,delivery:6.5,finishing:7,maintenance:6,orientation:8}, overallPercent:72.5, createdAt: Date.now()-1000*60*60*24*30, notes:"Ready to move" }
+          ]},
+          { id: uid(), name: "Khaled", projects: [
+            { id: uid(), name:"Zayed Lakes", developer:"ZayedCo", region:"New Zayed", scores:{development:6,location:5,masterplan:5,facilities:6,type:5.5,price:5,payment:6,delivery:5.5,finishing:5,maintenance:4.5,orientation:6}, overallPercent:53.6, createdAt: Date.now()-1000*60*60*24*10, notes:"Needs follow-up" }
+          ]}
+        ];
+        saveState(); renderAll();
+      });
+      footer.appendChild(quickSeedBtn);
+    })();
+
+    // render initial
     renderAll();
   </script>
 </body>
-</html>
+</html></html>
