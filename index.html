@@ -1483,58 +1483,6 @@
 </div>
 
 <script>
-function openPdfModal(){
-  document.getElementById("pdfModal").style.display="flex";
-}
-
-function closePdfModal(){
-  document.getElementById("pdfModal").style.display="none";
-}
-
-// افتح الـ popup بدل window.print
-document.getElementById("exportBtn").onclick = openPdfModal;
-
-function generatePDF(){
-  const section = document.getElementById("pdfSection").value;
-  const orientation = document.getElementById("pdfOrientation").value;
-
-  let target;
-  if(section === "overview"){
-    target = document.getElementById("overviewTab");
-  }else if(section === "assessment"){
-    target = document.getElementById("assessmentTab");
-  }else{
-    target = document.getElementById("conversionTab");
-  }
-
-  if(!target){
-    alert("Section not found");
-    return;
-  }
-
-  const opt = {
-    margin:10,
-    filename:`export_${section}.pdf`,
-    html2canvas:{ scale:2 },
-    jsPDF:{ unit:'mm', format:'a4', orientation }
-  };
-
-  // Preview على الموبايل قبل التحميل
-  html2pdf()
-    .set(opt)
-    .from(target)
-    .toPdf()
-    .get('pdf')
-    .then(pdf=>{
-      const blobUrl = pdf.output('bloburl');
-      window.open(blobUrl,'_blank');
-    });
-
-  closePdfModal();
-}
-</script>
-
-<script>
 function generatePDF(){
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
