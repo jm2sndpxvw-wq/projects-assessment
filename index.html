@@ -1617,14 +1617,15 @@ if (!pdfMember) {
   }
 
   const clone = source.cloneNode(true);
-  // force sidebar to show only selected PDF member
+  // ===== show team list in PDF but only selected sales =====
 clone.querySelectorAll(".team-item").forEach(item => {
   if (item.dataset.id === pdfMember.id) {
     item.classList.add("active");
   } else {
     item.classList.remove("active");
   }
-}); 
+});
+
   const newProjectSection = clone.querySelector(".new-project-assessment");
 if (newProjectSection) newProjectSection.remove();
   clone.classList.remove("hidden");
