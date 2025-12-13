@@ -162,25 +162,68 @@
       .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
     }
 
-    @media print {
-      body { background:#05060a !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-      .app, .sidebar, .main, .panel, .card, .team-item.active, .filters-row, .training-panel { background-color:#111623 !important; color:#f5f7fb !important; }
-      .main-actions, .tabs-row { display:none !important; }
-      #assessmentTab .content-grid { grid-template-columns:1fr !important; }
-      #assessmentTab .content-grid > section:first-child { display:none !important; }
-      .team-item { display:none !important; }
-      .team-item.active { display:flex !important; }
-      .add-team, .hint-mini { display:none !important; }
-      #projectsList { display:none !important; }
-      #printProjectsList { display:flex !important; }
-      #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important;
-        
+@media print {
 
-  /* hide new project assessment form in PDF */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+
+  .main-actions,
+  .tabs-row,
+  .add-team,
+  .hint-mini {
+    display:none !important;
+  }
+
   .new-project-assessment {
-    display: none !important;
-       } 
-    }
+    display:none !important;
+  }
+
+  .team-item {
+    display:none !important;
+  }
+  .team-item.active {
+    display:flex !important;
+  }
+
+  #projectsList {
+    display:none !important;
+  }
+  #printProjectsList {
+    display:flex !important;
+  }
+
+  .pdf-member-name {
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:12px;
+    color:#000;
+  }
+
+  .pdf-project-card {
+    border:1px solid #ccc;
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:8px;
+    background:#fff;
+    color:#000;
+  }
+
+  .pdf-project-title {
+    font-weight:600;
+    margin-bottom:4px;
+  }
+
+  .pdf-project-meta {
+    font-size:11px;
+    color:#555;
+    margin-bottom:6px;
+  }
+
+  .pdf-project-score {
+    font-size:16px;
+    font-weight:700;
+  }
+}
   </style>
 </head>
 <body>
@@ -312,6 +355,8 @@
               <div style="margin-top:4px;"><strong>نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع:</strong></div>
               <div class="training-list" id="trainingSummaryList">لسه مافيش داتا كفاية دلوقتي.</div>
             </div>
+            
+             <div id="pdfTeamView" class="print-only"></div>
           </section>
         </div>
       </div>
@@ -365,7 +410,6 @@
 
           <div class="overview-grid" id="overviewGrid"></div>
           <!-- ===== PDF TEAM VIEW (PRINT ONLY) ===== -->
-           <div id="pdfTeamView" class="print-only"></div>
         </div>
       </div>
     </main>
