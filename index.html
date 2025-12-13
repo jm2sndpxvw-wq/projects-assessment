@@ -223,6 +223,85 @@
     font-size:16px;
     font-weight:700;
   }
+
+/* ===== PDF DARK THEME ===== */
+.pdf-root {
+  background: #0b0d10;
+  color: #f5f7fb;
+  padding: 24px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.pdf-header {
+  margin-bottom: 16px;
+}
+
+.pdf-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.pdf-sub {
+  margin-top: 6px;
+  color: #9aa4c0;
+}
+
+.pdf-divider {
+  height: 1px;
+  background: #252c3a;
+  margin: 16px 0;
+}
+
+.pdf-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.pdf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.pdf-card {
+  background: #151921;
+  border: 1px solid #252c3a;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.pdf-card-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pdf-meta {
+  font-size: 12px;
+  color: #9aa4c0;
+  margin-bottom: 8px;
+}
+
+.pdf-score {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pdf-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: rgba(255,75,92,.15);
+  color: #ff4b5c;
+  margin-left: 6px;
+}
+
+.pdf-footer {
+  margin-top: 20px;
+  font-size: 11px;
+  color: #9aa4c0;
+    }
 }
   </style>
 </head>
@@ -1627,7 +1706,62 @@ clone.style.padding = "20px";
   document.getElementById("pdfModal").style.display = "none";
 }
 
+<!-- ===== PDF ROOT (INJECTED ONLY) ===== -->
+<div id="pdfRoot" style="display:none;"></div>
 
 </script>
+function buildAssessmentPdfDom() {
+  const root = document.getElementById("pdfRoot");
+  root.innerHTML = "";
+
+  const member = getCurrentMember();
+  if (!member || member.isAllTeam) return;
+
+  const weakProjects = (member.projects || []).filter(
+    p => (p.overallPercent || 0) < 70
+  );
+
+  const today = new Date().toLocaleDateString();
+
+  root.className = "pdf-root";
+
+  root.innerHTML = `
+    <div class="pdf-header">
+      <div class="pdf-title">Bold Routes – Projects Assessment</div>
+      <div class="pdf-sub">
+        Sales: ${member.name}<br>
+        Overall: ${member.overallPercent || 0}% – ${member.projects.length} project(s)
+      </div>
+    </div>
+
+    <div class="pdf-divider"></div>
+
+    <div class="pdf-section-title">Projects below 70%</div>
+
+    <div class="pdf-grid">
+      ${weakProjects.map(p => `
+        <div class="pdf-card">
+          <div class="pdf-card-title">${p.name}</div>
+          <div class="pdf-meta">
+            ${p.developer || ""} • ${p.region || ""}
+          </div>
+          <div class="pdf-score">
+            ${(p.overallPercent || 0).toFixed(1)}%
+            <span class="pdf-badge">Needs training</span>
+          </div>
+          <div class="pdf-meta">
+            Orientation: ${p.orientation || 0}/10
+          </div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="pdf-footer">
+      Generated at: ${today}
+    </div>
+  `;
+
+  root.style.display = "block";
+}
 </body>
 </html>
