@@ -1,3 +1,6 @@
+هو الكود دة متأكد ان فيه الpdf زي ما طلبت عشان لسه زي ماهو 
+الكود كامل اهو
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,87 +164,69 @@
       .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
       .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
     }
-    
-    /* ================= DARK PDF STYLE ================= */
-.pdf-root {
-  background: #0b0d10;
-  color: #f5f7fb;
-  padding: 24px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
 
-.pdf-header {
-  margin-bottom: 16px;
-}
+@media print {
 
-.pdf-title {
-  font-size: 22px;
-  font-weight: 700;
-}
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 
-.pdf-sub {
-  margin-top: 6px;
-  color: #9aa4c0;
-  font-size: 13px;
-}
+  .main-actions,
+  .tabs-row,
+  .add-team,
+  .hint-mini {
+    display:none !important;
+  }
 
-.pdf-divider {
-  height: 1px;
-  background: #252c3a;
-  margin: 16px 0;
-}
+  .new-project-assessment {
+    display:none !important;
+  }
 
-.pdf-section-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
+  .team-item {
+    display:none !important;
+  }
+  .team-item.active {
+    display:flex !important;
+  }
 
-.pdf-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
+  #projectsList {
+    display:none !important;
+  }
+  #printProjectsList {
+    display:flex !important;
+  }
 
-.pdf-card {
-  background: #151921;
-  border: 1px solid #252c3a;
-  border-radius: 12px;
-  padding: 12px;
-}
+  .pdf-member-name {
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:12px;
+    color:#000;
+  }
 
-.pdf-card-title {
-  font-weight: 600;
-  margin-bottom: 6px;
-}
+  .pdf-project-card {
+    border:1px solid #ccc;
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:8px;
+    background:#fff;
+    color:#000;
+  }
 
-.pdf-meta {
-  font-size: 12px;
-  color: #9aa4c0;
-  margin-bottom: 8px;
-}
+  .pdf-project-title {
+    font-weight:600;
+    margin-bottom:4px;
+  }
 
-.pdf-score {
-  font-size: 18px;
-  font-weight: 700;
-}
+  .pdf-project-meta {
+    font-size:11px;
+    color:#555;
+    margin-bottom:6px;
+  }
 
-.pdf-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  font-size: 11px;
-  border-radius: 999px;
-  background: rgba(255,75,92,.15);
-  color: #ff4b5c;
-  margin-left: 6px;
+  .pdf-project-score {
+    font-size:16px;
+    font-weight:700;
+  }
 }
-
-.pdf-footer {
-  margin-top: 20px;
-  font-size: 11px;
-  color: #9aa4c0;
-}
-
   </style>
 </head>
 <body>
@@ -1357,6 +1342,34 @@ function buildPdfTeamView() {
     `;
   });
 }
+    // utility: create printable container with styles
+    function makePrintableContainer(titleHtml, bodyHtml){
+      const wrap = document.createElement("div");
+      wrap.style.padding = "18px";
+      wrap.style.background = "#fff";
+      wrap.style.color = "#000";
+      wrap.style.fontFamily = "Arial, Helvetica, sans-serif";
+      wrap.style.lineHeight = "1.25";
+      // header
+      const header = document.createElement("div");
+      header.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:16px;font-weight:700;">${titleHtml}</div>
+          <div style="font-size:12px;color:#666;">Generated: ${new Date().toLocaleString()}</div>
+        </div>
+        <hr style="border:none;border-top:1px solid #ddd;margin:6px 0 12px 0;">
+      `;
+      wrap.appendChild(header);
+      const body = document.createElement("div");
+      body.innerHTML = bodyHtml;
+      wrap.appendChild(body);
+      return wrap;
+    }
+
+    // ===== Export filtered Projects to PDF =====
+    function exportFilteredProjectsToPDF(){
+  const member = getCurrentMember();
+  if (!member) return alert("Select a member first.");
 
   // ===== apply SAME filters as UI =====
   const selRegion = regionFilter.value || "all";
@@ -1435,65 +1448,81 @@ function buildPdfTeamView() {
     jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
   }).from(printable).save();
 }
+    // ===== Export Conversion summary for selected month to PDF =====
+    function exportConversionToPDF(monthValue){
+      const month = monthValue || (state.conversion.currentDate ? state.conversion.currentDate.slice(0,7) : todayISO().slice(0,7));
+      // build table
+      let rowsHtml = `<div style="margin-bottom:8px;font-size:13px;"><strong>Month:</strong> ${month}</div>`;
+      rowsHtml += `<table style="width:100%;border-collapse:collapse;font-size:12px;">`;
+      // header
+      rowsHtml += `<thead><tr><th style="padding:6px;border-bottom:1px solid #ddd;text-align:left">Sales</th>`;
+      CONV_METRICS.forEach(m => { rowsHtml += `<th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${escapeHtml(CONV_LABELS[m])}</th>`; });
+      rowsHtml += `</tr></thead><tbody>`;
+      // compute totals per sales (same logic as earlier)
+      const prefix = month;
+      state.members.forEach(mem=>{
+        const totals = {}; CONV_METRICS.forEach(m=> totals[m]=0);
+        Object.entries(state.conversion.entries || {}).forEach(([day, perMember])=>{
+          if (!day.startsWith(prefix)) return;
+          const e = perMember[mem.id];
+          if (!e) return;
+          CONV_METRICS.forEach(m=> totals[m] += (e[m]||0));
+        });
+        rowsHtml += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(mem.name)}</td>`;
+        CONV_METRICS.forEach(m=> rowsHtml += `<td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${totals[m]||0}</td>`);
+        rowsHtml += `</tr>`;
+      });
+      rowsHtml += `</tbody></table>`;
+
+      const title = `Conversion – ${month}`;
+      const printable = makePrintableContainer(title, rowsHtml);
+
+      const opt = {
+        margin:       [10,10,10,10],
+        filename:     `conversion_${month}.pdf`,
+        image:        { type: 'jpeg', quality: 0.95 },
+        html2canvas:  { scale: 2, useCORS: true, logging:false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+      html2pdf().set(opt).from(printable).save();
+    }
+
+    // ===== Export Overview (members cards) to PDF =====
+    function exportOverviewToPDF(monthValue){
+      const month = monthValue || (overviewMonthInput.value || (state.conversion.currentDate||todayISO()).slice(0,7));
+      let rowsHtml = `<div style="margin-bottom:8px;font-size:13px;"><strong>Overview month:</strong> ${month}</div>`;
+      rowsHtml += `<table style="width:100%;border-collapse:collapse;font-size:12px;">`;
+      rowsHtml += `<thead><tr><th style="padding:6px;border-bottom:1px solid #ddd;text-align:left">Member</th><th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">Assessment</th><th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">Conversion</th><th style="padding:6px;border-bottom:1px solid #ddd;text-align:center">Combined</th></tr></thead><tbody>`;
+      state.members.forEach(mem=>{
+        const { assessment, conversion, combined } = computeMemberCombined(mem, month);
+        rowsHtml += `<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${escapeHtml(mem.name)}</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${assessment.toFixed(1)}%</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${conversion.toFixed(1)}%</td>
+          <td style="padding:6px;border-bottom:1px solid #f0f0f0;text-align:center">${combined.toFixed(1)}%</td>
+        </tr>`;
+      });
+      rowsHtml += `</tbody></table>`;
+
+      const printable = makePrintableContainer(`Members overview – ${month}`, rowsHtml);
+      const opt = {
+        margin:       [10,10,10,10],
+        filename:     `overview_${month}.pdf`,
+        image:        { type: 'jpeg', quality: 0.95 },
+        html2canvas:  { scale: 2, useCORS: true, logging:false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(printable).save();
+    }
+
+    // small helper to escape HTML in table cells
+    function escapeHtml(s){
+      if (!s) return "";
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g," ");
+    }
 
     // render initial
     renderAll();
-    function buildAssessmentPdfDom() {
-  const root = document.getElementById("pdfRoot");
-  root.innerHTML = "";
-
-  const member = getCurrentMember();
-  if (!member || member.isAllTeam) {
-    alert("Select a single team member");
-    return;
-  }
-
-  const weakProjects = (member.projects || []).filter(
-    p => (p.overallPercent || 0) < 70
-  );
-
-  root.className = "pdf-root";
-
-  root.innerHTML = `
-    <div class="pdf-header">
-      <div class="pdf-title">Bold Routes – Projects Assessment</div>
-      <div class="pdf-sub">
-        Sales: ${member.name}<br>
-        Projects below 70%
-      </div>
-    </div>
-
-    <div class="pdf-divider"></div>
-
-    <div class="pdf-section-title">Projects below 70%</div>
-
-    <div class="pdf-grid">
-      ${weakProjects.map(p => `
-        <div class="pdf-card">
-          <div class="pdf-card-title">${p.name}</div>
-          <div class="pdf-meta">
-            ${p.developer || ""} • ${p.region || ""}
-          </div>
-          <div class="pdf-score">
-            ${(p.overallPercent || 0).toFixed(1)}%
-            <span class="pdf-badge">Needs training</span>
-          </div>
-          <div class="pdf-meta">
-            Orientation: ${p.scores?.orientation ?? "-"} / 10
-          </div>
-        </div>
-      `).join("")}
-    </div>
-
-    <div class="pdf-footer">
-      Generated at: ${new Date().toLocaleString()}
-    </div>
-  `;
-
-  root.style.display = "block";
-}
-    
-</script>
+  </script>
   
   <!-- ================= PDF POPUP ================= -->
 <div id="pdfModal" style="
@@ -1559,29 +1588,12 @@ function generatePDF() {
   }
 
   const clone = source.cloneNode(true);
-clone.classList.remove("hidden");
-
-// ❌ شيل الفورم نهائيًا
-clone.querySelectorAll(".new-project-assessment").forEach(e => e.remove());
-
-// ❌ شيل search + training
-clone.querySelectorAll(
-  "#quickSearchProj, .training-panel, .filters-row"
-).forEach(e => e.remove());
-
-// ✅ شيل الكروت العادية
-clone.querySelectorAll("#projectsList").forEach(e => e.remove());
-
-// ✅ فعّل PDF team view
-clone.querySelectorAll("#pdfTeamView").forEach(e => {
-  e.style.display = "block";
-});
-
-// styling
-clone.style.display = "block";
-clone.style.background = "#fff";
-clone.style.color = "#000";
-clone.style.padding = "20px";
+  clone.classList.remove("hidden");
+  clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
+  clone.style.display = "block";
+  clone.style.background = "#fff";
+  clone.style.color = "#000";
+  clone.style.padding = "20px";
 
   const temp = document.createElement("div");
   temp.style.position = "fixed";
@@ -1600,63 +1612,6 @@ clone.style.padding = "20px";
   function closePdfModal(){
   document.getElementById("pdfModal").style.display = "none";
 }
-
-<!-- ===== PDF ROOT (INJECTED ONLY) ===== -->
-
 </script>
-function buildAssessmentPdfDom() {
-  const root = document.getElementById("pdfRoot");
-  root.innerHTML = "";
-
-  const member = getCurrentMember();
-  if (!member || member.isAllTeam) return;
-
-  const weakProjects = (member.projects || []).filter(
-    p => (p.overallPercent || 0) < 70
-  );
-
-  const today = new Date().toLocaleDateString();
-
-  root.className = "pdf-root";
-
-  root.innerHTML = `
-    <div class="pdf-header">
-      <div class="pdf-title">Bold Routes – Projects Assessment</div>
-      <div class="pdf-sub">
-        Sales: ${member.name}<br>
-        Overall: ${member.overallPercent || 0}% – ${member.projects.length} project(s)
-      </div>
-    </div>
-
-    <div class="pdf-divider"></div>
-
-    <div class="pdf-section-title">Projects below 70%</div>
-
-    <div class="pdf-grid">
-      ${weakProjects.map(p => `
-        <div class="pdf-card">
-          <div class="pdf-card-title">${p.name}</div>
-          <div class="pdf-meta">
-            ${p.developer || ""} • ${p.region || ""}
-          </div>
-          <div class="pdf-score">
-            ${(p.overallPercent || 0).toFixed(1)}%
-            <span class="pdf-badge">Needs training</span>
-          </div>
-          <div class="pdf-meta">
-            Orientation: ${p.orientation || 0}/10
-          </div>
-        </div>
-      `).join("")}
-    </div>
-
-    <div class="pdf-footer">
-      Generated at: ${today}
-    </div>
-  `;
-
-  root.style.display = "block";
-  <div id="pdfRoot" style="display:none;"></div>
-}
 </body>
 </html>
