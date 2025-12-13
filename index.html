@@ -1602,23 +1602,40 @@ if (!pdfMember) {
   buildPdfTeamView(pdfMember);
 }
   
-  const source = document.querySelector(".app");
+  let source;
+
+if (section === "assessment") {
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.gap = "16px";
+
+  const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
+  const assessmentClone = document.getElementById("assessmentTab").cloneNode(true);
+
+  wrapper.appendChild(sidebarClone);
+  wrapper.appendChild(assessmentClone);
+
+  source = wrapper;
+} else if (section === "overview") {
+  source = document.getElementById("overviewTab").cloneNode(true);
+} else {
+  source = document.getElementById("conversionTab").cloneNode(true);
+}
 
   if (!source) {
     alert("Section not found");
     return;
   }
 
-  const clone = source.cloneNode(true);
+ const clone = source;
   // ===== show team list in PDF but only selected sales =====
 clone.querySelectorAll(".team-item").forEach(item => {
-  if (item.dataset.id === pdfMember.id) {
-    item.classList.add("active");
+  if (!item.dataset.id || item.dataset.id !== pdfMember.id) {
+    item.remove();
   } else {
-    item.classList.remove("active");
+    item.classList.add("active");
   }
 });
-
   const newProjectSection = clone.querySelector(".new-project-assessment");
 if (newProjectSection) newProjectSection.remove();
   clone.classList.remove("hidden");
