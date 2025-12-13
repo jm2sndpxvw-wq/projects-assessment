@@ -1602,14 +1602,7 @@ if (!pdfMember) {
   buildPdfTeamView(pdfMember);
 }
   
-  let source;
-  if (section === "overview") {
-    source = document.getElementById("overviewTab");
-  } else if (section === "assessment") {
-    source = document.getElementById("assessmentTab");
-  } else {
-    source = document.getElementById("conversionTab");
-  }
+  const source = document.querySelector(".app");
 
   if (!source) {
     alert("Section not found");
