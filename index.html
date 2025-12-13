@@ -161,6 +161,65 @@
       .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
       .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
     }
+    
+    /* =========================
+   PDF COMPACT MODE (ONE PAGE)
+========================= */
+.pdf-compact {
+  transform: scale(0.88);
+  transform-origin: top left;
+  width: 112%;
+}
+
+/* tighten sidebar */
+.pdf-compact .sidebar {
+  padding: 10px !important;
+  width: 240px !important;
+  flex-shrink: 0;
+}
+.pdf-compact .team-list {
+  max-height: none !important;
+}
+.pdf-compact .team-item {
+  padding: 6px 8px !important;
+}
+
+/* tighten main content */
+.pdf-compact .main {
+  padding: 10px !important;
+}
+
+/* cards */
+.pdf-compact .card {
+  padding: 6px 8px !important;
+  margin-bottom: 6px !important;
+}
+
+/* training */
+.pdf-compact .training-panel {
+  font-size: 10px !important;
+}
+.pdf-compact .training-list {
+  max-height: 70px !important;
+}
+
+/* remove extra margins */
+.pdf-compact section,
+.pdf-compact .panel {
+  margin-bottom: 8px !important;
+}
+
+/* prevent page breaks */
+.pdf-compact * {
+  page-break-inside: avoid !important;
+}
+
+.pdf-compact {
+  page-break-after: avoid !important;
+  page-break-before: avoid !important;
+  break-inside: avoid !important;
+
+}
 
 @media print {
 
@@ -1606,8 +1665,7 @@ if (!pdfMember) {
 
 if (section === "assessment") {
   const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.gap = "16px";
+  wrapper.className = "app";
 
   const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
   const assessmentClone = document.getElementById("assessmentTab").cloneNode(true);
@@ -1627,10 +1685,13 @@ if (section === "assessment") {
     return;
   }
 
- const clone = source;
+ const clone = source.cloneNode(true);
+ clone.classList.add("pdf-compact");
+
   // ===== show team list in PDF but only selected sales =====
 clone.querySelectorAll(".team-item").forEach(item => {
-  if (!item.dataset.id || item.dataset.id !== pdfMember.id) {
+  const id = item.dataset.id;
+  if (id !== pdfMember.id) {
     item.remove();
   } else {
     item.classList.add("active");
@@ -1643,7 +1704,8 @@ if (newProjectSection) newProjectSection.remove();
   clone.style.display = "block";
   clone.style.background = "#fff";
   clone.style.color = "#000";
-  clone.style.padding = "20px";
+  clone.style.padding = "0";
+  clone.style.margin = "0";
 
   const temp = document.createElement("div");
   temp.style.position = "fixed";
