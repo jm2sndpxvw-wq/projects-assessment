@@ -1483,25 +1483,24 @@
 </div>
 
 <script>
-function generatePDF()
+function generatePDF() {
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
 
   let source;
-  if(section === "overview"){
+  if (section === "overview") {
     source = document.getElementById("overviewTab");
-  }else if(section === "assessment"){
+  } else if (section === "assessment") {
     source = document.getElementById("assessmentTab");
-  }else{
+  } else {
     source = document.getElementById("conversionTab");
   }
 
-  if(!source){
+  if (!source) {
     alert("Section not found");
     return;
   }
 
-  // نعمل نسخة مؤقتة
   const clone = source.cloneNode(true);
   clone.style.display = "block";
   clone.style.background = "#fff";
@@ -1516,12 +1515,13 @@ function generatePDF()
 
   html2pdf().set({
     margin: 10,
-    html2canvas: { scale: 2 },
+    html2canvas: { scale: 2, useCORS: true },
     jsPDF: { format: "a4", orientation }
-  }).from(clone).save().then(()=>{
+  }).from(clone).save().then(() => {
     document.body.removeChild(temp);
   });
 }
+
 </script>
 </body>
 </html>
