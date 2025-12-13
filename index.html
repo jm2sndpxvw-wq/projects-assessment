@@ -807,7 +807,6 @@
         if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
         else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${(project.overallPercent||0).toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent || 0); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${(project.overallPercent||0).toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
       }
-      window.print();
     });
 
     // ===== enhanced projects CSV export =====
@@ -1534,7 +1533,51 @@ function generatePDF(){
   closePdfModal();
 }
 </script>
-<!-- ================= END PDF POPUP ================= -->
+
+<script>
+function generatePDF(){
+  const section = document.getElementById("pdfSection").value;
+  const orientation = document.getElementById("pdfOrientation").value;
+
+  let source;
+  if(section === "overview"){
+    source = document.getElementById("overviewTab");
+  }else if(section === "assessment"){
+    source = document.getElementById("assessmentTab");
+  }else{
+    source = document.getElementById("conversionTab");
+  }
+
+  if(!source){
+    alert("Section not found");
+    return;
+  }
+
+  // ⛔️ نعمل نسخة مؤقتة
+  const clone = source.cloneNode(true);
+  clone.style.display = "block";
+  clone.style.background = "#fff";
+  clone.style.color = "#000";
+  clone.style.padding = "20px";
+
+  // ⛔️ نحطها مؤقتًا في الصفحة
+  const temp = document.createElement("div");
+  temp.style.position = "fixed";
+  temp.style.left = "-9999px";
+  temp.appendChild(clone);
+  document.body.appendChild(temp);
+
+  html2pdf().set({
+    margin: 10,
+    filename: section + ".pdf",
+    html2canvas: { scale: 2 },
+    jsPDF: { format: "a4", orientation }
+  }).from(clone).save().then(()=>{
+    // 🧹 نشيل النسخة المؤقتة
+    document.body.removeChild(temp);
+  });
+}
+</script>
   
 </body>
 </html>
