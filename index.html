@@ -173,7 +173,13 @@
       .add-team, .hint-mini { display:none !important; }
       #projectsList { display:none !important; }
       #printProjectsList { display:flex !important; }
-      #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important; }
+      #assessmentTab.hidden, #conversionTab.hidden, #overviewTab.hidden { display:none !important;
+        
+
+  /* hide new project assessment form in PDF */
+  .new-project-assessment {
+    display: none !important;
+       } 
     }
   </style>
 </head>
@@ -247,7 +253,7 @@
 
         <div class="content-grid">
           <!-- LEFT: FORM -->
-          <section class="panel">
+          <section class="panel new-project-assessment">
             <div class="panel-header">
               <div>
                 <div class="panel-title" id="formTitle">New Project Assessment</div>
@@ -358,6 +364,8 @@
           </div>
 
           <div class="overview-grid" id="overviewGrid"></div>
+          <!-- ===== PDF TEAM VIEW (PRINT ONLY) ===== -->
+           <div id="pdfTeamView" class="print-only"></div>
         </div>
       </div>
     </main>
@@ -1250,7 +1258,43 @@
     })();
 
     // ===== PDF Export helpers (using html2pdf) =====
+function buildPdfTeamView() {
+  const container = document.getElementById("pdfTeamView");
+  container.innerHTML = "";
 
+  const member = getCurrentMember();
+  if (!member || member.isAllTeam) return;
+
+  // header
+  container.innerHTML += `
+    <div class="pdf-member-name">
+      ${member.name} – Projects below 70%
+    </div>
+  `;
+
+  const weakProjects = (member.projects || [])
+    .filter(p => (p.overallPercent || 0) < 70)
+    .sort((a, b) => (a.overallPercent || 0) - (b.overallPercent || 0));
+
+  if (!weakProjects.length) {
+    container.innerHTML += `<div>No projects below 70%</div>`;
+    return;
+  }
+
+  weakProjects.forEach(p => {
+    container.innerHTML += `
+      <div class="pdf-project-card">
+        <div class="pdf-project-title">${escapeHtml(p.name)}</div>
+        <div class="pdf-project-meta">
+          ${escapeHtml(p.region || "")} • ${escapeHtml(p.developer || "")}
+        </div>
+        <div class="pdf-project-score">
+          ${(p.overallPercent || 0).toFixed(1)}%
+        </div>
+      </div>
+    `;
+  });
+}
     // utility: create printable container with styles
     function makePrintableContainer(titleHtml, bodyHtml){
       const wrap = document.createElement("div");
@@ -1477,7 +1521,11 @@
 function generatePDF() {
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
-
+  // build team view ONLY for assessment PDF
+  if (section === "assessment") {
+    buildPdfTeamView();
+  }
+  
   let source;
   if (section === "overview") {
     source = document.getElementById("overviewTab");
