@@ -1617,6 +1617,14 @@ if (!pdfMember) {
   }
 
   const clone = source.cloneNode(true);
+  // force sidebar to show only selected PDF member
+clone.querySelectorAll(".team-item").forEach(item => {
+  if (item.dataset.id === pdfMember.id) {
+    item.classList.add("active");
+  } else {
+    item.classList.remove("active");
+  }
+}); 
   const newProjectSection = clone.querySelector(".new-project-assessment");
 if (newProjectSection) newProjectSection.remove();
   clone.classList.remove("hidden");
@@ -1638,6 +1646,7 @@ if (newProjectSection) newProjectSection.remove();
     jsPDF: { format: "a4", orientation }
   }).from(clone).save().then(() => {
     document.body.removeChild(temp);
+    closePdfModal();
   });
   }
   function closePdfModal(){
