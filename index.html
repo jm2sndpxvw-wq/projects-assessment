@@ -1617,6 +1617,8 @@ if (!pdfMember) {
   }
 
   const clone = source.cloneNode(true);
+  const newProjectSection = clone.querySelector(".new-project-assessment");
+if (newProjectSection) newProjectSection.remove();
   clone.classList.remove("hidden");
   clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
   clone.style.display = "block";
