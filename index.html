@@ -849,6 +849,7 @@
 
     // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
+  fillPdfSalesSelect();
   document.getElementById("pdfModal").style.display = "flex";
 });
 
@@ -1302,13 +1303,12 @@
     })();
 
     // ===== PDF Export helpers (using html2pdf) =====
-function buildPdfTeamView() {
+function buildPdfTeamView(member) {
   const container = document.getElementById("pdfTeamView");
   container.innerHTML = "";
 
-  const member = getCurrentMember();
   if (!member || member.isAllTeam) return;
-
+  
   // header
   container.innerHTML += `
     <div class="pdf-member-name">
@@ -1364,7 +1364,7 @@ function buildPdfTeamView() {
     }
 
     // ===== Export filtered Projects to PDF =====
-    function exportFilteredProjectsToPDF(){
+   function exportFilteredProjectsToPDF(){
   const member = getCurrentMember();
   if (!member) return alert("Select a member first.");
 
@@ -1554,21 +1554,53 @@ function buildPdfTeamView() {
       <option value="landscape">Landscape</option>
     </select>
 
+ <label style="font-size:12px">Sales member</label>
+<select id="pdfSalesSelect" style="width:100%;margin-bottom:14px">
+  <option value="">Select sales member</option>
+  </select>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closePdfModal()">Cancel</button>
       <button class="btn btn-primary" onclick="generatePDF()">Preview</button>
     </div>
   </div>
 </div>
-
 <script>
-function generatePDF() {
+
+  function fillPdfSalesSelect() {
+  const select = document.getElementById("pdfSalesSelect");
+  if (!select) return;
+
+  select.innerHTML = '<option value="">Select sales member</option>';
+
+  state.members.forEach(member => {
+    const opt = document.createElement("option");
+    opt.value = member.id;
+    opt.textContent = member.name;
+    select.appendChild(opt);
+  });
+}
+
+
+  function generatePDF() {
+  const salesId = document.getElementById("pdfSalesSelect").value;
+
+if (!salesId) {
+  alert("Please select a sales member");
+  return;
+}
+
+const pdfMember = state.members.find(m => m.id === salesId);
+
+if (!pdfMember) {
+  alert("Selected sales member not found");
+  return;
+}
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
   // build team view ONLY for assessment PDF
   if (section === "assessment") {
-    buildPdfTeamView();
-  }
+  buildPdfTeamView(pdfMember);
+}
   
   let source;
   if (section === "overview") {
