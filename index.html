@@ -797,17 +797,8 @@
 
     // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
-      const member = getCurrentMember(); if (!member) { alert("Select a team member first."); return; }
-      if (state.activeTab === "assessment") {
-        const selectedRegion = regionFilter.value || "all"; const selectedDev = developerFilter.value || "all"; let projects = member.projects || [];
-        projects = projects.filter(p=>{ const r=(p.region||"").trim(); const d=(p.developer||"").trim(); const regionMatch = selectedRegion==="all"?true:r===selectedRegion; const devMatch = selectedDev==="all"?true:d===selectedDev; return regionMatch && devMatch; });
-        const lowProjects = projects.filter(p=>(p.overallPercent||0) <= 60).sort((a,b)=>a.overallPercent - b.overallPercent);
-        const limited = lowProjects.slice(0,5);
-        printProjectsListEl.innerHTML = "";
-        if (limited.length === 0) { const div=document.createElement("div"); div.className="empty-state"; div.textContent="No projects ≤ 60% with current filters."; printProjectsListEl.appendChild(div); }
-        else { limited.forEach(project=>{ const card=document.createElement("div"); card.className="card"; const header=document.createElement("div"); header.className="card-header"; const titleBlock=document.createElement("div"); titleBlock.className="card-title-block"; const title=document.createElement("div"); title.className="card-title"; title.textContent = project.name || "Untitled project"; const subtitle=document.createElement("div"); subtitle.className="card-subtitle"; const bits=[]; if (project.region) bits.push(project.region); if (project.developer) bits.push(project.developer); bits.push(`${(project.overallPercent||0).toFixed(1)}%`); subtitle.textContent = bits.join(" • "); titleBlock.appendChild(title); titleBlock.appendChild(subtitle); const tagEl=document.createElement("div"); const tagInfo=tagFromPercent(project.overallPercent || 0); tagEl.className="card-tag "+tagInfo.className; tagEl.textContent = tagInfo.text; header.appendChild(titleBlock); header.appendChild(tagEl); const footer=document.createElement("div"); footer.className="card-footer"; const scoreSpan=document.createElement("span"); scoreSpan.innerHTML = `<span class="bold">${(project.overallPercent||0).toFixed(1)}%</span> avg (0–10 scale)`; footer.appendChild(scoreSpan); card.appendChild(header); card.appendChild(footer); printProjectsListEl.appendChild(card); }); }
-      }
-    });
+  document.getElementById("pdfModal").style.display = "flex";
+});
 
     // ===== enhanced projects CSV export =====
     function exportProjectsCSVEnhanced(){
@@ -1502,6 +1493,8 @@ function generatePDF() {
   }
 
   const clone = source.cloneNode(true);
+  clone.classList.remove("hidden");
+  clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
   clone.style.display = "block";
   clone.style.background = "#fff";
   clone.style.color = "#000";
