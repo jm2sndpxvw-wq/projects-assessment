@@ -1585,12 +1585,29 @@ function generatePDF() {
   }
 
   const clone = source.cloneNode(true);
-  clone.classList.remove("hidden");
-  clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
-  clone.style.display = "block";
-  clone.style.background = "#fff";
-  clone.style.color = "#000";
-  clone.style.padding = "20px";
+clone.classList.remove("hidden");
+
+// ❌ شيل الفورم نهائيًا
+clone.querySelectorAll(".new-project-assessment").forEach(e => e.remove());
+
+// ❌ شيل search + training
+clone.querySelectorAll(
+  "#quickSearchProj, .training-panel, .filters-row"
+).forEach(e => e.remove());
+
+// ✅ شيل الكروت العادية
+clone.querySelectorAll("#projectsList").forEach(e => e.remove());
+
+// ✅ فعّل PDF team view
+clone.querySelectorAll("#pdfTeamView").forEach(e => {
+  e.style.display = "block";
+});
+
+// styling
+clone.style.display = "block";
+clone.style.background = "#fff";
+clone.style.color = "#000";
+clone.style.padding = "20px";
 
   const temp = document.createElement("div");
   temp.style.position = "fixed";
