@@ -1526,6 +1526,57 @@ function generatePDF(){
   });
 }
 </script>
+
+<script>
+function generatePDF(){
+  const section = document.getElementById("pdfSection").value;
+  const orientation = document.getElementById("pdfOrientation").value;
+
+  let source;
+  if(section === "overview"){
+    source = document.getElementById("overviewTab");
+  }else if(section === "assessment"){
+    source = document.getElementById("assessmentTab");
+  }else{
+    source = document.getElementById("conversionTab");
+  }
+
+  if(!source){
+    alert("Section not found");
+    return;
+  }
+
+  // نعمل نسخة نظيفة عشان الـ hidden و الـ print
+  const clone = source.cloneNode(true);
+  clone.style.display = "block";
+  clone.style.background = "#fff";
+  clone.style.color = "#000";
+  clone.style.padding = "20px";
+
+  const temp = document.createElement("div");
+  temp.style.position = "fixed";
+  temp.style.left = "-9999px";
+  temp.appendChild(clone);
+  document.body.appendChild(temp);
+
+  html2pdf()
+    .set({
+      margin: 10,
+      html2canvas: { scale: 2, useCORS:true },
+      jsPDF: { format: "a4", orientation }
+    })
+    .from(clone)
+    .toPdf()
+    .get("pdf")
+    .then(pdf=>{
+      const blobUrl = pdf.output("bloburl");
+      window.open(blobUrl, "_blank"); // 👈 Preview على iPad
+      document.body.removeChild(temp);
+    });
+
+  closePdfModal();
+}
+</script>
   
 </body>
 </html>
