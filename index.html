@@ -1853,13 +1853,39 @@ if (pdfTeamClone) {
     wrapper.appendChild(mainWrap);
     source = wrapper;
 
-  } else if (section === "overview") {
-    const wrap = document.createElement("div");
-    wrap.className = "app pdf-compact " + orientation;
-    wrap.appendChild(
-      document.getElementById("overviewTab").cloneNode(true)
-    );
-    source = wrap;
+} else if (section === "overview") {
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "app pdf-compact " + orientation;
+
+  // Sidebar (نفس assessment)
+  const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
+
+  // Main
+  const mainWrap = document.createElement("main");
+  mainWrap.className = "main";
+
+  const overviewClone = document
+    .getElementById("overviewTab")
+    .cloneNode(true);
+
+  overviewClone.classList.remove("hidden");
+
+  // ===== FILTER OVERVIEW TO SELECTED MEMBER =====
+  overviewClone.querySelectorAll(".member-card").forEach(card => {
+    const nameEl = card.querySelector(".member-name");
+    if (!nameEl || nameEl.textContent.trim() !== pdfMember.name) {
+      card.remove();
+    }
+  });
+
+  mainWrap.appendChild(overviewClone);
+
+  wrapper.appendChild(sidebarClone);
+  wrapper.appendChild(mainWrap);
+
+  source = wrapper;
+}
 
    } else if (section === "conversion") {
 
@@ -1905,6 +1931,17 @@ rows.forEach(row => {
 
   // ❌ remove UI projects list
   clone.querySelectorAll("#projectsList").forEach(el => el.remove());
+  // ✅ overview PDF: show only selected sales in sidebar
+if (section === "overview") {
+  clone.querySelectorAll(".team-item").forEach(item => {
+    const nameEl = item.querySelector(".team-name");
+    if (!nameEl || nameEl.textContent.trim() !== pdfMember.name) {
+      item.remove();
+    } else {
+      item.classList.add("active");
+    }
+  });
+} 
   // ✅ in conversion PDF: show only selected sales
 if (section === "conversion") {
   clone.querySelectorAll(".team-item").forEach(item => {
