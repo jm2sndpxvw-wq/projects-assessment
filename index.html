@@ -167,29 +167,28 @@
   }
 }
     
-    /* =========================
-   PDF COMPACT MODE (ONE PAGE)
-========================= */
-/* FORCE TWO COLUMNS IN PDF */
+/* ===== PDF: MAIN LAYOUT FIX ===== */
 .pdf-compact.app {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  align-items: flex-start;
+  display: flex !important;
+  width: 100% !important;
+  max-width: none !important;
 }
+
 /* FORCE SIDEBAR + CONTENT SIDE BY SIDE IN PDF */
-.pdf-compact .sidebar {
-  grid-column: 1 !important;
-}
 
 .pdf-compact .main {
-  grid-column: 2 !important;
+  flex: 1 !important;
+  width: 100% !important;
 }
 
-.pdf-compact .content-grid {
-  display: grid !important;
-  grid-template-columns: 260px 1fr !important;
-  gap: 12px !important;
-    align-items: flex-start;
+/* PDF: PROJECTS FULL WIDTH */
+.pdf-compact .card {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.pdf-compact .projects-panel {
+  width: 100% !important;
 }
 
 /* prevent mobile stacking */
@@ -197,6 +196,15 @@
   width: 100% !important;
 }
 
+.pdf-compact .cards-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+
+.pdf-compact .card {
+  font-size: 13px !important;
+}
 /* tighten sidebar */
 .pdf-compact .sidebar {
   padding: 10px !important;
