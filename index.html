@@ -156,26 +156,60 @@
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:#303545; border-radius:999px; }
 
-    @media (max-width:900px) {
-      .app { grid-template-columns:1fr; }
-      .sidebar { border-right:none; border-bottom:1px solid var(--border); flex-direction:column; }
-      .content-grid, .conversion-layout { grid-template-columns:1fr; height:auto; }
-    }
+@media (max-width:900px) {
+  .app:not(.pdf-compact) {
+    grid-template-columns:1fr;
+  }
+
+  .app:not(.pdf-compact) .content-grid,
+  .app:not(.pdf-compact) .conversion-layout {
+    grid-template-columns:1fr;
+  }
+}
     
     /* =========================
    PDF COMPACT MODE (ONE PAGE)
 ========================= */
+/* FORCE TWO COLUMNS IN PDF */
+.pdf-compact.app {
+  display: grid !important;
+  grid-template-columns: 260px 1fr !important;
+  align-items: flex-start;
+}
+/* FORCE SIDEBAR + CONTENT SIDE BY SIDE IN PDF */
+.pdf-compact .sidebar {
+  grid-column: 1 !important;
+}
+
+.pdf-compact .main {
+  grid-column: 2 !important;
+}
+
+.pdf-compact .content-grid {
+  display: grid !important;
+  grid-template-columns: 260px 1fr !important;
+  gap: 12px !important;
+    align-items: flex-start;
+}
+
+/* prevent mobile stacking */
+.pdf-compact .panel {
+  width: 100% !important;
+}
+
 .pdf-compact {
   transform: scale(0.88);
   transform-origin: top left;
-  width: 112%;
+  width: 100%;
 }
 
 /* tighten sidebar */
 .pdf-compact .sidebar {
   padding: 10px !important;
-  width: 240px !important;
-  flex-shrink: 0;
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
+  flex-shrink: 0 !important;
 }
 .pdf-compact .team-list {
   max-height: none !important;
@@ -210,15 +244,12 @@
 }
 
 /* prevent page breaks */
-.pdf-compact * {
-  page-break-inside: avoid !important;
-}
-
-.pdf-compact {
-  page-break-after: avoid !important;
-  page-break-before: avoid !important;
-  break-inside: avoid !important;
-
+.pdf-compact .sidebar,
+.pdf-compact .main,
+.pdf-compact .panel,
+.pdf-compact .card {
+.pdf-compact .content-grid {
+page-break-inside: avoid !important;
 }
 
 @media print {
@@ -1665,19 +1696,26 @@ if (!pdfMember) {
 
 if (section === "assessment") {
   const wrapper = document.createElement("div");
-  wrapper.className = "app";
-
+  wrapper.className = "app pdf-compact";
   const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
-  const assessmentClone = document.getElementById("assessmentTab").cloneNode(true);
+  const mainWrap = document.createElement("main");
+  mainWrap.className = "main";
+  mainWrap.appendChild(document.getElementById("assessmentTab").cloneNode(true));
 
   wrapper.appendChild(sidebarClone);
-  wrapper.appendChild(assessmentClone);
+  wrapper.appendChild(mainWrap);
 
   source = wrapper;
 } else if (section === "overview") {
-  source = document.getElementById("overviewTab").cloneNode(true);
+  const wrap = document.createElement("div");
+  wrap.className = "app pdf-compact";
+  wrap.appendChild(document.getElementById("overviewTab").cloneNode(true));
+  source = wrap;
 } else {
-  source = document.getElementById("conversionTab").cloneNode(true);
+  const wrap = document.createElement("div");
+  wrap.className = "app pdf-compact";
+  wrap.appendChild(document.getElementById("conversionTab").cloneNode(true));
+  source = wrap;
 }
 
   if (!source) {
@@ -1685,25 +1723,33 @@ if (section === "assessment") {
     return;
   }
 
- const clone = source.cloneNode(true);
- clone.classList.add("pdf-compact");
+const clone = source;
 
   // ===== show team list in PDF but only selected sales =====
-clone.querySelectorAll(".team-item").forEach(item => {
-  const id = item.dataset.id;
-  if (id !== pdfMember.id) {
-    item.remove();
-  } else {
-    item.classList.add("active");
-  }
-});
+
+if (section === "assessment") {
+  clone.querySelectorAll(".team-item").forEach(item => {
+    if (item.dataset.id !== pdfMember.id) {
+      item.remove();
+    } else {
+      item.classList.add("active");
+    }
+  });
+}
+
+  if (section === "assessment") {
   const newProjectSection = clone.querySelector(".new-project-assessment");
-if (newProjectSection) newProjectSection.remove();
+  if (newProjectSection) newProjectSection.remove();
+}
   clone.classList.remove("hidden");
   clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
   clone.style.display = "block";
   clone.style.background = "#fff";
   clone.style.color = "#000";
+  clone.querySelectorAll(".sidebar, .panel, .main").forEach(el => {
+  el.style.background = "#fff";
+  el.style.color = "#000";
+});
   clone.style.padding = "0";
   clone.style.margin = "0";
 
