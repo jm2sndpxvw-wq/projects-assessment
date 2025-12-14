@@ -1774,13 +1774,6 @@ if (section === "assessment") {
   }
 
 const clone = source;
-// ===== FORCE Projects & Scores render inside PDF clone =====
-if (section === "assessment") {
-  const pdfProjectsList = clone.querySelector("#printProjectsList");
-  if (pdfProjectsList) {
-    renderProjectsListForPdf(pdfMember, pdfProjectsList);
-  }
-}
 
   // ===== show team list in PDF but only selected sales =====
 
@@ -1822,6 +1815,17 @@ clone.querySelectorAll(".card").forEach(el => {
   temp.style.left = "-9999px";
   temp.appendChild(clone);
   document.body.appendChild(temp);
+  
+  // ===== RENDER PROJECTS FOR SELECTED SALES INSIDE PDF DOM =====
+if (section === "assessment") {
+  const pdfProjectsList = clone.querySelector("#printProjectsList");
+
+  if (!pdfProjectsList) {
+    console.warn("printProjectsList not found inside PDF clone");
+  } else {
+    renderProjectsListForPdf(pdfMember, pdfProjectsList);
+  }
+}
 
   html2pdf().set({
     margin: 10,
