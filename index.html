@@ -139,15 +139,11 @@
   flex-direction: column !important;
 }
 
-/* جدول Team performance يطلع فوق */
-.conversion-layout > section:nth-child(2) {
-  order: 1;
+  /* UI ONLY: force daily conversion below table */
+.daily-conversion-panel {
+  order: 99;
 }
 
-/* Daily conversion ينزل تحت */
-.conversion-layout > section:nth-child(1) {
-  order: 2;
-}
     .conversion-table { width:100%; border-collapse:collapse; font-size:10px; }
     .conversion-table th, .conversion-table td { border:1px solid var(--border); padding:4px 5px; text-align:center; }
     .conversion-table th { font-size:10px; background:#151a25; }
