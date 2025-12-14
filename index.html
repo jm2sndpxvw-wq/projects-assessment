@@ -237,6 +237,25 @@
   grid-template-columns: repeat(2, 1fr) !important;
   gap: 12px !important;
 }
+
+/* ===== PDF LANDSCAPE: 3 CARDS PER ROW ===== */
+.pdf-compact.landscape .cards-list {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+/* ===== PDF FIX: FULL WIDTH PROJECTS PANEL ===== */
+.pdf-compact .content-grid {
+  grid-template-columns: 1fr !important;
+}
+
+.pdf-compact .new-project-assessment {
+  display: none !important;
+}
+
+.pdf-compact .projects-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+}
 @media print {
 
   -webkit-print-color-adjust: exact;
@@ -1717,7 +1736,7 @@ function generatePDF() {
 
   if (section === "assessment") {
     const wrapper = document.createElement("div");
-    wrapper.className = "app pdf-compact";
+    wrapper.className = "app pdf-compact landscape";
 
     const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
     const mainWrap = document.createElement("main");
