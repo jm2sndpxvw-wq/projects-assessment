@@ -1731,10 +1731,6 @@ if (!pdfMember) {
 
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
-  
-// ===== TEMP override selected member for PDF =====
-const previousSelectedMemberId = state.selectedMemberId;
-state.selectedMemberId = pdfMember.id;
 
   // build team view ONLY for assessment PDF
   if (section === "assessment") {
@@ -1774,6 +1770,11 @@ if (section === "assessment") {
   }
 
 const clone = source;
+// ===== FORCE CLEAR PROJECTS LIST IN PDF CLONE =====
+const uiProjectsList = clone.querySelector("#projectsList");
+if (uiProjectsList) {
+  uiProjectsList.innerHTML = "";
+}
 
   // ===== show team list in PDF but only selected sales =====
 
@@ -1833,10 +1834,6 @@ if (section === "assessment") {
     jsPDF: { format: "a4", orientation }
 }).from(clone).save().then(() => {
   document.body.removeChild(temp);
-
-  // ===== restore previous selected member =====
-  state.selectedMemberId = previousSelectedMemberId;
-
   closePdfModal();
 });
   }
