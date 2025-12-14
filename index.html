@@ -131,9 +131,14 @@
   gap:12px;
   margin-top:6px;
 }
-  /* UI ONLY: force daily conversion below table */
-.daily-conversion-panel {
-  order: 99;
+
+/* UI ONLY: force order */
+.app:not(.pdf-compact) .conversion-table-panel {
+  order: 1;
+}
+
+.app:not(.pdf-compact) .daily-conversion-panel {
+  order: 2;
 }
 
     .conversion-table { width:100%; border-collapse:collapse; font-size:10px; }
@@ -574,7 +579,7 @@
     </div>
   </section>
   
-          <section class="panel">
+          <section class="panel conversion-table-panel">
             <div class="panel-header"><div><div class="panel-title">Team performance (per day & month)</div><div class="panel-sub">Numbers per sales – plus monthly totals under each one</div></div></div>
 
             <div style="overflow-x:auto;">
