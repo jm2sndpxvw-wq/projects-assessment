@@ -297,7 +297,7 @@ break-inside: avoid !important;
 
   .pdf-project-meta {
     font-size:11px;
-    color:#555;
+    color:#9aa4c0;
     margin-bottom:6px;
   }
 
@@ -314,11 +314,47 @@ break-inside: avoid !important;
 .pdf-root {
   background: linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%);
   color: #f5f7fb;
-  padding: 16px;
+  padding: 0;
+  margin: 0;
 }
 
 html, body {
-  background: transparent !important;
+  background: #090b10 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===============================
+   FINAL PDF WHITE BACKGROUND FIX
+   =============================== */
+
+/* kill body padding during pdf */
+.pdf-root,
+.pdf-root body,
+.pdf-root html {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #090b10 !important;
+}
+
+/* remove rounded corners & clipping */
+.pdf-root .app {
+  border-radius: 0 !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+
+/* force dark background everywhere */
+.pdf-root,
+.pdf-root .app,
+.pdf-root .sidebar,
+.pdf-root .main {
+  background-color: transparent !important;
+}
+
+/* safety: prevent any white canvas */
+.pdf-root * {
+  box-sizing: border-box;
 }
 
   </style>
@@ -1474,7 +1510,7 @@ function buildPdfTeamView(member) {
 
   weakProjects.forEach(p => {
     container.innerHTML += `
-      <div class="pdf-project-card">
+        <div class="card pdf-project-card">
         <div class="pdf-project-title">${escapeHtml(p.name)}</div>
         <div class="pdf-project-meta">
           ${escapeHtml(p.region || "")} • ${escapeHtml(p.developer || "")}
@@ -1570,7 +1606,11 @@ function buildPdfTeamView(member) {
           ${(p.overallPercent||0).toFixed(1)}%
         </div>
         <div style="font-size:11px;margin-bottom:6px">
-          Orientation: ${p.scores?.orientation ?? "-"} / 10
+          Orientation: ${
+  typeof p.scores?.orientation === "number"
+    ? p.scores.orientation.toFixed(1)
+    : "N/A"
+} / 10
         </div>
         <div style="display:inline-block;font-size:10px;padding:3px 8px;border-radius:999px;border:1px solid #999">
           ${tag}
@@ -1847,7 +1887,7 @@ html2pdf().set({
   html2canvas: {
     scale: 2,
     useCORS: true,
-    backgroundColor: "#090b10"
+    backgroundColor: null 
   },
   jsPDF: {
     unit: "px",
