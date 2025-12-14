@@ -1790,6 +1790,12 @@ function generatePDF() {
   if (section === "assessment") {
     buildPdfTeamView(pdfMember, scoreRange);
   }
+  
+if (section === "conversion") {
+  // ensure conversion tab is rendered before cloning
+  renderConversionTargets();
+  renderConversionTable();
+}
 
   let source;
 
@@ -1814,7 +1820,7 @@ if (pdfTeamClone) {
 
   } else if (section === "overview") {
     const wrap = document.createElement("div");
-    wrap.className = "app pdf-compact";
+    wrap.className = "app pdf-compact " + orientation;
     wrap.appendChild(
       document.getElementById("overviewTab").cloneNode(true)
     );
@@ -1872,6 +1878,7 @@ temp.appendChild(pdfRoot);
 document.body.appendChild(temp);
 
   // ===== render projects for selected sales =====
+  if (section === "assessment") {
   let pdfProjectsList = clone.querySelector("#printProjectsList");
 
   if (!pdfProjectsList) {
@@ -1884,6 +1891,8 @@ document.body.appendChild(temp);
 
   pdfProjectsList.innerHTML = "";
   renderProjectsListForPdf(pdfMember, pdfProjectsList, scoreRange);
+  
+  }
 
 pdfRoot.style.background = "#090b10";
 html2pdf().set({
