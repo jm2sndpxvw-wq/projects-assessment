@@ -242,6 +242,29 @@
 .pdf-compact.landscape .cards-list {
   grid-template-columns: repeat(3, 1fr) !important;
 }
+ 
+/* ===== PDF: PROJECT CARD FULL SIZE FIX ===== */
+.pdf-compact .card {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.pdf-compact .card-header {
+  align-items: flex-start !important;
+}
+
+.pdf-compact .card-title {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+}
+
+.pdf-compact .card-footer {
+  margin-top: auto !important;
+  padding-top: 6px !important;
+}
 
 /* ===== PDF FIX: FULL WIDTH PROJECTS PANEL ===== */
 .pdf-compact .content-grid {
