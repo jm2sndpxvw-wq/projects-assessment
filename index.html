@@ -858,6 +858,8 @@ break-inside: avoid !important;
           projectsListEl.appendChild(card);
         });
       }
+      
+      
 
       // training plan
       const lines=[]; const summaryCounts={};
@@ -877,6 +879,49 @@ break-inside: avoid !important;
       if (summaryEntries.length === 0) trainingSummaryListEl.textContent = "مفيش نقط متكررة أقل من ٥/١٠ على مستوى كل المشاريع.";
       else { trainingSummaryListEl.innerHTML = ""; summaryEntries.forEach(([label,count])=>{ const div=document.createElement("div"); div.textContent = `${label}: ظهر في ${count} مشروع بدرجات ≤ ٥`; trainingSummaryListEl.appendChild(div); }); }
     }
+    
+    function renderProjectsListForPdf(member, container) {
+  container.innerHTML = "";
+
+  if (!member || !member.projects || member.projects.length === 0) {
+    container.innerHTML = `<div class="empty-state">No projects for this sales.</div>`;
+    return;
+  }
+
+  member.projects
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .forEach(project => {
+
+      const tag =
+        project.overallPercent < 60 ? "Needs Training" :
+        project.overallPercent < 80 ? "Average" :
+        "Confident";
+
+      const card = document.createElement("div");
+      card.className = "card pdf-project-card";
+
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="card-title-block">
+            <div class="card-title">${escapeHtml(project.name || "")}</div>
+            <div class="card-subtitle">
+              ${escapeHtml(project.region || "")}
+              ${project.developer ? " • " + escapeHtml(project.developer) : ""}
+            </div>
+          </div>
+          <div class="card-tag">${tag}</div>
+        </div>
+
+        <div class="card-footer">
+          <span class="bold">${(project.overallPercent || 0).toFixed(1)}%</span>
+          <span>avg (0–10)</span>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+}
 
     function renderHeaderForMember(member){
       if (!member) { currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member from the left to start assessment."; return; }
@@ -1598,50 +1643,7 @@ function buildPdfTeamView(member) {
       };
       html2pdf().set(opt).from(printable).save();
     }
-function buildPdfProjectsList(member) {
-  const list = document.getElementById("printProjectsList");
-  if (!list) return;
 
-  list.innerHTML = "";
-
-  if (!member || !member.projects || member.projects.length === 0) {
-    list.innerHTML = `<div class="empty-state">No projects for this sales.</div>`;
-    return;
-  }
-
-  member.projects
-    .slice()
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-    .forEach(project => {
-      const tag =
-        project.overallPercent < 60 ? "Needs Training" :
-        project.overallPercent < 80 ? "Average" :
-        "Confident";
-
-      const card = document.createElement("div");
-      card.className = "card pdf-project-card";
-
-      card.innerHTML = `
-        <div class="card-header">
-          <div class="card-title-block">
-            <div class="card-title">${escapeHtml(project.name || "")}</div>
-            <div class="card-subtitle">
-              ${escapeHtml(project.region || "")}
-              ${project.developer ? " • " + escapeHtml(project.developer) : ""}
-            </div>
-          </div>
-          <div class="card-tag">${tag}</div>
-        </div>
-
-        <div class="card-footer">
-          <span class="bold">${(project.overallPercent || 0).toFixed(1)}%</span>
-          <span>avg (0–10)</span>
-        </div>
-      `;
-
-      list.appendChild(card);
-    });
-}
     // small helper to escape HTML in table cells
     function escapeHtml(s){
       if (!s) return "";
@@ -1734,10 +1736,6 @@ if (!pdfMember) {
 const previousSelectedMemberId = state.selectedMemberId;
 state.selectedMemberId = pdfMember.id;
 
-if (section === "assessment") {
-  buildPdfProjectsList(pdfMember);
-}
-
   // build team view ONLY for assessment PDF
   if (section === "assessment") {
   buildPdfTeamView(pdfMember);
@@ -1776,6 +1774,13 @@ if (section === "assessment") {
   }
 
 const clone = source;
+// ===== FORCE Projects & Scores render inside PDF clone =====
+if (section === "assessment") {
+  const pdfProjectsList = clone.querySelector("#printProjectsList");
+  if (pdfProjectsList) {
+    renderProjectsListForPdf(pdfMember, pdfProjectsList);
+  }
+}
 
   // ===== show team list in PDF but only selected sales =====
 
