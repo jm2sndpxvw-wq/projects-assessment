@@ -124,21 +124,13 @@
     .print-only { display:none; }
 
     /* Conversion */
-    /* Conversion (OLD GRID – overridden below for UI order) */
-.conversion-layout {
-  display:grid;
-  grid-template-columns:minmax(0,260px) minmax(0,1fr);
+   /* ===== UI ONLY: Conversion layout ===== */
+.app:not(.pdf-compact) .conversion-layout {
+  display: flex;
+  flex-direction: column;
   gap:12px;
   margin-top:6px;
 }
-    /* ===== UI ONLY: MOVE DAILY CONVERSION BELOW TABLE ===== */
-
-/* خلي layout عمودي */
-.conversion-layout {
-  display: flex !important;
-  flex-direction: column !important;
-}
-
   /* UI ONLY: force daily conversion below table */
 .daily-conversion-panel {
   order: 99;
