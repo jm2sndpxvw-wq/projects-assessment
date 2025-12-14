@@ -287,7 +287,7 @@ break-inside: avoid !important;
     font-size:18px;
     font-weight:700;
     margin-bottom:12px;
-    color:#000;
+    color:#f5f7fb;
   }
 
   .pdf-project-title {
@@ -321,10 +321,6 @@ html, body {
   background: transparent !important;
 }
 
-@media print {
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
   </style>
 </head>
 <body>
@@ -1794,7 +1790,13 @@ function generatePDF() {
   // ✅ show only selected sales in team list
   if (section === "assessment") {
     clone.querySelectorAll(".team-item").forEach(item => {
-  if (!item.dataset.id || item.dataset.id !== pdfMember.id) {
+  const nameEl = item.querySelector(".team-name");
+  if (!nameEl) {
+    item.remove();
+    return;
+  }
+
+  if (nameEl.textContent.trim() !== pdfMember.name) {
     item.remove();
   } else {
     item.classList.add("active");
@@ -1843,7 +1845,7 @@ html2pdf().set({
   html2canvas: {
     scale: 2,
     useCORS: true,
-    backgroundColor: null
+    backgroundColor: "#090b10"
   },
   jsPDF: {
     unit: "px",
