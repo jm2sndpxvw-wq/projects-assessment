@@ -197,12 +197,6 @@
   width: 100% !important;
 }
 
-.pdf-compact {
-  transform: scale(0.88);
-  transform-origin: top left;
-  width: 100%;
-}
-
 /* tighten sidebar */
 .pdf-compact .sidebar {
   padding: 10px !important;
@@ -285,7 +279,23 @@ break-inside: avoid !important;
   color: #f5f7fb !important;
   border-color: #252c3a !important;
 }
+/* ===== FINAL FIX: REMOVE WHITE BOTTOM IN PDF ===== */
+.pdf-root {
+  min-height: auto !important;
+  height: auto !important;
+  background: #090b10 !important;
+}
 
+.pdf-root .app {
+  min-height: auto !important;
+  height: auto !important;
+}
+
+.pdf-compact {
+  transform: scale(0.88);
+  transform-origin: top left;
+  width: calc(100% / 0.88) !important; /* مهم جداً */
+}
   </style>
 </head>
 <body>
@@ -1455,8 +1465,8 @@ function buildPdfTeamView(member) {
     function makePrintableContainer(titleHtml, bodyHtml){
       const wrap = document.createElement("div");
       wrap.style.padding = "18px";
-      wrap.style.background = "#fff";
-      wrap.style.color = "#000";
+      wrap.style.background = "#090b10";
+      wrap.style.color = "#f5f7fb";
       wrap.style.fontFamily = "Arial, Helvetica, sans-serif";
       wrap.style.lineHeight = "1.25";
       // header
@@ -1725,6 +1735,10 @@ function generatePDF() {
 
     const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
     const mainWrap = document.createElement("main");
+    const pdfTeamClone = document.getElementById("pdfTeamView")?.cloneNode(true);
+if (pdfTeamClone) {
+  mainWrap.prepend(pdfTeamClone);
+}
     mainWrap.className = "main";
     mainWrap.appendChild(
       document.getElementById("assessmentTab").cloneNode(true)
@@ -1818,7 +1832,8 @@ html2pdf().set({
   jsPDF: {
     unit: "mm",
     format: "a4",
-    orientation: orientation
+    orientation: orientation,
+    compress: true
   }
 }).from(pdfRoot).save().then(() => {
   document.body.removeChild(temp);
