@@ -1683,6 +1683,10 @@ if (!pdfMember) {
   alert("Selected sales member not found");
   return;
 }
+// ===== TEMP override selected member for PDF =====
+const previousSelectedMemberId = state.selectedMemberId;
+state.selectedMemberId = pdfMember.id;
+
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
   // build team view ONLY for assessment PDF
@@ -1768,10 +1772,14 @@ clone.querySelectorAll(".card").forEach(el => {
     margin: 10,
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { format: "a4", orientation }
-  }).from(clone).save().then(() => {
-    document.body.removeChild(temp);
-    closePdfModal();
-  });
+}).from(clone).save().then(() => {
+  document.body.removeChild(temp);
+
+  // ===== restore previous selected member =====
+  state.selectedMemberId = previousSelectedMemberId;
+
+  closePdfModal();
+});
   }
   function closePdfModal(){
   document.getElementById("pdfModal").style.display = "none";
