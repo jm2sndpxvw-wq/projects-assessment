@@ -1819,14 +1819,26 @@ clone.querySelectorAll(".card").forEach(el => {
   
   // ===== RENDER PROJECTS FOR SELECTED SALES INSIDE PDF DOM =====
 if (section === "assessment") {
-  const pdfProjectsList = clone.querySelector("#printProjectsList");
+  let pdfProjectsList = clone.querySelector("#printProjectsList");
 
-  if (!pdfProjectsList) {
-    console.warn("printProjectsList not found inside PDF clone");
+if (!pdfProjectsList) {
+  // create it manually inside projects panel
+  const projectsPanel = clone.querySelector(".projects-panel");
+  if (!projectsPanel) {
+    console.error("projects-panel not found in PDF clone");
   } else {
-    renderProjectsListForPdf(pdfMember, pdfProjectsList);
+    pdfProjectsList = document.createElement("div");
+    pdfProjectsList.id = "printProjectsList";
+    pdfProjectsList.className = "cards-list";
+    projectsPanel.appendChild(pdfProjectsList);
   }
 }
+
+if (pdfProjectsList) {
+  pdfProjectsList.innerHTML = "";
+  renderProjectsListForPdf(pdfMember, pdfProjectsList);
+}
+
 
   html2pdf().set({
     margin: 10,
