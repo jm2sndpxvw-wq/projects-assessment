@@ -131,16 +131,15 @@
   gap:12px;
   margin-top:6px;
 }
-
-/* UI ONLY: force order */
+/* Team performance FIRST */
 .app:not(.pdf-compact) .conversion-table-panel {
+  order: 0;
+}
+
+/* Daily conversion BELOW */
+.app:not(.pdf-compact) .daily-conversion-panel {
   order: 1;
 }
-
-.app:not(.pdf-compact) .daily-conversion-panel {
-  order: 2;
-}
-
     .conversion-table { width:100%; border-collapse:collapse; font-size:10px; }
     .conversion-table th, .conversion-table td { border:1px solid var(--border); padding:4px 5px; text-align:center; }
     .conversion-table th { font-size:10px; background:#151a25; }
@@ -1312,9 +1311,9 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       }
     });
   }
-     const entriesForDay =
-  range ? (filteredEntries[dateStr] || {}) :
-          (state.conversion.entries[dateStr] || {});
+     const entriesForDay = range
+  ? Object.values(filteredEntries)[0] || {}
+  : (state.conversion.entries[dateStr] || {});
       if (!state.members.length) {
         const tr = document.createElement("tr"); const td=document.createElement("td"); td.colSpan=9; td.textContent="Add team members from Assessment tab first."; tr.appendChild(td); convTableBody.appendChild(tr); convSummaryEl.textContent="مفيش تيم لسه."; return;
       }
