@@ -156,6 +156,17 @@
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:#303545; border-radius:999px; }
 
+#convRangeMode,
+#convFromDate,
+#convToDate {
+  background:#0d1017;
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:8px;
+  padding:6px;
+  font-size:11px;
+}
+
 @media (max-width:900px) {
   .app:not(.pdf-compact) {
     grid-template-columns:1fr;
@@ -512,6 +523,21 @@
       <div class="field">
         <label>Select date</label>
         <input type="date" id="convDate" />
+        </div>
+        <!-- ===== RANGE FILTER (NEW) ===== -->
+  <div class="field">
+  <label>Filter range</label>
+
+  <select id="convRangeMode">
+    <option value="day">By day</option>
+    <option value="month">By month</option>
+  </select>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+    <input type="date" id="convFromDate" />
+    <input type="date" id="convToDate" />
+  </div>
+</div>
       </div>
 
       <div class="field">
@@ -609,6 +635,19 @@
     function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); autoBackup(); }
     function uid(){ return Date.now().toString(36) + Math.random().toString(16).slice(2); }
     function todayISO(){ const d=new Date(); const m=String(d.getMonth()+1).padStart(2,"0"); const day=String(d.getDate()).padStart(2,"0"); return `${d.getFullYear()}-${m}-${day}`; }
+    function getConversionRange() {
+    const mode = document.getElementById("convRangeMode")?.value || "day";
+    const from = document.getElementById("convFromDate")?.value;
+    const to = document.getElementById("convToDate")?.value;
+
+  if (!from || !to) return null;
+
+  return {
+    mode,
+    from: new Date(from),
+    to: new Date(to)
+  };
+}
     function daysInMonth(dateStr){ const [y,m] = dateStr.split("-").map(n=>parseInt(n,10)); return new Date(y,m,0).getDate(); }
     function monthPrefixFromDateStr(dateStr){ const [y,m] = dateStr.split("-"); return `${y}-${m}`; }
 
@@ -714,7 +753,7 @@
       const prefix = `${y}-${m}`;
       const totals = {}; CONV_METRICS.forEach(metric => totals[metric]=0);
 
-      Object.entries(state.conversion.entries).forEach(([day, perMember])=>{
+        Object.entries(state.conversion.entries || {}).forEach(([day, perMember])=>{
         if (!day.startsWith(prefix)) return;
         const entry = perMember[memberId];
         if (!entry) return;
@@ -1207,7 +1246,8 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
     // Conversion targets rendering
     function renderConversionTargets(){
       initConversionState();
-      const dateStr = state.conversion.currentDate || todayISO(); const days = daysInMonth(dateStr);
+      const dateStr = state.conversion.currentDate || todayISO(); const days = daysInMonth(dateStr); 
+      const range = getConversionRange();
       convTargetsBody.innerHTML = "";
       CONV_TARGET_METRICS.forEach(metric=>{
         const row = document.createElement("tr");
@@ -1229,12 +1269,30 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
     }
 
     // Conversion table rendering
-    function renderConversionTable(){
-      convTableBody.innerHTML = "";
-      const dateStr = state.conversion.currentDate || todayISO();
-      convDateEl.value = dateStr;
-      const entriesForDay = state.conversion.entries[dateStr] || {};
+    function renderConversionTable() {
+  convTableBody.innerHTML = "";
 
+  const dateStr = state.conversion.currentDate || todayISO();
+  const range = getConversionRange();
+
+  let filteredEntries = state.conversion.entries || {};
+
+  // ===== RANGE FILTER =====
+  if (range) {
+    filteredEntries = {};
+    Object.entries(state.conversion.entries || {}).forEach(([day, perMember]) => {
+      const d = new Date(day);
+
+      if (range.mode === "month") {
+        const m1 = new Date(range.from.getFullYear(), range.from.getMonth(), 1);
+        const m2 = new Date(range.to.getFullYear(), range.to.getMonth() + 1, 0);
+        if (d >= m1 && d <= m2) filteredEntries[day] = perMember;
+      } else {
+        if (d >= range.from && d <= range.to) filteredEntries[day] = perMember;
+      }
+    });
+  }
+     const entriesForDay = filteredEntries[dateStr] || {};
       if (!state.members.length) {
         const tr = document.createElement("tr"); const td=document.createElement("td"); td.colSpan=9; td.textContent="Add team members from Assessment tab first."; tr.appendChild(td); convTableBody.appendChild(tr); convSummaryEl.textContent="مفيش تيم لسه."; return;
       }
@@ -1244,7 +1302,7 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       const monthlyTotalsBySales = {};
       state.members.forEach(member=>{
         const totals = {}; CONV_METRICS.forEach(m=> totals[m]=0);
-        Object.entries(state.conversion.entries).forEach(([d, perMember])=>{
+        Object.entries(filteredEntries || {}).forEach(([d, perMember])=>{
           if (!d.startsWith(monthPrefix)) return;
           const entry = perMember[member.id]; if (!entry) return;
           CONV_METRICS.forEach(metric => totals[metric] += entry[metric] || 0);
@@ -1905,15 +1963,18 @@ if (pdfTeamClone) {
   // IMPORTANT: remove hidden class
   conversionClone.classList.remove("hidden");
   // ===== FILTER CONVERSION TABLE TO SELECTED SALES =====
-const rows = conversionClone.querySelectorAll("tbody tr");
-
-rows.forEach(row => {
+conversionClone.querySelectorAll("tbody tr").forEach(row => {
   const nameCell = row.querySelector(".sales-name-cell");
-  if (!nameCell) return;
+  if (!nameCell) {
+    row.remove();
+    return;
+  }
 
-  // remove rows not matching selected sales
-  if (nameCell.textContent.trim() !== pdfMember.name &&
-      !nameCell.textContent.includes(`${pdfMember.name} total`)) {
+  const name = nameCell.textContent.trim();
+  if (
+    name !== pdfMember.name &&
+    name !== `${pdfMember.name} total`
+  ) {
     row.remove();
   }
 });
