@@ -175,6 +175,11 @@
   max-width: none !important;
 }
 
+.pdf-compact .card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /* FORCE SIDEBAR + CONTENT SIDE BY SIDE IN PDF */
 
 .pdf-compact .main {
@@ -278,6 +283,25 @@
 .pdf-compact .projects-panel {
   width: 100% !important;
   max-width: 100% !important;
+}
+
+ /* ===== PDF: REMOVE HEIGHT & SCROLL LIMITS ===== */
+.pdf-compact .content-grid {
+  height: auto !important;
+  min-height: auto !important;
+}
+
+.pdf-compact .panel {
+  overflow: visible !important;
+}
+
+.pdf-compact .projects-panel {
+  overflow: visible !important;
+}
+
+.pdf-compact .cards-list {
+  overflow: visible !important;
+  max-height: none !important;
 }
 @media print {
 
