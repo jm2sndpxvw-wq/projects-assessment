@@ -1831,7 +1831,7 @@ html2pdf().set({
   },
   jsPDF: {
     unit: "mm",
-    format: "a4",
+    format: [clone.offsetWidth, clone.offsetHeight],
     orientation: orientation,
     compress: true
   }
