@@ -356,7 +356,27 @@ html, body {
 .pdf-root * {
   box-sizing: border-box;
 }
+/* ===== FINAL ABSOLUTE PDF FIX ===== */
+@media print {
+  html, body {
+    width: 100% !important;
+    height: 100% !important;
+    background: #090b10 !important;
+    overflow: hidden !important;
+  }
 
+  .pdf-root {
+    background: #090b10 !important;
+    min-height: 100vh !important;
+  }
+
+  .pdf-root::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #090b10;
+    z-index: -1;
+  }
   </style>
 </head>
 <body>
@@ -1887,7 +1907,7 @@ html2pdf().set({
   html2canvas: {
     scale: 2,
     useCORS: true,
-    backgroundColor: "linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%)"
+    backgroundColor: "#090b10"
   },
   jsPDF: {
     unit: "px",
