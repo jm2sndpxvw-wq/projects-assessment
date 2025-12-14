@@ -1759,7 +1759,7 @@ function generatePDF() {
 
   if (section === "assessment") {
     const wrapper = document.createElement("div");
-    wrapper.className = "app pdf-compact landscape";
+    wrapper.className = "app pdf-compact " + orientation;
 
     const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
     const mainWrap = document.createElement("main");
