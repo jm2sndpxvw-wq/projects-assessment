@@ -916,7 +916,7 @@
       else { trainingSummaryListEl.innerHTML = ""; summaryEntries.forEach(([label,count])=>{ const div=document.createElement("div"); div.textContent = `${label}: ظهر في ${count} مشروع بدرجات ≤ ٥`; trainingSummaryListEl.appendChild(div); }); }
     }
     
-    function renderProjectsListForPdf(member, container) {
+function renderProjectsListForPdf(member, container, scoreRange = "all") {
   container.innerHTML = "";
 
   if (!member || !member.projects || member.projects.length === 0) {
@@ -924,15 +924,37 @@
     return;
   }
 
-  member.projects
-    .slice()
+  let projects = member.projects.slice();
+
+  // ===== SCORE RANGE FILTER =====
+  projects = projects.filter(p => {
+    const score = p.overallPercent || 0;
+
+    if (scoreRange === "need") return score < 60;
+    if (scoreRange === "average") return score >= 60 && score < 80;
+    if (scoreRange === "confident") return score >= 80;
+
+    return true; // all
+  });
+
+  if (!projects.length) {
+    container.innerHTML = `<div class="empty-state">No projects in selected range.</div>`;
+    return;
+  }
+
+  projects
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
     .forEach(project => {
 
-      const tag =
+      const tagText =
         project.overallPercent < 60 ? "Needs Training" :
         project.overallPercent < 80 ? "Average" :
         "Confident";
+
+      const tagClass =
+        project.overallPercent < 60 ? "tag-red" :
+        project.overallPercent < 80 ? "tag-yellow" :
+        "tag-green";
 
       const card = document.createElement("div");
       card.className = "card pdf-project-card";
@@ -946,7 +968,7 @@
               ${project.developer ? " • " + escapeHtml(project.developer) : ""}
             </div>
           </div>
-          <div class="card-tag">${tag}</div>
+          <div class="card-tag ${tagClass}">${tagText}</div>
         </div>
 
         <div class="card-footer">
@@ -957,7 +979,7 @@
 
       container.appendChild(card);
     });
-}
+} 
 
     function renderHeaderForMember(member){
       if (!member) { currentMemberTitle.textContent="Select team member"; currentMemberSub.textContent="Choose a team member from the left to start assessment."; return; }
@@ -1477,41 +1499,26 @@
     })();
 
     // ===== PDF Export helpers (using html2pdf) =====
-function buildPdfTeamView(member) {
+function buildPdfTeamView(member, scoreRange = "all") {
   const container = document.getElementById("pdfTeamView");
+  if (!container) return;
+
   container.innerHTML = "";
 
   if (!member || member.isAllTeam) return;
-  
-  // header
-  container.innerHTML += `
+
+  const rangeLabelMap = {
+    all: "All projects",
+    need: "Needs training (< 60%)",
+    average: "Average (60–79%)",
+    confident: "Confident (≥ 80%)"
+  };
+
+  container.innerHTML = `
     <div class="pdf-member-name">
-      ${member.name} – Projects below 70%
+      ${member.name} – ${rangeLabelMap[scoreRange] || ""}
     </div>
   `;
-
-  const weakProjects = (member.projects || [])
-    .filter(p => (p.overallPercent || 0) < 70)
-    .sort((a, b) => (a.overallPercent || 0) - (b.overallPercent || 0));
-
-  if (!weakProjects.length) {
-    container.innerHTML += `<div>No projects below 70%</div>`;
-    return;
-  }
-
-  weakProjects.forEach(p => {
-    container.innerHTML += `
-        <div class="card pdf-project-card">
-        <div class="pdf-project-title">${escapeHtml(p.name)}</div>
-        <div class="pdf-project-meta">
-          ${escapeHtml(p.region || "")} • ${escapeHtml(p.developer || "")}
-        </div>
-        <div class="pdf-project-score">
-          ${(p.overallPercent || 0).toFixed(1)}%
-        </div>
-      </div>
-    `;
-  });
 }
     // utility: create printable container with styles
     function makePrintableContainer(titleHtml, bodyHtml){
@@ -1567,13 +1574,9 @@ function buildPdfTeamView(member) {
   });
 
   // ===== score filter + sort + limit =====
-  projects = projects
-    .filter(p => (p.overallPercent||0) <= 60)
-    .sort((a,b)=> (a.overallPercent||0) - (b.overallPercent||0))
-    .slice(0, 5);
 
   if (!projects.length){
-    alert("No projects ≤ 60% with current filters.");
+    alert("No projects with current filters.");
     return;
   }
 
@@ -1732,6 +1735,14 @@ function buildPdfTeamView(member) {
       <option value="landscape">Landscape</option>
     </select>
 
+<label style="font-size:12px">Score range</label>
+<select id="pdfScoreRange" style="width:100%;margin-bottom:14px">
+  <option value="all">All</option>
+  <option value="need">Needs training (&lt; 60%)</option>
+  <option value="average">Average (60–79%)</option>
+  <option value="confident">Confident (≥ 80%)</option>
+</select>
+ 
  <label style="font-size:12px">Sales member</label>
 <select id="pdfSalesSelect" style="width:100%;margin-bottom:14px">
   <option value="">Select sales member</option>
@@ -1773,10 +1784,11 @@ function generatePDF() {
 
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
+  const scoreRange = document.getElementById("pdfScoreRange").value;
 
   // ===== build team view ONLY for assessment =====
   if (section === "assessment") {
-    buildPdfTeamView(pdfMember);
+    buildPdfTeamView(pdfMember, scoreRange);
   }
 
   let source;
@@ -1871,7 +1883,7 @@ document.body.appendChild(temp);
   }
 
   pdfProjectsList.innerHTML = "";
-  renderProjectsListForPdf(pdfMember, pdfProjectsList);
+  renderProjectsListForPdf(pdfMember, pdfProjectsList, scoreRange);
 
 pdfRoot.style.background = "#090b10";
 html2pdf().set({
