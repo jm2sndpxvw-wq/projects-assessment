@@ -1788,20 +1788,22 @@ function generatePDF() {
   clone.querySelectorAll("#projectsList").forEach(el => el.remove());
 
   // ✅ show only selected sales in team list
-  if (section === "assessment") {
-    clone.querySelectorAll(".team-item").forEach(item => {
-  const nameEl = item.querySelector(".team-name");
-  if (!nameEl) {
-    item.remove();
-    return;
-  }
+// ✅ show only selected sales in team list
+if (section === "assessment") {
+  clone.querySelectorAll(".team-item").forEach(item => {
+    const nameEl = item.querySelector(".team-name");
+    if (!nameEl) {
+      item.remove();
+      return;
+    }
 
-  if (nameEl.textContent.trim() !== pdfMember.name) {
-    item.remove();
-  } else {
-    item.classList.add("active");
-  }
-});
+    if (nameEl.textContent.trim() !== pdfMember.name) {
+      item.remove();
+    } else {
+      item.classList.add("active");
+    }
+  });
+}
 
   // ❌ remove new project form
   const newProjectSection = clone.querySelector(".new-project-assessment");
