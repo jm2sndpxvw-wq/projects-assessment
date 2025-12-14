@@ -435,7 +435,7 @@ break-inside: avoid !important;
             </div>
 
             <div class="cards-list" id="projectsList"><div class="empty-state">No projects yet. Add a new assessment on the left.</div></div>
-            <div class="cards-list print-only" id="printProjectsList"></div>
+            <div class="cards-list" id="printProjectsList"></div>
 
             <div class="training-panel">
               <div><strong>خطة التدريب (أوتوماتيك): نقاط ضعف حسب كل مشروع</strong></div>
@@ -1713,144 +1713,114 @@ function buildPdfTeamView(member) {
   });
 }
 
-
-  function generatePDF() {
+function generatePDF() {
   const salesId = document.getElementById("pdfSalesSelect").value;
+  if (!salesId) {
+    alert("اختار سيلز الأول");
+    return;
+  }
 
-if (!salesId) {
-  alert("Please select a sales member");
-  return;
-}
-
-const pdfMember = state.members.find(m => m.id === salesId);
-
-if (!pdfMember) {
-  alert("Selected sales member not found");
-  return;
-}
+  const pdfMember = state.members.find(m => m.id === salesId);
+  if (!pdfMember) {
+    alert("Selected sales member not found");
+    return;
+  }
 
   const section = document.getElementById("pdfSection").value;
   const orientation = document.getElementById("pdfOrientation").value;
 
-  // build team view ONLY for assessment PDF
+  // ===== build team view ONLY for assessment =====
   if (section === "assessment") {
-  buildPdfTeamView(pdfMember);
-  
-}
-  
-  let source;
-
-if (section === "assessment") {
-  const wrapper = document.createElement("div");
-  wrapper.className = "app pdf-compact";
-  const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
-  const mainWrap = document.createElement("main");
-  mainWrap.className = "main";
-  mainWrap.appendChild(document.getElementById("assessmentTab").cloneNode(true));
-
-  wrapper.appendChild(sidebarClone);
-  wrapper.appendChild(mainWrap);
-
-  source = wrapper;
-} else if (section === "overview") {
-  const wrap = document.createElement("div");
-  wrap.className = "app pdf-compact";
-  wrap.appendChild(document.getElementById("overviewTab").cloneNode(true));
-  source = wrap;
-} else {
-  const wrap = document.createElement("div");
-  wrap.className = "app pdf-compact";
-  wrap.appendChild(document.getElementById("conversionTab").cloneNode(true));
-  source = wrap;
-}
-
-  if (!source) {
-    alert("Section not found");
-    return;
+    buildPdfTeamView(pdfMember);
   }
 
-const clone = source;
-// ===== FORCE CLEAR PROJECTS LIST IN PDF CLONE =====
-const uiProjectsList = clone.querySelector("#projectsList");
-if (uiProjectsList) {
-  uiProjectsList.innerHTML = "";
-}
-
-  // ===== show team list in PDF but only selected sales =====
-
-if (section === "assessment") {
-  clone.querySelectorAll(".team-item").forEach(item => {
-    if (item.dataset.id !== pdfMember.id) {
-      item.remove();
-    } else {
-      item.classList.add("active");
-    }
-  });
-}
+  let source;
 
   if (section === "assessment") {
+    const wrapper = document.createElement("div");
+    wrapper.className = "app pdf-compact";
+
+    const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
+    const mainWrap = document.createElement("main");
+    mainWrap.className = "main";
+    mainWrap.appendChild(
+      document.getElementById("assessmentTab").cloneNode(true)
+    );
+
+    wrapper.appendChild(sidebarClone);
+    wrapper.appendChild(mainWrap);
+    source = wrapper;
+
+  } else if (section === "overview") {
+    const wrap = document.createElement("div");
+    wrap.className = "app pdf-compact";
+    wrap.appendChild(
+      document.getElementById("overviewTab").cloneNode(true)
+    );
+    source = wrap;
+
+  } else {
+    const wrap = document.createElement("div");
+    wrap.className = "app pdf-compact";
+    wrap.appendChild(
+      document.getElementById("conversionTab").cloneNode(true)
+    );
+    source = wrap;
+  }
+
+  const clone = source;
+
+  // ❌ remove UI projects list
+  clone.querySelectorAll("#projectsList").forEach(el => el.remove());
+
+  // ✅ show only selected sales in team list
+  if (section === "assessment") {
+    clone.querySelectorAll(".team-item").forEach(item => {
+      if (item.dataset.id !== pdfMember.id) {
+        item.remove();
+      } else {
+        item.classList.add("active");
+      }
+    });
+  }
+
+  // ❌ remove new project form
   const newProjectSection = clone.querySelector(".new-project-assessment");
   if (newProjectSection) newProjectSection.remove();
-}
-  clone.classList.remove("hidden");
-  clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
-  clone.style.display = "block";
-  /* Dark PDF background – same as app */
-  clone.style.background = "linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%)";
-  clone.style.color = "#f5f7fb";
-  /* Keep cards & panels dark like the app */
-clone.querySelectorAll(".sidebar, .panel").forEach(el => {
-  el.style.background = "#151921";
-  el.style.color = "#f5f7fb";
-});
 
-clone.querySelectorAll(".card").forEach(el => {
-  el.style.background = "#1b2029";
-  el.style.color = "#f5f7fb";
-});
-  clone.style.padding = "0";
-  clone.style.margin = "0";
+  // ===== dark background like app =====
+  clone.style.background =
+    "linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%)";
+  clone.style.color = "#f5f7fb";
 
   const temp = document.createElement("div");
   temp.style.position = "fixed";
   temp.style.left = "-9999px";
   temp.appendChild(clone);
   document.body.appendChild(temp);
-  
-  // ===== RENDER PROJECTS FOR SELECTED SALES INSIDE PDF DOM =====
-if (section === "assessment") {
+
+  // ===== render projects for selected sales =====
   let pdfProjectsList = clone.querySelector("#printProjectsList");
 
-if (!pdfProjectsList) {
-  // create it manually inside projects panel
-  const projectsPanel = clone.querySelector(".projects-panel");
-  if (!projectsPanel) {
-    console.error("projects-panel not found in PDF clone");
-  } else {
+  if (!pdfProjectsList) {
+    const panel = clone.querySelector(".projects-panel");
     pdfProjectsList = document.createElement("div");
     pdfProjectsList.id = "printProjectsList";
     pdfProjectsList.className = "cards-list";
-    projectsPanel.appendChild(pdfProjectsList);
+    panel.appendChild(pdfProjectsList);
   }
-}
 
-if (pdfProjectsList) {
   pdfProjectsList.innerHTML = "";
   renderProjectsListForPdf(pdfMember, pdfProjectsList);
-}
-
 
   html2pdf().set({
     margin: 10,
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { format: "a4", orientation }
-}).from(clone).save().then(() => {
-  document.body.removeChild(temp);
-  closePdfModal();
-});
-  }
-  function closePdfModal(){
-  document.getElementById("pdfModal").style.display = "none";
+  }).from(clone).save().then(() => {
+    document.body.removeChild(temp);
+    closePdfModal();
+  });
 }
 </script>
 </body>
