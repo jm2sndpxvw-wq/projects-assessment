@@ -311,19 +311,19 @@ break-inside: avoid !important;
   border-color: #252c3a !important;
 }
   /* ================= PDF ROOT FIX ================= */
-
 .pdf-root {
   background: linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%);
   color: #f5f7fb;
   padding: 16px;
 }
 
-/* امنع الخلفية البيضا في الطباعة */
-@media print {
-  html, body {
-    background: transparent !important;
-  }
+html, body {
+  background: transparent !important;
+}
 
+@media print {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
   </style>
 </head>
@@ -995,8 +995,13 @@ break-inside: avoid !important;
 
     // Export / backup / restore
     exportBtn.addEventListener("click", ()=>{
-  fillPdfSalesSelect();
-  document.getElementById("pdfModal").style.display = "flex";
+  try {
+    fillPdfSalesSelect();
+    document.getElementById("pdfModal").style.display = "flex";
+  } catch (e) {
+    alert("PDF popup error — check console");
+    console.error(e);
+  }
 });
 
     // ===== enhanced projects CSV export =====
@@ -1829,11 +1834,9 @@ document.body.appendChild(temp);
   pdfProjectsList.innerHTML = "";
   renderProjectsListForPdf(pdfMember, pdfProjectsList);
 
-pdfRoot.className = "pdf-root";
-pdfRoot.appendChild(clone);
-
-const width = pdfRoot.offsetWidth;
-const height = pdfRoot.offsetHeight;
+const rect = pdfRoot.getBoundingClientRect();
+const width = Math.ceil(rect.width);
+const height = Math.ceil(rect.height);
 
 html2pdf().set({
   margin: 0,
