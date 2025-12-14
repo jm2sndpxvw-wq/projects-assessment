@@ -370,13 +370,6 @@ html, body {
     min-height: 100vh !important;
   }
 
-  .pdf-root::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: #090b10;
-    z-index: -1;
-  }
   </style>
 </head>
 <body>
@@ -1898,10 +1891,6 @@ document.body.appendChild(temp);
   pdfProjectsList.innerHTML = "";
   renderProjectsListForPdf(pdfMember, pdfProjectsList);
 
-const rect = pdfRoot.getBoundingClientRect();
-const width = Math.ceil(rect.width);
-const height = Math.ceil(rect.height);
-
 html2pdf().set({
   margin: 0,
   html2canvas: {
@@ -1910,8 +1899,8 @@ html2pdf().set({
     backgroundColor: "#090b10"
   },
   jsPDF: {
-    unit: "px",
-    format: [width, height],
+    unit: "mm",
+    format: "a4",
     orientation: orientation
   }
 }).from(pdfRoot).save().then(() => {
