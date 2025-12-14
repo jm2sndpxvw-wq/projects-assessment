@@ -124,7 +124,30 @@
     .print-only { display:none; }
 
     /* Conversion */
-    .conversion-layout { display:grid; grid-template-columns:minmax(0,260px) minmax(0,1fr); gap:12px; margin-top:6px; }
+    /* Conversion (OLD GRID – overridden below for UI order) */
+.conversion-layout {
+  display:grid;
+  grid-template-columns:minmax(0,260px) minmax(0,1fr);
+  gap:12px;
+  margin-top:6px;
+}
+    /* ===== UI ONLY: MOVE DAILY CONVERSION BELOW TABLE ===== */
+
+/* خلي layout عمودي */
+.conversion-layout {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* جدول Team performance يطلع فوق */
+.conversion-layout > section:nth-child(2) {
+  order: 1;
+}
+
+/* Daily conversion ينزل تحت */
+.conversion-layout > section:nth-child(1) {
+  order: 2;
+}
     .conversion-table { width:100%; border-collapse:collapse; font-size:10px; }
     .conversion-table th, .conversion-table td { border:1px solid var(--border); padding:4px 5px; text-align:center; }
     .conversion-table th { font-size:10px; background:#151a25; }
@@ -135,6 +158,7 @@
     .conversion-summary { font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.5; }
     .conversion-summary-line { margin-bottom:2px; }
     .sales-total-row td { background:#101521; font-weight:600; }
+    
 
     /* Members overview styles */
     .overview-panel { padding:10px; }
@@ -1277,8 +1301,11 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
 
   let filteredEntries = state.conversion.entries || {};
 
-  // ===== RANGE FILTER =====
-  if (range) {
+   // NOTE:
+   // filteredEntries affects table rendering,
+   // monthly totals are still calculated per month prefix
+   // (range does NOT redefine monthly scope)
+    if (range) {
     filteredEntries = {};
     Object.entries(state.conversion.entries || {}).forEach(([day, perMember]) => {
       const d = new Date(day);
@@ -1292,7 +1319,9 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       }
     });
   }
-     const entriesForDay = filteredEntries[dateStr] || {};
+     const entriesForDay =
+  range ? (filteredEntries[dateStr] || {}) :
+          (state.conversion.entries[dateStr] || {});
       if (!state.members.length) {
         const tr = document.createElement("tr"); const td=document.createElement("td"); td.colSpan=9; td.textContent="Add team members from Assessment tab first."; tr.appendChild(td); convTableBody.appendChild(tr); convSummaryEl.textContent="مفيش تيم لسه."; return;
       }
@@ -1959,6 +1988,11 @@ if (pdfTeamClone) {
   const conversionClone = document
     .getElementById("conversionTab")
     .cloneNode(true);
+    
+    // safety: ensure daily panel never appears in PDF
+   conversionClone
+  .querySelectorAll(".daily-conversion-panel")
+  .forEach(el => el.remove());
 
   // IMPORTANT: remove hidden class
   conversionClone.classList.remove("hidden");
