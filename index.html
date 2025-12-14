@@ -346,6 +346,12 @@
     margin: 0 !important;
     padding: 0 !important;
   }
+  
+  /* ===== PDF: HIDE DAILY CONVERSION PANEL ===== */
+.pdf-compact .daily-conversion-panel {
+  display: none !important;
+}
+
 }
 
   </style>
@@ -487,21 +493,45 @@
 
       <!-- CONVERSION TAB -->
       <div id="conversionTab" class="hidden">
-        <div class="conversion-layout">
-          <section class="panel">
-            <div class="panel-header"><div><div class="panel-title">Daily conversion</div><div class="panel-sub">Sales write numbers, tool calculates %</div></div></div>
-            <div class="form-grid">
-              <div class="field"><label>Select date</label><input type="date" id="convDate" /></div>
-              <div class="field"><label>Targets mode</label><small>Choose per day / per month for each metric</small></div>
-              <div class="field">
-                <table class="conversion-table">
-                  <thead><tr><th>Metric</th><th>Target</th><th>Mode</th><th>Daily</th><th>Monthly</th></tr></thead>
-                  <tbody id="convTargetsBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </section>
+       <div class="conversion-layout">
 
+  <!-- ❌ Daily conversion (will be hidden in PDF) -->
+  <section class="panel daily-conversion-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Daily conversion</div>
+        <div class="panel-sub">Sales write numbers, tool calculates %</div>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Select date</label>
+        <input type="date" id="convDate" />
+      </div>
+
+      <div class="field">
+        <label>Targets mode</label>
+        <small>Choose per day / per month for each metric</small>
+      </div>
+
+      <div class="field">
+        <table class="conversion-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Target</th>
+              <th>Mode</th>
+              <th>Daily</th>
+              <th>Monthly</th>
+            </tr>
+          </thead>
+          <tbody id="convTargetsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  
           <section class="panel">
             <div class="panel-header"><div><div class="panel-title">Team performance (per day & month)</div><div class="panel-sub">Numbers per sales – plus monthly totals under each one</div></div></div>
 
@@ -1405,7 +1435,7 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
     }
 
     // Render all conversion targets, table, team, projects, overview
-    function renderAll(){
+      function renderAll(){
       renderTabs();
       renderTeamList();
       const member = getCurrentMember();
