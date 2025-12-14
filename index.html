@@ -1826,19 +1826,48 @@ if (pdfTeamClone) {
     );
     source = wrap;
 
-  } else {
-    const wrap = document.createElement("div");
-    wrap.className = "app pdf-compact";
-    wrap.appendChild(
-      document.getElementById("conversionTab").cloneNode(true)
-    );
-    source = wrap;
-  }
+   } else if (section === "conversion") {
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "app pdf-compact " + orientation;
+
+  // clone sidebar (زي assessment)
+  const sidebarClone = document.querySelector(".sidebar").cloneNode(true);
+
+  // main wrapper
+  const mainWrap = document.createElement("main");
+  mainWrap.className = "main";
+
+  const conversionClone = document
+    .getElementById("conversionTab")
+    .cloneNode(true);
+
+  // IMPORTANT: remove hidden class
+  conversionClone.classList.remove("hidden");
+
+  mainWrap.appendChild(conversionClone);
+
+  wrapper.appendChild(sidebarClone);
+  wrapper.appendChild(mainWrap);
+
+  source = wrapper;
+}
 
   const clone = source;
 
   // ❌ remove UI projects list
   clone.querySelectorAll("#projectsList").forEach(el => el.remove());
+  // ✅ in conversion PDF: show only selected sales
+if (section === "conversion") {
+  clone.querySelectorAll(".team-item").forEach(item => {
+    const nameEl = item.querySelector(".team-name");
+    if (!nameEl || nameEl.textContent.trim() !== pdfMember.name) {
+      item.remove();
+    } else {
+      item.classList.add("active");
+    }
+  });
+}
 
   // ✅ show only selected sales in team list
 // ✅ show only selected sales in team list
