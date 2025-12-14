@@ -170,6 +170,7 @@
 /* ===== PDF: MAIN LAYOUT FIX ===== */
 .pdf-compact.app {
   display: flex !important;
+  flex-direction: row !important; /* ← مهم */
   width: 100% !important;
   max-width: none !important;
 }
@@ -181,12 +182,6 @@
   width: 100% !important;
 }
 
-/* PDF: PROJECTS FULL WIDTH */
-.pdf-compact .card {
-  page-break-inside: avoid !important;
-  break-inside: avoid !important;
-}
-
 .pdf-compact .projects-panel {
   width: 100% !important;
 }
@@ -196,15 +191,6 @@
   width: 100% !important;
 }
 
-.pdf-compact .cards-list {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 10px !important;
-}
-
-.pdf-compact .card {
-  font-size: 13px !important;
-}
 /* tighten sidebar */
 .pdf-compact .sidebar {
   padding: 10px !important;
@@ -245,16 +231,12 @@
   margin-bottom: 8px !important;
 }
 
-/* prevent page breaks */
-.pdf-compact .sidebar,
-.pdf-compact .main,
-.pdf-compact .panel,
-.pdf-compact .card,
-.pdf-compact .content-grid {
-page-break-inside: avoid !important;
-break-inside: avoid !important;
+/* cards grid inside projects */
+.pdf-compact .cards-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
 }
-
 @media print {
 
   -webkit-print-color-adjust: exact;
