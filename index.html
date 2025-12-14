@@ -247,9 +247,10 @@
 .pdf-compact .sidebar,
 .pdf-compact .main,
 .pdf-compact .panel,
-.pdf-compact .card {
+.pdf-compact .card,
 .pdf-compact .content-grid {
 page-break-inside: avoid !important;
+break-inside: avoid !important;
 }
 
 @media print {
@@ -289,15 +290,6 @@ page-break-inside: avoid !important;
     color:#000;
   }
 
-  .pdf-project-card {
-    border:1px solid #ccc;
-    border-radius:10px;
-    padding:10px;
-    margin-bottom:8px;
-    background:#fff;
-    color:#000;
-  }
-
   .pdf-project-title {
     font-weight:600;
     margin-bottom:4px;
@@ -313,6 +305,12 @@ page-break-inside: avoid !important;
     font-size:16px;
     font-weight:700;
   }
+  .pdf-compact .pdf-project-card {
+  background: #151921 !important;
+  color: #f5f7fb !important;
+  border-color: #252c3a !important;
+}
+  
 }
   </style>
 </head>
@@ -1744,11 +1742,18 @@ if (section === "assessment") {
   clone.classList.remove("hidden");
   clone.querySelectorAll(".hidden").forEach(e => e.classList.remove("hidden"));
   clone.style.display = "block";
-  clone.style.background = "#fff";
-  clone.style.color = "#000";
-  clone.querySelectorAll(".sidebar, .panel, .main").forEach(el => {
-  el.style.background = "#fff";
-  el.style.color = "#000";
+  /* Dark PDF background – same as app */
+  clone.style.background = "linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%)";
+  clone.style.color = "#f5f7fb";
+  /* Keep cards & panels dark like the app */
+clone.querySelectorAll(".sidebar, .panel").forEach(el => {
+  el.style.background = "#151921";
+  el.style.color = "#f5f7fb";
+});
+
+clone.querySelectorAll(".card").forEach(el => {
+  el.style.background = "#1b2029";
+  el.style.color = "#f5f7fb";
 });
   clone.style.padding = "0";
   clone.style.margin = "0";
