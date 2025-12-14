@@ -258,31 +258,6 @@ break-inside: avoid !important;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 
-  .main-actions,
-  .tabs-row,
-  .add-team,
-  .hint-mini {
-    display:none !important;
-  }
-
-  .new-project-assessment {
-    display:none !important;
-  }
-
-  .team-item {
-    display:none !important;
-  }
-  .team-item.active {
-    display:flex !important;
-  }
-
-  #projectsList {
-    display:none !important;
-  }
-  #printProjectsList {
-    display:flex !important;
-  }
-
   .pdf-member-name {
     font-size:18px;
     font-weight:700;
@@ -310,65 +285,6 @@ break-inside: avoid !important;
   color: #f5f7fb !important;
   border-color: #252c3a !important;
 }
-  /* ================= PDF ROOT FIX ================= */
-.pdf-root {
-  background: linear-gradient(135deg, #090b10 0%, #111623 45%, #090b10 100%);
-  color: #f5f7fb;
-  padding: 0;
-  margin: 0;
-}
-
-html, body {
-  background: #090b10 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* ===============================
-   FINAL PDF WHITE BACKGROUND FIX
-   =============================== */
-
-/* kill body padding during pdf */
-.pdf-root,
-.pdf-root body,
-.pdf-root html {
-  margin: 0 !important;
-  padding: 0 !important;
-  background: #090b10 !important;
-}
-
-/* remove rounded corners & clipping */
-.pdf-root .app {
-  border-radius: 0 !important;
-  overflow: visible !important;
-  box-shadow: none !important;
-}
-
-/* force dark background everywhere */
-.pdf-root,
-.pdf-root .app,
-.pdf-root .sidebar,
-.pdf-root .main {
-  background-color: transparent !important;
-}
-
-/* safety: prevent any white canvas */
-.pdf-root * {
-  box-sizing: border-box;
-}
-/* ===== FINAL ABSOLUTE PDF FIX ===== */
-@media print {
-  html, body {
-    width: 100% !important;
-    height: 100% !important;
-    background: #090b10 !important;
-    overflow: hidden !important;
-  }
-
-  .pdf-root {
-    background: #090b10 !important;
-    min-height: 100vh !important;
-  }
 
   </style>
 </head>
@@ -1891,6 +1807,7 @@ document.body.appendChild(temp);
   pdfProjectsList.innerHTML = "";
   renderProjectsListForPdf(pdfMember, pdfProjectsList);
 
+pdfRoot.style.background = "#090b10";
 html2pdf().set({
   margin: 0,
   html2canvas: {
