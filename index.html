@@ -308,7 +308,10 @@
 .pdf-compact .daily-conversion-panel {
   display: none !important;
 }
-
+/* ===== PDF: CONVERSION FULL WIDTH ===== */
+.pdf-compact .conversion-layout {
+  grid-template-columns: 1fr !important;
+}
 @media print {
 
   -webkit-print-color-adjust: exact;
@@ -1646,7 +1649,14 @@ function buildPdfTeamView(member, scoreRange = "all") {
 
   bodyHtml += `</div>`;
 
-  const title = `${member.name} – Weak projects (≤ 60%)`;
+  const rangeTitleMap = {
+  all: "All projects",
+  need: "Needs training (< 60%)",
+  average: "Average (60–79%)",
+  confident: "Confident (≥ 80%)"
+};
+
+  const title = `${member.name} – Projects`;
   const printable = makePrintableContainer(title, bodyHtml);
 
   html2pdf().set({
@@ -1821,12 +1831,6 @@ function generatePDF() {
   if (section === "assessment") {
     buildPdfTeamView(pdfMember, scoreRange);
   }
-  
-if (section === "conversion") {
-  // ensure conversion tab is rendered before cloning
-  renderConversionTargets();
-  renderConversionTable();
-}
 
   let source;
 
@@ -1875,6 +1879,19 @@ if (pdfTeamClone) {
 
   // IMPORTANT: remove hidden class
   conversionClone.classList.remove("hidden");
+  // ===== FILTER CONVERSION TABLE TO SELECTED SALES =====
+const rows = conversionClone.querySelectorAll("tbody tr");
+
+rows.forEach(row => {
+  const nameCell = row.querySelector(".sales-name-cell");
+  if (!nameCell) return;
+
+  // remove rows not matching selected sales
+  if (nameCell.textContent.trim() !== pdfMember.name &&
+      !nameCell.textContent.includes(`${pdfMember.name} total`)) {
+    row.remove();
+  }
+});
 
   mainWrap.appendChild(conversionClone);
 
