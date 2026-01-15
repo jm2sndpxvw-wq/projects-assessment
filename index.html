@@ -1592,16 +1592,6 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       });
       footer.appendChild(quickSeedBtn);
 
-      // PDF exports (Projects / Conversion / Overview)
-      const btnP = document.createElement("button"); btnP.className="btn"; btnP.textContent="Export Projects (PDF)";
-      btnP.addEventListener("click", ()=> exportFilteredProjectsToPDF());
-      footer.appendChild(btnP);
-
-      const btnC = document.createElement("button"); btnC.className="btn"; btnC.textContent="Export Conversion (PDF)";
-      btnC.addEventListener("click", ()=> {
-        const month = prompt("Enter month YYYY-MM (leave empty for current):", (state.conversion.currentDate||todayISO()).slice(0,7));
-        if (month === null) return;
-        exportConversionToPDF(month || null);
       });
       footer.appendChild(btnC);
 
