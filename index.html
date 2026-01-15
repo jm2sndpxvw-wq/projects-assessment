@@ -1605,10 +1605,6 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       });
       footer.appendChild(btnC);
 
-      const btnO = document.createElement("button"); btnO.className="btn"; btnO.textContent="Export Overview (PDF)";
-      btnO.addEventListener("click", ()=> exportOverviewToPDF());
-      footer.appendChild(btnO);
-    })();
 
     // ===== PDF Export helpers (using html2pdf) =====
 function buildPdfTeamView(member, scoreRange = "all") {
