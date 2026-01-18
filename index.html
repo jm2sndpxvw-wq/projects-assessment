@@ -1556,23 +1556,6 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       });
       footer.appendChild(togglePercentBtn);
 
-      // export CSV
-      const exportCsvBtn = document.createElement("button");
-      exportCsvBtn.className = "btn";
-      exportCsvBtn.textContent = "Export Projects (CSV)";
-      exportCsvBtn.addEventListener("click", exportProjectsCSVEnhanced);
-      footer.appendChild(exportCsvBtn);
-
-      // export conversion CSV
-      const btnExportConv = document.createElement("button");
-      btnExportConv.className = "btn";
-      btnExportConv.textContent = "Export Conversion (CSV)";
-      btnExportConv.addEventListener("click", ()=> {
-        const month = prompt("Enter month to export in format YYYY-MM (leave empty for current):", (state.conversion.currentDate||todayISO()).slice(0,7));
-        if (month === null) return;
-        exportConversionMonthlyCSV(month || null);
-      });
-      footer.appendChild(btnExportConv);
 
 })(); // <-- إغلاق واستدعاء injectSidebarButtons
     // ===== PDF Export helpers (using html2pdf) =====
