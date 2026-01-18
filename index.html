@@ -2060,11 +2060,10 @@ html2pdf().set({
     orientation: orientation,
     compress: true
   }
-}).from(pdfRoot).save()
+}).from(pdfRoot).save().then(() => {
   document.body.removeChild(temp);
   closePdfModal();
-});
-
+  }
 function closePdfModal() {
   document.getElementById("pdfModal").style.display = "none";
 }
