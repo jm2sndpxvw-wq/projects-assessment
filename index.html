@@ -1574,24 +1574,6 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
       });
       footer.appendChild(btnExportConv);
 
-      // seed demo data
-      const quickSeedBtn = document.createElement("button");
-      quickSeedBtn.className = "btn";
-      quickSeedBtn.textContent = "Seed demo data";
-      quickSeedBtn.addEventListener("click", ()=>{
-        if (!confirm("Add demo sample data?")) return;
-        state.members = [
-          { id: uid(), name: "Dina", projects: [
-            { id: uid(), name:"HydePark New Cairo", developer:"HydePark", region:"New Cairo", scores:{development:8,location:7,masterplan:7.5,facilities:8,type:7,price:6,payment:7,delivery:6.5,finishing:7,maintenance:6,orientation:8}, overallPercent:72.5, createdAt: Date.now()-1000*60*60*24*30, notes:"Ready to move" }
-          ]},
-          { id: uid(), name: "Khaled", projects: [
-            { id: uid(), name:"Zayed Lakes", developer:"ZayedCo", region:"New Zayed", scores:{development:6,location:5,masterplan:5,facilities:6,type:5.5,price:5,payment:6,delivery:5.5,finishing:5,maintenance:4.5,orientation:6}, overallPercent:53.6, createdAt: Date.now()-1000*60*60*24*10, notes:"Needs follow-up" }
-          ]}
-        ];
-        saveState(); renderAll();
-      });
-      footer.appendChild(quickSeedBtn);
-
 })(); // <-- إغلاق واستدعاء injectSidebarButtons
     // ===== PDF Export helpers (using html2pdf) =====
 function buildPdfTeamView(member, scoreRange = "all") {
