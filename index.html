@@ -2042,8 +2042,13 @@ document.body.appendChild(temp);
   }
 
 pdfRoot.style.background = "#090b10";
+const safeName = pdfMember.name.replace(/\s+/g, "_");
+const today = new Date().toISOString().slice(0, 10);
+const fileName = `${safeName}_${section}.pdf`;
+
 html2pdf().set({
   margin: 0,
+  filename: fileName,
   html2canvas: {
     scale: 2,
     useCORS: true,
@@ -2055,7 +2060,7 @@ html2pdf().set({
     orientation: orientation,
     compress: true
   }
-}).from(pdfRoot).save().then(() => {
+}).from(pdfRoot).save()
   document.body.removeChild(temp);
   closePdfModal();
 });
