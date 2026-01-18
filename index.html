@@ -416,7 +416,7 @@
         <div>
           <strong>Color codes (Project):</strong><br />
           🟥 &lt; 60% – Needs training<br />
-          🟨 60–79% – Average<br />
+          🟨 60–79% – Good<br />
           🟩 ≥ 80% – Excellent
         </div>
         <!-- buttons added dynamically by JS -->
@@ -897,7 +897,7 @@
       regionStats.textContent = `Filtered: ${avg.toFixed(1)}% over ${filtered.length} project(s)`;
     }
 
-    function tagFromPercent(percent){ if (percent < 60) return { text: "Needs Training", className: "tag-red" }; if (percent < 80) return { text: "Average", className: "tag-yellow" }; return { text: "Excellent", className: "tag-green" }; }
+    function tagFromPercent(percent){ if (percent < 60) return { text: "Needs Training", className: "tag-red" }; if (percent < 80) return { text: "Good", className: "tag-yellow" }; return { text: "Excellent", className: "tag-green" }; }
 
     // Edit project load
     function startEditProject(project){
@@ -1019,7 +1019,7 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
     const score = p.overallPercent || 0;
 
     if (scoreRange === "need") return score < 60;
-    if (scoreRange === "average") return score >= 60 && score < 80;
+    if (scoreRange === "Good") return score >= 60 && score < 80;
     if (scoreRange === "Excellent") return score >= 80;
 
     return true; // all
@@ -1036,7 +1036,7 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
 
       const tagText =
         project.overallPercent < 60 ? "Needs Training" :
-        project.overallPercent < 80 ? "Average" :
+        project.overallPercent < 80 ? "Good" :
         "Excellent";
 
       const tagClass =
@@ -1162,7 +1162,7 @@ function renderProjectsListForPdf(member, container, scoreRange = "all") {
 
       projects.forEach(p=>{
         const orientation = (p.scores && typeof p.scores.orientation === "number") ? p.scores.orientation.toFixed(1) : "";
-        const tag = (p.overallPercent||0) < 60 ? "Needs Training" : ((p.overallPercent||0) < 80 ? "Average" : "Excellent");
+        const tag = (p.overallPercent||0) < 60 ? "Needs Training" : ((p.overallPercent||0) < 80 ? "Good" : "Excellent");
         rows.push([p.name||"", p.developer||"", p.region||"", p.ownerName||"", (p.overallPercent||0).toFixed(1), orientation, new Date(p.createdAt||Date.now()).toISOString(), tag, p.notes ? p.notes.replace(/\n/g," \\n ") : ""]);
       });
 
@@ -1570,7 +1570,7 @@ function buildPdfTeamView(member, scoreRange = "all") {
   const rangeLabelMap = {
     all: "All projects",
     need: "Needs training (< 60%)",
-    average: "Average (60–79%)",
+    Good: "Good (60–79%)",
     Excellent: "Excellent (≥ 80%)"
   };
 
@@ -1648,7 +1648,7 @@ function buildPdfTeamView(member, scoreRange = "all") {
   projects.forEach(p=>{
     const tag =
       p.overallPercent < 60 ? "Needs training" :
-      p.overallPercent < 80 ? "Average" : "Excellent";
+      p.overallPercent < 80 ? "Good" : "Excellent";
 
     bodyHtml += `
       <div style="border:1px solid #e5e5e5;border-radius:10px;padding:10px;">
@@ -1678,7 +1678,7 @@ function buildPdfTeamView(member, scoreRange = "all") {
   const rangeTitleMap = {
   all: "All projects",
   Need: "Needs training (< 60%)",
-  Average: "Average (60–79%)",
+  Good: "Good (60–79%)",
   Excellent: "Excellent (≥ 80%)"
 };
 
@@ -1806,7 +1806,7 @@ function buildPdfTeamView(member, scoreRange = "all") {
 <select id="pdfScoreRange" style="width:100%;margin-bottom:14px">
   <option value="all">All</option>
   <option value="need">Needs training (&lt; 60%)</option>
-  <option value="average">Average (60–79%)</option>
+  <option value="Good">Good (60–79%)</option>
   <option value="Excellent"> (≥Excellent 80%)</option>
 </select>
  
