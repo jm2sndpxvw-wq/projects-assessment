@@ -2063,6 +2063,7 @@ html2pdf().set({
 }).from(pdfRoot).save().then(() => {
   document.body.removeChild(temp);
   closePdfModal();
+  });
   }
 function closePdfModal() {
   document.getElementById("pdfModal").style.display = "none";
