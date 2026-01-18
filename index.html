@@ -1571,7 +1571,7 @@ function buildPdfTeamView(member, scoreRange = "all") {
     all: "All projects",
     need: "Needs training (< 60%)",
     average: "Average (60–79%)",
-    confident: "Confident (≥ 80%)"
+    Excellent: "Excellent (≥ 80%)"
   };
 
   container.innerHTML = `
@@ -1677,9 +1677,9 @@ function buildPdfTeamView(member, scoreRange = "all") {
 
   const rangeTitleMap = {
   all: "All projects",
-  need: "Needs training (< 60%)",
-  average: "Average (60–79%)",
-  confident: "Confident (≥ 80%)"
+  Need: "Needs training (< 60%)",
+  Average: "Average (60–79%)",
+  Excellent: "Excellent (≥ 80%)"
 };
 
   const title = `${member.name} – Projects`;
@@ -1807,7 +1807,7 @@ function buildPdfTeamView(member, scoreRange = "all") {
   <option value="all">All</option>
   <option value="need">Needs training (&lt; 60%)</option>
   <option value="average">Average (60–79%)</option>
-  <option value="confident">Confident (≥ 80%)</option>
+  <option value="Excellent"> (≥Excellent 80%)</option>
 </select>
  
  <label style="font-size:12px">Sales member</label>
